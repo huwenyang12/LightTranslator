@@ -1,0 +1,75 @@
+using LightTranslator.ViewModels;
+using LightTranslator.Services.Settings;
+namespace LightTranslator.Tests;
+
+public class FirstRunSettingsViewModelTests
+{
+    [Fact]
+    public void CanSave_WhenApiKeyIsEmpty_ReturnsFalse()
+    {
+        var viewModel =
+            new FirstRunSettingsViewModel();
+
+        Assert.False(
+            viewModel.CanSave
+        );
+    }
+
+    [Fact]
+    public void CanSave_WhenApiKeyHasValue_ReturnsTrue()
+    {
+        var viewModel =
+            new FirstRunSettingsViewModel
+            {
+                ApiKey = "test-key"
+            };
+
+        Assert.True(
+            viewModel.CanSave
+        );
+    }
+
+    [Fact]
+    public async Task SaveAsync_WhenApiKeyHasValue_PersistsApiKey()
+    {
+        var persistence =
+            new FakeFirstRunSettingsPersistence();
+
+        var viewModel =
+            new FirstRunSettingsViewModel(
+                persistence
+            )
+            {
+                ApiKey = "test-key"
+            };
+
+        var saved =
+            await viewModel.SaveAsync();
+
+        Assert.True(
+            saved
+        );
+
+        Assert.Equal(
+            "test-key",
+            persistence.SavedApiKey
+        );
+    }
+
+    private sealed class FakeFirstRunSettingsPersistence
+        : IFirstRunSettingsPersistence
+    {
+        public string? SavedApiKey { get; private set; }
+
+        public Task SaveAsync(
+            string apiKey,
+            CancellationToken cancellationToken = default
+        )
+        {
+            SavedApiKey =
+                apiKey;
+
+            return Task.CompletedTask;
+        }
+    }
+}

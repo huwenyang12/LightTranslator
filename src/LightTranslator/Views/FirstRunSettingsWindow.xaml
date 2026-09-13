@@ -1,0 +1,53 @@
+<Window x:Class="LightTranslator.Views.FirstRunSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LightTranslator"
+        Width="460"
+        Height="300"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        ShowInTaskbar="True">
+
+    <Grid Margin="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="24" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="首次设置"
+                   FontSize="24"
+                   FontWeight="SemiBold" />
+
+        <TextBlock Grid.Row="1"
+                   Margin="0,8,0,0"
+                   Text="配置 DeepSeek API Key，完成后应用将在后台运行。"
+                   Foreground="#666666"
+                   TextWrapping="Wrap" />
+
+        <TextBlock Grid.Row="3"
+                   Text="DeepSeek API Key"
+                   FontWeight="SemiBold" />
+
+        <PasswordBox x:Name="ApiKeyPasswordBox"
+                    Grid.Row="4"
+                    Height="36"
+                    Margin="0,8,0,0"
+                    Padding="8,5"
+                    PasswordChanged="OnApiKeyPasswordChanged" />
+
+        <Button x:Name="SaveButton"
+                Grid.Row="6"
+                Width="140"
+                Height="36"
+                HorizontalAlignment="Right"
+                Content="保存并开始使用"
+                IsEnabled="False"
+                Click="OnSaveClick" />
+    </Grid>
+</Window>

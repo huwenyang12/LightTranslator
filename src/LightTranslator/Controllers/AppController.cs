@@ -1,0 +1,28 @@
+using LightTranslator.Models;
+
+namespace LightTranslator.Controllers;
+
+public sealed class AppController
+{
+    private readonly IAppStartupView _startupView;
+
+    public AppController(
+        IAppStartupView startupView
+    )
+    {
+        _startupView =
+            startupView;
+    }
+
+    public void Start(
+        AppSettings settings
+    )
+    {
+        if (
+            !settings.FirstRunCompleted
+        )
+        {
+            _startupView.ShowFirstRunSettings();
+        }
+    }
+}
