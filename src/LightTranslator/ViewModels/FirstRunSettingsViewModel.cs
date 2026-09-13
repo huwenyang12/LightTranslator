@@ -6,18 +6,21 @@ public sealed class FirstRunSettingsViewModel
 {
     private readonly IFirstRunSettingsPersistence? _persistence;
 
+    private readonly IStartWithWindowsSettingsPersistence?
+        _startupPersistence;
+
     private string _apiKey = string.Empty;
 
-    public FirstRunSettingsViewModel()
-    {
-    }
-
     public FirstRunSettingsViewModel(
-        IFirstRunSettingsPersistence persistence
+        IFirstRunSettingsPersistence? persistence = null,
+        IStartWithWindowsSettingsPersistence? startupPersistence = null
     )
     {
         _persistence =
             persistence;
+
+        _startupPersistence =
+            startupPersistence;
     }
 
     public string ApiKey
@@ -30,6 +33,8 @@ public sealed class FirstRunSettingsViewModel
                 value ?? string.Empty;
         }
     }
+
+    public bool StartWithWindows { get; set; }
 
     public bool CanSave =>
         !string.IsNullOrWhiteSpace(
@@ -50,6 +55,23 @@ public sealed class FirstRunSettingsViewModel
 
         await _persistence.SaveAsync(
             ApiKey,
+            cancellationToken
+        );
+
+        return true;
+    }
+
+    public async Task<bool> SaveStartWithWindowsAsync(
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (_startupPersistence is null)
+        {
+            return false;
+        }
+
+        await _startupPersistence.SaveAsync(
+            StartWithWindows,
             cancellationToken
         );
 

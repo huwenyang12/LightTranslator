@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="LightTranslator"
         Width="460"
-        Height="300"
+        Height="340"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ShowInTaskbar="True">
@@ -15,15 +15,17 @@
             <RowDefinition Height="24" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="20" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <TextBlock x:Name="TitleTextBlock"
-                Grid.Row="0"
-                Text="首次设置"
-                FontSize="24"
-                FontWeight="SemiBold" />
+                   Grid.Row="0"
+                   Text="首次设置"
+                   FontSize="24"
+                   FontWeight="SemiBold" />
 
         <TextBlock Grid.Row="1"
                    Margin="0,8,0,0"
@@ -36,14 +38,19 @@
                    FontWeight="SemiBold" />
 
         <PasswordBox x:Name="ApiKeyPasswordBox"
-                    Grid.Row="4"
-                    Height="36"
-                    Margin="0,8,0,0"
-                    Padding="8,5"
-                    PasswordChanged="OnApiKeyPasswordChanged" />
+                     Grid.Row="4"
+                     Height="36"
+                     Margin="0,8,0,0"
+                     Padding="8,5"
+                     PasswordChanged="OnApiKeyPasswordChanged" />
+
+        <CheckBox x:Name="StartWithWindowsCheckBox"
+                  Grid.Row="6"
+                  Content="开机自动启动"
+                  IsChecked="{Binding StartWithWindows, Mode=TwoWay}" />
 
         <Button x:Name="SaveButton"
-                Grid.Row="6"
+                Grid.Row="8"
                 Width="140"
                 Height="36"
                 HorizontalAlignment="Right"

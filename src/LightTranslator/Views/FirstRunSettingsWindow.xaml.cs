@@ -6,6 +6,7 @@ public partial class FirstRunSettingsWindow
     : System.Windows.Window
 {
     private readonly FirstRunSettingsViewModel _viewModel;
+    private readonly bool _isFirstRun;
 
     public FirstRunSettingsWindow(
         FirstRunSettingsViewModel viewModel,
@@ -17,6 +18,9 @@ public partial class FirstRunSettingsWindow
         _viewModel =
             viewModel;
 
+        _isFirstRun =
+            isFirstRun;
+
         DataContext =
             viewModel;
 
@@ -24,6 +28,10 @@ public partial class FirstRunSettingsWindow
             isFirstRun
                 ? "首次设置"
                 : "设置";
+
+        SaveButton.IsEnabled =
+            !_isFirstRun ||
+            _viewModel.CanSave;
     }
 
     private void OnApiKeyPasswordChanged(
@@ -35,6 +43,7 @@ public partial class FirstRunSettingsWindow
             ApiKeyPasswordBox.Password;
 
         SaveButton.IsEnabled =
+            !_isFirstRun ||
             _viewModel.CanSave;
     }
 
@@ -43,10 +52,43 @@ public partial class FirstRunSettingsWindow
         System.Windows.RoutedEventArgs e
     )
     {
-        var saved =
-            await _viewModel.SaveAsync();
+        if (_isFirstRun)
+        {
+            var firstRunApiKeySaved =
+                await _viewModel.SaveAsync();
 
-        if (saved)
+            var firstRunStartupSaved =
+                await _viewModel.SaveStartWithWindowsAsync();
+
+            if (
+                firstRunApiKeySaved &&
+                firstRunStartupSaved
+            )
+            {
+                Close();
+            }
+
+            return;
+        }
+
+        // 普通设置：
+        // API Key 留空表示“不修改现有 Key”
+        var normalApiKeySaved =
+            true;
+
+        if (_viewModel.CanSave)
+        {
+            normalApiKeySaved =
+                await _viewModel.SaveAsync();
+        }
+
+        var normalStartupSaved =
+            await _viewModel.SaveStartWithWindowsAsync();
+
+        if (
+            normalApiKeySaved &&
+            normalStartupSaved
+        )
         {
             Close();
         }

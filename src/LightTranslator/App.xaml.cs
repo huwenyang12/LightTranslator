@@ -9,6 +9,7 @@ using LightTranslator.Services.Tray;
 using LightTranslator.Services.Windows;
 using LightTranslator.ViewModels;
 using LightTranslator.Views;
+using LightTranslator.Services.Startup;
 
 namespace LightTranslator;
 
@@ -21,6 +22,8 @@ public partial class App
     private ISecretStorage? _secretStorage;
 
     private IFirstRunSettingsPersistence? _firstRunSettingsPersistence;
+    private IStartWithWindowsSettingsPersistence? _startWithWindowsSettingsPersistence;
+    private bool _startWithWindows;
 
     private HotkeyMessageWindow? _hotkeyMessageWindow;
 
@@ -63,6 +66,32 @@ public partial class App
         var settings =
             await settingsService.LoadAsync();
 
+
+        var startupBackend =
+            new RegistryStartupRegistrationBackend();
+
+        var startupService =
+            new StartupService(
+                startupBackend,
+                () =>
+                    Environment.ProcessPath
+                    ?? throw new InvalidOperationException(
+                        "Unable to determine application executable path."
+                    )
+            );
+
+        _startWithWindowsSettingsPersistence =
+            new StartWithWindowsSettingsPersistence(
+                startupService,
+                settingsService
+            );
+
+        _startWithWindows =
+            settings.StartWithWindows;
+
+        startupService.SetEnabled(
+            settings.StartWithWindows
+        );
 
         // 首次启动判断
         _appController =
@@ -232,44 +261,72 @@ public partial class App
 
     public void ShowFirstRunSettings()
     {
-        if (_firstRunSettingsPersistence is null)
+        if (
+            _firstRunSettingsPersistence is null ||
+            _startWithWindowsSettingsPersistence is null
+        )
         {
             return;
         }
 
-
         var viewModel =
             new FirstRunSettingsViewModel(
-                _firstRunSettingsPersistence
-            );
-
+                _firstRunSettingsPersistence,
+                _startWithWindowsSettingsPersistence
+            )
+            {
+                StartWithWindows =
+                    _startWithWindows
+            };
 
         var window =
             new FirstRunSettingsWindow(
-                viewModel
+                viewModel,
+                isFirstRun: true
             );
 
+        window.Closed +=
+            (_, _) =>
+            {
+                _startWithWindows =
+                    viewModel.StartWithWindows;
+            };
 
         window.Show();
     }
 
     public void ShowSettings()
     {
-        if (_firstRunSettingsPersistence is null)
+        if (
+            _firstRunSettingsPersistence is null ||
+            _startWithWindowsSettingsPersistence is null
+        )
         {
             return;
         }
 
         var viewModel =
             new FirstRunSettingsViewModel(
-                _firstRunSettingsPersistence
-            );
+                _firstRunSettingsPersistence,
+                _startWithWindowsSettingsPersistence
+            )
+            {
+                StartWithWindows =
+                    _startWithWindows
+            };
 
         var window =
             new FirstRunSettingsWindow(
                 viewModel,
                 isFirstRun: false
             );
+
+        window.Closed +=
+            (_, _) =>
+            {
+                _startWithWindows =
+                    viewModel.StartWithWindows;
+            };
 
         window.Show();
     }

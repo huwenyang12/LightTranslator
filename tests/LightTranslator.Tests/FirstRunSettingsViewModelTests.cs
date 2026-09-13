@@ -4,6 +4,30 @@ namespace LightTranslator.Tests;
 
 public class FirstRunSettingsViewModelTests
 {
+
+    [Fact]
+    public async Task SaveStartWithWindowsAsync_PersistsCurrentValue()
+    {
+        var startupPersistence =
+            new FakeStartWithWindowsSettingsPersistence();
+
+        var viewModel =
+            new FirstRunSettingsViewModel(
+                startupPersistence:
+                    startupPersistence
+            )
+            {
+                StartWithWindows = true
+            };
+
+        await viewModel.SaveStartWithWindowsAsync();
+
+        Assert.True(
+            startupPersistence.SavedValue
+        );
+    }
+
+
     [Fact]
     public void CanSave_WhenApiKeyIsEmpty_ReturnsFalse()
     {
@@ -68,6 +92,23 @@ public class FirstRunSettingsViewModelTests
         {
             SavedApiKey =
                 apiKey;
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeStartWithWindowsSettingsPersistence
+        : IStartWithWindowsSettingsPersistence
+    {
+        public bool SavedValue { get; private set; }
+
+        public Task SaveAsync(
+            bool enabled,
+            CancellationToken cancellationToken = default
+        )
+        {
+            SavedValue =
+                enabled;
 
             return Task.CompletedTask;
         }
