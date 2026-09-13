@@ -1,10 +1,12 @@
 using System.Windows;
 using System.Windows.Input;
 using LightTranslator.ViewModels;
+using LightTranslator.Services.Windows;
 
 namespace LightTranslator.Views;
 
-public partial class TranslateWindow : Window
+public partial class TranslateWindow
+    : Window, IManagedWindow
 {
     private readonly TranslateViewModel _viewModel;
 
