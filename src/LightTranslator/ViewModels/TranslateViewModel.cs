@@ -18,16 +18,71 @@ public sealed class TranslateViewModel
     private string _sourceLanguage = "auto";
     private string _targetLanguage = "zh";
     private string? _errorMessage;
+    private string? _detectedSourceLanguage;
 
     public TranslateViewModel(
-        ITranslationService translationService,
-        TimeSpan? debounceDelay = null
-    )
-    {
-        _translationService = translationService;
+            ITranslationService translationService,
+            TimeSpan? debounceDelay = null
+        )
+        {
+            _translationService = translationService;
 
-        _debounceDelay =
-            debounceDelay ?? TimeSpan.FromMilliseconds(400);
+            _debounceDelay =
+                debounceDelay ?? TimeSpan.FromMilliseconds(400);
+        }
+
+        public void SwapLanguages()
+    {
+        var oldSourceLanguage =
+            SourceLanguage;
+
+        var oldTargetLanguage =
+            TargetLanguage;
+
+        string? newTargetLanguage;
+
+        if (oldSourceLanguage == "auto")
+        {
+            newTargetLanguage =
+                _detectedSourceLanguage;
+
+            if (
+                string.IsNullOrWhiteSpace(
+                    newTargetLanguage
+                )
+            )
+            {
+                return;
+            }
+        }
+        else
+        {
+            newTargetLanguage =
+                oldSourceLanguage;
+        }
+
+        _sourceLanguage =
+            oldTargetLanguage;
+
+        _targetLanguage =
+            newTargetLanguage;
+
+        OnPropertyChanged(
+            nameof(SourceLanguage)
+        );
+
+        OnPropertyChanged(
+            nameof(TargetLanguage)
+        );
+
+        if (
+            !string.IsNullOrWhiteSpace(
+                SourceText
+            )
+        )
+        {
+            ScheduleTranslation();
+        }
     }
 
     public string? ErrorMessage
@@ -161,6 +216,9 @@ public sealed class TranslateViewModel
                 );
 
             cancellationToken.ThrowIfCancellationRequested();
+
+            _detectedSourceLanguage =
+                result.DetectedSourceLanguage;
 
             ErrorMessage = null;
             TranslatedText = result.Text;

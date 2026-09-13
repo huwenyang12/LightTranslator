@@ -144,6 +144,65 @@ public class TranslateViewModelTests
     }
 
     [Fact]
+    public void SwapLanguages_WhenSourceIsExplicit_SwapsSourceAndTarget()
+    {
+        var translationService =
+            new FakeTranslationService();
+
+        var viewModel = new TranslateViewModel(
+            translationService,
+            TimeSpan.FromMilliseconds(10)
+        );
+
+        viewModel.SourceLanguage = "zh";
+        viewModel.TargetLanguage = "en";
+
+        viewModel.SwapLanguages();
+
+        Assert.Equal(
+            "en",
+            viewModel.SourceLanguage
+        );
+
+        Assert.Equal(
+            "zh",
+            viewModel.TargetLanguage
+        );
+    }
+
+    [Fact]
+    public async Task SwapLanguages_WhenSourceIsAuto_UsesDetectedSourceLanguage()
+    {
+        var translationService =
+            new FakeTranslationService();
+
+        var viewModel = new TranslateViewModel(
+            translationService,
+            TimeSpan.FromMilliseconds(10)
+        );
+
+        viewModel.SourceLanguage = "auto";
+        viewModel.TargetLanguage = "en";
+        viewModel.SourceText = "你好";
+
+        await WaitUntilAsync(
+            () => viewModel.TranslatedText == "Hello"
+        );
+
+        viewModel.SwapLanguages();
+
+        Assert.Equal(
+            "en",
+            viewModel.SourceLanguage
+        );
+
+        Assert.Equal(
+            "zh",
+            viewModel.TargetLanguage
+        );
+    }
+
+    [Fact]
     public async Task SourceLanguageChanged_RetranslatesCurrentText()
     {
         var translationService =
