@@ -22,7 +22,7 @@ LightTranslator 是一个面向 Windows 10/11 的轻量级桌面翻译工具，�
 - 目标系统：Windows 10 / Windows 11
 - OCR：PaddleOCR 模型 + ONNX Runtime
 - 图像处理：OpenCvSharp / 必要时配合 SkiaSharp 或 WPF Bitmap API
-- 翻译服务：DeepL API
+- 翻译服务：DeepSeek API
 - 本地配置：JSON
 - 敏感信息保护：Windows DPAPI
 - 全局快捷键：Windows RegisterHotKey
@@ -45,7 +45,7 @@ LightTranslator 是一个面向 Windows 10/11 的轻量级桌面翻译工具，�
 2. 在当前鼠标所在显示器中央偏上位置打开轻量翻译窗口。
 3. 自动聚焦输入框。
 4. 用户输入文字。
-5. 停止输入约 400ms 后自动调用 DeepL 翻译。
+5. 停止输入约 400ms 后自动调用 DeepSeek 翻译。
 6. 显示译文。
 7. Enter：复制当前译文到剪贴板并关闭窗口。
 8. Shift + Enter：输入换行。
@@ -91,7 +91,7 @@ LightTranslator 是一个面向 Windows 10/11 的轻量级桌面翻译工具，�
 9. 原选区位置显示轻量 Loading Overlay。
 10. 对选区 Bitmap 执行本地 OCR。
 11. 获得文字块和坐标。
-12. 对文字块逐块调用 DeepL 翻译。
+12. 对文字块逐块调用 DeepSeek 翻译。
 13. BackgroundCleaner 擦除原文字。
 14. TranslationRenderer 将译文重新绘制回原位置。
 15. 生成最终翻译 Bitmap。
@@ -233,7 +233,7 @@ ITranslationService
 
 V1 实现：
 
-DeepLTranslationService
+DeepSeekTranslationService
 
 架构允许未来新增：
 
@@ -351,7 +351,7 @@ LightTranslator/
 ├─ Services/
 │  ├─ Translation/
 │  │  ├─ ITranslationService.cs
-│  │  └─ DeepLTranslationService.cs
+│  │  └─ DeepSeekTranslationService.cs
 │  ├─ Ocr/
 │  │  ├─ IOcrService.cs
 │  │  └─ PaddleOcrService.cs
@@ -396,7 +396,7 @@ LightTranslator/
 - Service 负责业务能力。
 - Windows 原生 API 封装在 Infrastructure/Windows。
 - 各模块通过接口隔离。
-- 不把 OCR、DeepL、截图、配置逻辑写入 Window Code-Behind。
+- 不把 OCR、DeepSeek、截图、配置逻辑写入 Window Code-Behind。
 
 ---
 
@@ -434,7 +434,7 @@ Alt + Q
 首次启动：
 
 1. 显示 WelcomeWindow。
-2. 配置 DeepL API Key。
+2. 配置 DeepSeek API Key。
 3. 测试 API。
 4. 设置默认语言。
 5. 完成后进入系统托盘。
@@ -510,7 +510,7 @@ settings.json 保存：
 
 ---
 
-## 16. DeepL API Key 安全
+## 16. DeepSeek API Key 安全
 
 API Key：
 
@@ -566,7 +566,7 @@ logs/
 - 快捷键注册
 - OCR 耗时
 - OCR Block 数量
-- DeepL 请求耗时
+- DeepSeek 请求耗时
 - Overlay 生成耗时
 - 模型下载
 - 异常堆栈
@@ -583,11 +583,11 @@ logs/
 
 ## 19. 异常处理
 
-DeepL：
+DeepSeek：
 
 - 网络超时 → “翻译请求超时”
-- API Key 无效 → “DeepL API Key 无效”
-- 配额不足 → “DeepL API 额度不足”
+- API Key 无效 → “DeepSeek API Key 无效”
+- 配额不足 → “DeepSeek API 额度不足”
 
 OCR：
 
@@ -617,8 +617,8 @@ OCR：
 V1：
 
 - 截图 OCR 全程本地。
-- 截图不上传 DeepL。
-- DeepL 只接收需要翻译的文本。
+- 截图不上传 DeepSeek。
+- DeepSeek 只接收需要翻译的文本。
 - 不保存翻译历史。
 - 不保存截图。
 - 不在日志中记录正文。
@@ -686,7 +686,7 @@ V1：
 5. HotkeyService。
 6. TranslateWindow 静态 UI。
 7. TranslateWindow 交互与 400ms 防抖。
-8. ITranslationService + DeepL。
+8. ITranslationService + DeepSeek。
 9. 设置与 DPAPI。
 10. CaptureWindow。
 11. 多显示器与 DPI。
@@ -723,7 +723,7 @@ Alt + T
 Alt + Q
 → 框选
 → 本地 OCR
-→ DeepL
+→ DeepSeek
 → 原位置翻译覆盖
 → 点击 / Esc / Alt + Q 退出
 ```
