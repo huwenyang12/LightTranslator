@@ -202,6 +202,31 @@ public class TranslateViewModelTests
         );
     }
 
+
+    [Fact]
+    public void Constructor_UsesInitialLanguageSelection()
+    {
+        var translationService =
+            new FakeTranslationService();
+
+        var viewModel =
+            new TranslateViewModel(
+                translationService,
+                initialSourceLanguage: "en",
+                initialTargetLanguage: "ja"
+            );
+
+        Assert.Equal(
+            "en",
+            viewModel.SourceLanguage
+        );
+
+        Assert.Equal(
+            "ja",
+            viewModel.TargetLanguage
+        );
+    }
+
     [Fact]
     public async Task SourceLanguageChanged_RetranslatesCurrentText()
     {

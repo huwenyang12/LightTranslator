@@ -8,6 +8,66 @@ public class FirstRunSettingsWindowTests
 {
 
     [Fact]
+    public void NormalMode_ShowsSettingsTitle()
+    {
+        Exception? exception =
+            null;
+
+        string? titleText =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var viewModel =
+                            new FirstRunSettingsViewModel();
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: false
+                            );
+
+                        var titleBlock =
+                            (System.Windows.Controls.TextBlock)
+                            window.FindName(
+                                "TitleTextBlock"
+                            );
+
+                        titleText =
+                            titleBlock.Text;
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+
+        Assert.Equal(
+            "设置",
+            titleText
+        );
+    }
+
+    [Fact]
     public void SaveButtonClick_SavesApiKey()
     {
         Exception? exception =

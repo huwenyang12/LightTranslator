@@ -8,7 +8,8 @@ public partial class FirstRunSettingsWindow
     private readonly FirstRunSettingsViewModel _viewModel;
 
     public FirstRunSettingsWindow(
-        FirstRunSettingsViewModel viewModel
+        FirstRunSettingsViewModel viewModel,
+        bool isFirstRun = true
     )
     {
         InitializeComponent();
@@ -18,6 +19,11 @@ public partial class FirstRunSettingsWindow
 
         DataContext =
             viewModel;
+
+        TitleTextBlock.Text =
+            isFirstRun
+                ? "首次设置"
+                : "设置";
     }
 
     private void OnApiKeyPasswordChanged(

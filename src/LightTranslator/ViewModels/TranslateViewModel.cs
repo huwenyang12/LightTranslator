@@ -21,15 +21,24 @@ public sealed class TranslateViewModel
     private string? _detectedSourceLanguage;
 
     public TranslateViewModel(
-            ITranslationService translationService,
-            TimeSpan? debounceDelay = null
-        )
-        {
-            _translationService = translationService;
+        ITranslationService translationService,
+        TimeSpan? debounceDelay = null,
+        string initialSourceLanguage = "auto",
+        string initialTargetLanguage = "zh"
+    )
+    {
+        _translationService =
+            translationService;
 
-            _debounceDelay =
-                debounceDelay ?? TimeSpan.FromMilliseconds(400);
-        }
+        _debounceDelay =
+            debounceDelay ?? TimeSpan.FromMilliseconds(400);
+
+        _sourceLanguage =
+            initialSourceLanguage;
+
+        _targetLanguage =
+            initialTargetLanguage;
+    }
 
         public void SwapLanguages()
     {

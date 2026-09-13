@@ -7,6 +7,25 @@ public class AppControllerTests
 {
 
     [Fact]
+    public void OpenSettings_ShowsNormalSettings()
+    {
+        var startupView =
+            new FakeAppStartupView();
+
+        var controller =
+            new AppController(
+                startupView
+            );
+
+        controller.OpenSettings();
+
+        Assert.Equal(
+            1,
+            startupView.ShowSettingsCount
+        );
+    }
+
+    [Fact]
     public void Start_WhenFirstRunCompleted_DoesNotShowFirstRunSettings()
     {
         var startupView =
@@ -65,6 +84,11 @@ public class AppControllerTests
         public void ShowFirstRunSettings()
         {
             ShowFirstRunSettingsCount++;
+        }
+        public int ShowSettingsCount { get; private set; }
+        public void ShowSettings()
+        {
+            ShowSettingsCount++;
         }
     }
 }

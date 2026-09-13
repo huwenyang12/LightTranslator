@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Input;
 using LightTranslator.ViewModels;
 using LightTranslator.Services.Windows;
+using LightTranslator.Services.Settings;
 
 namespace LightTranslator.Views;
 
@@ -9,22 +10,51 @@ public partial class TranslateWindow
     : Window, IManagedWindow
 {
     private readonly TranslateViewModel _viewModel;
+    private readonly ITextLanguageSettingsPersistence? _languagePersistence;
 
     public TranslateWindow(
-        TranslateViewModel viewModel
+        TranslateViewModel viewModel,
+        ITextLanguageSettingsPersistence? languagePersistence = null
     )
     {
         InitializeComponent();
 
-        _viewModel = viewModel;
+        _viewModel =
+            viewModel;
 
-        DataContext = viewModel;
+        _languagePersistence =
+            languagePersistence;
 
-        Loaded += OnLoaded;
-        PreviewKeyDown += OnPreviewKeyDown;
+        DataContext =
+            viewModel;
+
+        Loaded +=
+            OnLoaded;
+
+        PreviewKeyDown +=
+            OnPreviewKeyDown;
 
         SourceTextBox.PreviewKeyDown +=
             OnSourceTextBoxPreviewKeyDown;
+
+        Closed +=
+            OnClosed;
+    }
+
+    private async void OnClosed(
+        object? sender,
+        EventArgs e
+    )
+    {
+        if (_languagePersistence is null)
+        {
+            return;
+        }
+
+        await _languagePersistence.SaveAsync(
+            _viewModel.SourceLanguage,
+            _viewModel.TargetLanguage
+        );
     }
 
     private void OnLoaded(

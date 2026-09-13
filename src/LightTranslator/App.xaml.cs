@@ -31,6 +31,7 @@ public partial class App
     private WindowManager? _windowManager;
 
     private TrayService? _trayService;
+    private AppController? _appController;
 
 
     protected override async void OnStartup(
@@ -64,12 +65,12 @@ public partial class App
 
 
         // 首次启动判断
-        var appController =
+        _appController =
             new AppController(
                 this
             );
 
-        appController.Start(
+        _appController.Start(
             settings
         );
 
@@ -91,14 +92,49 @@ public partial class App
 
 
         // 翻译窗口管理
+        var textLanguagePersistence =
+            new TextLanguageSettingsPersistence(
+                settingsService
+            );
+
+        var currentSettings =
+            settings;
+
         _windowManager =
             new WindowManager(
                 () =>
-                    new TranslateWindow(
+                {
+                    var viewModel =
                         new TranslateViewModel(
-                            translationService
-                        )
-                    )
+                            translationService,
+                            initialSourceLanguage:
+                                currentSettings.TextSourceLanguage,
+                            initialTargetLanguage:
+                                currentSettings.TextTargetLanguage
+                        );
+
+                    var window =
+                        new TranslateWindow(
+                            viewModel,
+                            textLanguagePersistence
+                        );
+
+                    window.Closed +=
+                        (_, _) =>
+                        {
+                            currentSettings =
+                                currentSettings with
+                                {
+                                    TextSourceLanguage =
+                                        viewModel.SourceLanguage,
+
+                                    TextTargetLanguage =
+                                        viewModel.TargetLanguage
+                                };
+                        };
+
+                    return window;
+                }
             );
 
 
@@ -184,7 +220,7 @@ public partial class App
 
     private void OnTraySettingsRequested()
     {
-        ShowFirstRunSettings();
+        _appController?.OpenSettings();
     }
 
 
@@ -213,6 +249,27 @@ public partial class App
                 viewModel
             );
 
+
+        window.Show();
+    }
+
+    public void ShowSettings()
+    {
+        if (_firstRunSettingsPersistence is null)
+        {
+            return;
+        }
+
+        var viewModel =
+            new FirstRunSettingsViewModel(
+                _firstRunSettingsPersistence
+            );
+
+        var window =
+            new FirstRunSettingsWindow(
+                viewModel,
+                isFirstRun: false
+            );
 
         window.Show();
     }

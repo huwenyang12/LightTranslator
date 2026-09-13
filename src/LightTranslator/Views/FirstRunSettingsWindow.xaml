@@ -19,10 +19,11 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="首次设置"
-                   FontSize="24"
-                   FontWeight="SemiBold" />
+        <TextBlock x:Name="TitleTextBlock"
+                Grid.Row="0"
+                Text="首次设置"
+                FontSize="24"
+                FontWeight="SemiBold" />
 
         <TextBlock Grid.Row="1"
                    Margin="0,8,0,0"

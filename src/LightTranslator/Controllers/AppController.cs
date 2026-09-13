@@ -25,4 +25,9 @@ public sealed class AppController
             _startupView.ShowFirstRunSettings();
         }
     }
+
+    public void OpenSettings()
+    {
+        _startupView.ShowSettings();
+    }
 }
