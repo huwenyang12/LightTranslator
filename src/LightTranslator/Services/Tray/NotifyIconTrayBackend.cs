@@ -5,6 +5,8 @@ public sealed class NotifyIconTrayBackend
 {
     private readonly System.Windows.Forms.NotifyIcon _notifyIcon;
 
+    private readonly System.Drawing.Icon _icon;
+
     private readonly System.Windows.Forms.ContextMenuStrip _contextMenu;
 
     private readonly System.Windows.Forms.ToolStripMenuItem _settingsItem;
@@ -13,9 +15,11 @@ public sealed class NotifyIconTrayBackend
 
     private bool _disposed;
 
+
     public event Action? SettingsRequested;
 
     public event Action? ExitRequested;
+
 
     public NotifyIconTrayBackend()
     {
@@ -29,11 +33,13 @@ public sealed class NotifyIconTrayBackend
                 "退出"
             );
 
+
         _settingsItem.Click +=
             OnSettingsClick;
 
         _exitItem.Click +=
             OnExitClick;
+
 
         _contextMenu =
             new System.Windows.Forms.ContextMenuStrip();
@@ -50,6 +56,22 @@ public sealed class NotifyIconTrayBackend
             _exitItem
         );
 
+
+        var executablePath =
+            Environment.ProcessPath
+            ?? throw new InvalidOperationException(
+                "Unable to determine application executable path."
+            );
+
+
+        _icon =
+            System.Drawing.Icon.ExtractAssociatedIcon(
+                executablePath
+            )
+            ?? (System.Drawing.Icon)
+                System.Drawing.SystemIcons.Application.Clone();
+
+
         _notifyIcon =
             new System.Windows.Forms.NotifyIcon
             {
@@ -57,7 +79,7 @@ public sealed class NotifyIconTrayBackend
                     "LightTranslator",
 
                 Icon =
-                    System.Drawing.SystemIcons.Application,
+                    _icon,
 
                 ContextMenuStrip =
                     _contextMenu,
@@ -67,6 +89,7 @@ public sealed class NotifyIconTrayBackend
             };
     }
 
+
     public void Show()
     {
         ThrowIfDisposed();
@@ -74,6 +97,7 @@ public sealed class NotifyIconTrayBackend
         _notifyIcon.Visible =
             true;
     }
+
 
     public void Hide()
     {
@@ -86,6 +110,7 @@ public sealed class NotifyIconTrayBackend
             false;
     }
 
+
     private void OnSettingsClick(
         object? sender,
         EventArgs e
@@ -94,6 +119,7 @@ public sealed class NotifyIconTrayBackend
         SettingsRequested?.Invoke();
     }
 
+
     private void OnExitClick(
         object? sender,
         EventArgs e
@@ -101,6 +127,7 @@ public sealed class NotifyIconTrayBackend
     {
         ExitRequested?.Invoke();
     }
+
 
     public void Dispose()
     {
@@ -112,14 +139,17 @@ public sealed class NotifyIconTrayBackend
         _disposed =
             true;
 
+
         _notifyIcon.Visible =
             false;
+
 
         _settingsItem.Click -=
             OnSettingsClick;
 
         _exitItem.Click -=
             OnExitClick;
+
 
         _notifyIcon.Dispose();
 
@@ -128,7 +158,10 @@ public sealed class NotifyIconTrayBackend
         _settingsItem.Dispose();
 
         _exitItem.Dispose();
+
+        _icon.Dispose();
     }
+
 
     private void ThrowIfDisposed()
     {
