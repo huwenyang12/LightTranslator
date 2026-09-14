@@ -38,12 +38,36 @@
                    Text="DeepSeek API Key"
                    FontWeight="SemiBold"/>
 
-        <PasswordBox x:Name="ApiKeyPasswordBox"
-                     Grid.Row="4"
-                     Height="36"
-                     Margin="0,8,0,0"
-                     Padding="8,5"
-                     PasswordChanged="OnApiKeyPasswordChanged"/>
+        <Grid Grid.Row="4"
+            Margin="0,8,0,0">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="90"/>
+            </Grid.ColumnDefinitions>
+
+            <PasswordBox x:Name="ApiKeyPasswordBox"
+                        Grid.Column="0"
+                        Height="36"
+                        Padding="8,5"
+                        PasswordChanged="OnApiKeyPasswordChanged"/>
+
+            <Button x:Name="TestApiKeyButton"
+                    Grid.Column="2"
+                    Height="36"
+                    Content="测试连接"
+                    IsEnabled="False"
+                    Click="OnTestApiKeyClick"/>
+
+        </Grid>
+
+        <TextBlock x:Name="ApiKeyTestMessageTextBlock"
+           Grid.Row="5"
+           Margin="0,6,0,0"
+           FontSize="12"
+           Foreground="#666666"
+           Text=""/>
 
         <CheckBox x:Name="StartWithWindowsCheckBox"
                   Grid.Row="6"

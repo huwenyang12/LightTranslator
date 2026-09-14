@@ -47,9 +47,50 @@ public partial class FirstRunSettingsWindow
         _viewModel.ApiKey =
             ApiKeyPasswordBox.Password;
 
+        ApiKeyTestMessageTextBlock.Text =
+            _viewModel.ApiKeyTestMessage;
+
+        TestApiKeyButton.IsEnabled =
+            !string.IsNullOrWhiteSpace(
+                _viewModel.ApiKey
+            ) &&
+            !_viewModel.IsTestingApiKey;
+
         SaveButton.IsEnabled =
-            !_isFirstRun ||
-            _viewModel.CanSave;
+            _isFirstRun
+                ? _viewModel.CanSave
+                : string.IsNullOrWhiteSpace(
+                    _viewModel.ApiKey
+                ) ||
+                _viewModel.CanSave;
+    }
+
+    private async void OnTestApiKeyClick(
+        object sender,
+        System.Windows.RoutedEventArgs e
+    )
+    {
+        TestApiKeyButton.IsEnabled =
+            false;
+
+        await _viewModel.TestApiKeyAsync();
+
+        ApiKeyTestMessageTextBlock.Text =
+            _viewModel.ApiKeyTestMessage;
+
+        TestApiKeyButton.IsEnabled =
+            !string.IsNullOrWhiteSpace(
+                _viewModel.ApiKey
+            ) &&
+            !_viewModel.IsTestingApiKey;
+
+        SaveButton.IsEnabled =
+            _isFirstRun
+                ? _viewModel.CanSave
+                : string.IsNullOrWhiteSpace(
+                    _viewModel.ApiKey
+                ) ||
+                _viewModel.CanSave;
     }
 
     private async void OnSaveClick(

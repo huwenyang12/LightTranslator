@@ -19,7 +19,7 @@ public partial class App
       IAppStartupView
 {
     private HttpClient? _httpClient;
-
+    private IApiKeyValidator? _apiKeyValidator;
     private ISecretStorage? _secretStorage;
 
     private IFirstRunSettingsPersistence? _firstRunSettingsPersistence;
@@ -94,6 +94,18 @@ public partial class App
             settings.StartWithWindows
         );
 
+        // HTTP
+        _httpClient =
+            new HttpClient();
+
+
+        // API Key 验证
+        _apiKeyValidator =
+            new DeepSeekApiKeyValidator(
+                _httpClient
+            );
+
+
         // 首次启动判断
         _appController =
             new AppController(
@@ -108,13 +120,8 @@ public partial class App
         if (!shouldContinue)
         {
             Shutdown();
-
             return;
         }
-
-        // HTTP
-        _httpClient =
-            new HttpClient();
 
 
         // 翻译服务
@@ -287,7 +294,8 @@ public partial class App
     {
         if (
             _firstRunSettingsPersistence is null ||
-            _startWithWindowsSettingsPersistence is null
+            _startWithWindowsSettingsPersistence is null ||
+            _apiKeyValidator is null
         )
         {
             return false;
@@ -296,7 +304,8 @@ public partial class App
         var viewModel =
             new FirstRunSettingsViewModel(
                 _firstRunSettingsPersistence,
-                _startWithWindowsSettingsPersistence
+                _startWithWindowsSettingsPersistence,
+                _apiKeyValidator
             )
             {
                 StartWithWindows =
@@ -324,7 +333,8 @@ public partial class App
     {
         if (
             _firstRunSettingsPersistence is null ||
-            _startWithWindowsSettingsPersistence is null
+            _startWithWindowsSettingsPersistence is null ||
+            _apiKeyValidator is null
         )
         {
             return;
@@ -333,7 +343,8 @@ public partial class App
         var viewModel =
             new FirstRunSettingsViewModel(
                 _firstRunSettingsPersistence,
-                _startWithWindowsSettingsPersistence
+                _startWithWindowsSettingsPersistence,
+                _apiKeyValidator
             )
             {
                 StartWithWindows =

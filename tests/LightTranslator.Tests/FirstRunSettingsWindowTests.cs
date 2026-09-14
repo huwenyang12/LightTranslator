@@ -1,11 +1,498 @@
 using LightTranslator.ViewModels;
 using LightTranslator.Views;
 using LightTranslator.Services.Settings;
+using LightTranslator.Services.Translation;
 
 namespace LightTranslator.Tests;
 
 public class FirstRunSettingsWindowTests
 {
+
+    [Fact]
+    public void ApiKeyChangedAfterValidation_ClearsDisplayedTestMessage()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var validator =
+                            new FakeApiKeyValidator();
+
+                        var viewModel =
+                            new FirstRunSettingsViewModel(
+                                apiKeyValidator:
+                                    validator
+                            );
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: true
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var passwordBox =
+                            (System.Windows.Controls.PasswordBox)
+                            window.FindName(
+                                "ApiKeyPasswordBox"
+                            );
+
+                        var testButton =
+                            (System.Windows.Controls.Button)
+                            window.FindName(
+                                "TestApiKeyButton"
+                            );
+
+                        var messageTextBlock =
+                            (System.Windows.Controls.TextBlock)
+                            window.FindName(
+                                "ApiKeyTestMessageTextBlock"
+                            );
+
+                        passwordBox.Password =
+                            "key-a";
+
+                        testButton.RaiseEvent(
+                            new System.Windows.RoutedEventArgs(
+                                System.Windows.Controls.Button.ClickEvent
+                            )
+                        );
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.ApplicationIdle
+                        );
+
+                        Assert.Equal(
+                            "连接成功",
+                            messageTextBlock.Text
+                        );
+
+                        passwordBox.Password =
+                            "key-b";
+
+                        Assert.Equal(
+                            string.Empty,
+                            messageTextBlock.Text
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+    [Fact]
+    public void TestApiKeyButtonClick_WhenValidationSucceeds_ShowsSuccessMessage()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var validator =
+                            new FakeApiKeyValidator();
+
+                        var viewModel =
+                            new FirstRunSettingsViewModel(
+                                apiKeyValidator:
+                                    validator
+                            );
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: true
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var passwordBox =
+                            (System.Windows.Controls.PasswordBox)
+                            window.FindName(
+                                "ApiKeyPasswordBox"
+                            );
+
+                        var testButton =
+                            (System.Windows.Controls.Button)
+                            window.FindName(
+                                "TestApiKeyButton"
+                            );
+
+                        var messageTextBlock =
+                            (System.Windows.Controls.TextBlock)
+                            window.FindName(
+                                "ApiKeyTestMessageTextBlock"
+                            );
+
+                        passwordBox.Password =
+                            "test-key";
+
+                        testButton.RaiseEvent(
+                            new System.Windows.RoutedEventArgs(
+                                System.Windows.Controls.Button.ClickEvent
+                            )
+                        );
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.ApplicationIdle
+                        );
+
+                        Assert.Equal(
+                            "连接成功",
+                            messageTextBlock.Text
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+    [Fact]
+    public void NormalMode_TestApiKeyFails_KeepsSaveButtonDisabled()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var validator =
+                            new FailingApiKeyValidator();
+
+                        var viewModel =
+                            new FirstRunSettingsViewModel(
+                                apiKeyValidator:
+                                    validator
+                            );
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: false
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var passwordBox =
+                            (System.Windows.Controls.PasswordBox)
+                            window.FindName(
+                                "ApiKeyPasswordBox"
+                            );
+
+                        var testButton =
+                            (System.Windows.Controls.Button)
+                            window.FindName(
+                                "TestApiKeyButton"
+                            );
+
+                        var saveButton =
+                            (System.Windows.Controls.Button)
+                            window.FindName(
+                                "SaveButton"
+                            );
+
+                        passwordBox.Password =
+                            "invalid-key";
+
+                        Assert.False(
+                            saveButton.IsEnabled
+                        );
+
+                        testButton.RaiseEvent(
+                            new System.Windows.RoutedEventArgs(
+                                System.Windows.Controls.Button.ClickEvent
+                            )
+                        );
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.ApplicationIdle
+                        );
+
+                        Assert.False(
+                            viewModel.ApiKeyTestSucceeded
+                        );
+
+                        Assert.False(
+                            saveButton.IsEnabled
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+    [Fact]
+    public void NormalMode_ApiKeyChangedWithoutValidation_DisablesSaveButton()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var viewModel =
+                            new FirstRunSettingsViewModel();
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: false
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var passwordBox =
+                            (System.Windows.Controls.PasswordBox)
+                            window.FindName(
+                                "ApiKeyPasswordBox"
+                            );
+
+                        var saveButton =
+                            (System.Windows.Controls.Button)
+                            window.FindName(
+                                "SaveButton"
+                            );
+
+                        Assert.True(
+                            saveButton.IsEnabled
+                        );
+
+                        passwordBox.Password =
+                            "new-test-key";
+
+                        Assert.False(
+                            saveButton.IsEnabled
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+    [Fact]
+    public void TestApiKeyButtonClick_WhenValidationSucceeds_EnablesSaveButton()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var validator =
+                            new FakeApiKeyValidator();
+
+                        var viewModel =
+                            new FirstRunSettingsViewModel(
+                                apiKeyValidator:
+                                    validator
+                            );
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: true
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var passwordBox =
+                            (System.Windows.Controls.PasswordBox)
+                            window.FindName(
+                                "ApiKeyPasswordBox"
+                            );
+
+                        var testButton =
+                            (System.Windows.Controls.Button)
+                            window.FindName(
+                                "TestApiKeyButton"
+                            );
+
+                        var saveButton =
+                            (System.Windows.Controls.Button)
+                            window.FindName(
+                                "SaveButton"
+                            );
+
+                        passwordBox.Password =
+                            "test-key";
+
+                        testButton.RaiseEvent(
+                            new System.Windows.RoutedEventArgs(
+                                System.Windows.Controls.Button.ClickEvent
+                            )
+                        );
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.ApplicationIdle
+                        );
+
+                        Assert.Equal(
+                            "test-key",
+                            validator.ValidatedApiKey
+                        );
+
+                        Assert.True(
+                            viewModel.ApiKeyTestSucceeded
+                        );
+
+                        Assert.True(
+                            saveButton.IsEnabled
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
 
     [Fact]
     public void FirstRunMode_SaveButtonClick_ReturnsTrueDialogResult()
@@ -32,7 +519,14 @@ public class FirstRunSettingsWindowTests
                             new FirstRunSettingsViewModel(
                                 firstRunPersistence,
                                 startupPersistence
-                            );
+                            )
+                            {
+                                ApiKey =
+                                    "test-key",
+
+                                ApiKeyTestSucceeded =
+                                    true
+                            };
 
                         var window =
                             new FirstRunSettingsWindow(
@@ -44,20 +538,11 @@ public class FirstRunSettingsWindowTests
                         window.Loaded +=
                             (_, _) =>
                             {
-                                var passwordBox =
-                                    (System.Windows.Controls.PasswordBox)
-                                    window.FindName(
-                                        "ApiKeyPasswordBox"
-                                    );
-
                                 var saveButton =
                                     (System.Windows.Controls.Button)
                                     window.FindName(
                                         "SaveButton"
                                     );
-
-                                passwordBox.Password =
-                                    "test-key";
 
                                 saveButton.RaiseEvent(
                                     new System.Windows.RoutedEventArgs(
@@ -527,6 +1012,12 @@ public class FirstRunSettingsWindowTests
                         passwordBox.Password =
                             "test-key";
 
+                        viewModel.ApiKeyTestSucceeded =
+                            true;
+
+                        saveButton.IsEnabled =
+                            viewModel.CanSave;
+
                         saveButton.RaiseEvent(
                             new System.Windows.RoutedEventArgs(
                                 System.Windows.Controls.Button.ClickEvent
@@ -562,16 +1053,10 @@ public class FirstRunSettingsWindowTests
     }
 
     [Fact]
-    public void ApiKeyChanged_UpdatesViewModelAndEnablesSaveButton()
+    public void ApiKeyChanged_EnablesTestButtonButKeepsSaveDisabled()
     {
         Exception? exception =
             null;
-
-        string? apiKey =
-            null;
-
-        bool saveButtonEnabled =
-            false;
 
         var thread =
             new Thread(
@@ -584,13 +1069,29 @@ public class FirstRunSettingsWindowTests
 
                         var window =
                             new FirstRunSettingsWindow(
-                                viewModel
+                                viewModel,
+                                isFirstRun: true
                             );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
 
                         var passwordBox =
                             (System.Windows.Controls.PasswordBox)
                             window.FindName(
                                 "ApiKeyPasswordBox"
+                            );
+
+                        var testButton =
+                            (System.Windows.Controls.Button)
+                            window.FindName(
+                                "TestApiKeyButton"
                             );
 
                         var saveButton =
@@ -602,11 +1103,18 @@ public class FirstRunSettingsWindowTests
                         passwordBox.Password =
                             "test-key";
 
-                        apiKey =
-                            viewModel.ApiKey;
+                        Assert.Equal(
+                            "test-key",
+                            viewModel.ApiKey
+                        );
 
-                        saveButtonEnabled =
-                            saveButton.IsEnabled;
+                        Assert.True(
+                            testButton.IsEnabled
+                        );
+
+                        Assert.False(
+                            saveButton.IsEnabled
+                        );
 
                         window.Close();
                     }
@@ -627,15 +1135,6 @@ public class FirstRunSettingsWindowTests
 
         Assert.Null(
             exception
-        );
-
-        Assert.Equal(
-            "test-key",
-            apiKey
-        );
-
-        Assert.True(
-            saveButtonEnabled
         );
     }
 
@@ -726,6 +1225,39 @@ public class FirstRunSettingsWindowTests
                 enabled;
 
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeApiKeyValidator
+        : IApiKeyValidator
+    {
+        public string? ValidatedApiKey { get; private set; }
+
+        public Task ValidateAsync(
+            string apiKey,
+            CancellationToken cancellationToken = default
+        )
+        {
+            ValidatedApiKey =
+                apiKey;
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FailingApiKeyValidator
+        : IApiKeyValidator
+    {
+        public Task ValidateAsync(
+            string apiKey,
+            CancellationToken cancellationToken = default
+        )
+        {
+            return Task.FromException(
+                new InvalidOperationException(
+                    "validation failed"
+                )
+            );
         }
     }
 }

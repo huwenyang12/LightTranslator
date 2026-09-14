@@ -1,5 +1,5 @@
 using LightTranslator.Services.Settings;
-
+using LightTranslator.Services.Translation;
 namespace LightTranslator.ViewModels;
 
 public sealed class FirstRunSettingsViewModel
@@ -10,10 +10,15 @@ public sealed class FirstRunSettingsViewModel
         _startupPersistence;
 
     private string _apiKey = string.Empty;
-
+    public bool ApiKeyTestSucceeded { get; set; }
+    public string ApiKeyTestMessage { get; private set; } =
+    string.Empty;
+    private readonly IApiKeyValidator? _apiKeyValidator;
+    public bool IsTestingApiKey { get; private set; }
     public FirstRunSettingsViewModel(
         IFirstRunSettingsPersistence? persistence = null,
-        IStartWithWindowsSettingsPersistence? startupPersistence = null
+        IStartWithWindowsSettingsPersistence? startupPersistence = null,
+        IApiKeyValidator? apiKeyValidator = null
     )
     {
         _persistence =
@@ -21,6 +26,9 @@ public sealed class FirstRunSettingsViewModel
 
         _startupPersistence =
             startupPersistence;
+
+        _apiKeyValidator =
+            apiKeyValidator;
     }
 
     public string ApiKey
@@ -29,8 +37,22 @@ public sealed class FirstRunSettingsViewModel
 
         set
         {
-            _apiKey =
+            var newValue =
                 value ?? string.Empty;
+
+            if (_apiKey == newValue)
+            {
+                return;
+            }
+
+            _apiKey =
+                newValue;
+
+            ApiKeyTestSucceeded =
+                false;
+
+            ApiKeyTestMessage =
+                string.Empty;
         }
     }
 
@@ -39,7 +61,8 @@ public sealed class FirstRunSettingsViewModel
     public bool CanSave =>
         !string.IsNullOrWhiteSpace(
             ApiKey
-        );
+        ) &&
+        ApiKeyTestSucceeded;
 
     public async Task<bool> SaveAsync(
         CancellationToken cancellationToken = default
@@ -76,5 +99,69 @@ public sealed class FirstRunSettingsViewModel
         );
 
         return true;
+    }
+
+    public async Task<bool> TestApiKeyAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (_apiKeyValidator is null ||
+            string.IsNullOrWhiteSpace(ApiKey))
+        {
+            return false;
+        }
+
+        var apiKeyToValidate =
+            ApiKey;
+
+        IsTestingApiKey = true;
+
+        try
+        {
+            await _apiKeyValidator.ValidateAsync(
+                apiKeyToValidate,
+                cancellationToken
+            );
+
+            if (!string.Equals(
+                    ApiKey,
+                    apiKeyToValidate,
+                    StringComparison.Ordinal
+                ))
+            {
+                return false;
+            }
+
+            ApiKeyTestSucceeded =
+                true;
+
+            ApiKeyTestMessage =
+                "连接成功";
+
+            return true;
+        }
+        catch
+        {
+            if (!string.Equals(
+                    ApiKey,
+                    apiKeyToValidate,
+                    StringComparison.Ordinal
+                ))
+            {
+                return false;
+            }
+
+            ApiKeyTestSucceeded =
+                false;
+
+            ApiKeyTestMessage =
+                "连接失败";
+
+            return false;
+        }
+        finally
+        {
+            IsTestingApiKey =
+                false;
+        }
     }
 }
