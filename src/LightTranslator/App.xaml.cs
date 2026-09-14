@@ -100,10 +100,17 @@ public partial class App
                 this
             );
 
-        _appController.Start(
-            settings
-        );
+        var shouldContinue =
+            _appController.Start(
+                settings
+            );
 
+        if (!shouldContinue)
+        {
+            Shutdown();
+
+            return;
+        }
 
         // HTTP
         _httpClient =
@@ -276,14 +283,14 @@ public partial class App
     }
 
 
-    public void ShowFirstRunSettings()
+    public bool ShowFirstRunSettings()
     {
         if (
             _firstRunSettingsPersistence is null ||
             _startWithWindowsSettingsPersistence is null
         )
         {
-            return;
+            return false;
         }
 
         var viewModel =
@@ -299,7 +306,8 @@ public partial class App
         var window =
             new FirstRunSettingsWindow(
                 viewModel,
-                isFirstRun: true
+                isFirstRun: true,
+                isDialogMode: true
             );
 
         window.Closed +=
@@ -309,7 +317,7 @@ public partial class App
                     viewModel.StartWithWindows;
             };
 
-        window.Show();
+        return window.ShowDialog() == true;
     }
 
     public void ShowSettings()

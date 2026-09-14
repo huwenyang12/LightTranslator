@@ -7,6 +7,33 @@ public class AppControllerTests
 {
 
     [Fact]
+    public void Start_WhenFirstRunCancelled_ReturnsFalse()
+    {
+        var startupView =
+            new FakeAppStartupView
+            {
+                FirstRunAccepted = false
+            };
+
+        var controller =
+            new AppController(
+                startupView
+            );
+
+        var settings =
+            AppSettings.CreateDefault();
+
+        var shouldContinue =
+            controller.Start(
+                settings
+            );
+
+        Assert.False(
+            shouldContinue
+        );
+    }
+
+    [Fact]
     public void OpenSettings_ShowsNormalSettings()
     {
         var startupView =
@@ -79,13 +106,19 @@ public class AppControllerTests
     private sealed class FakeAppStartupView
         : IAppStartupView
     {
+        public bool FirstRunAccepted { get; set; }
+
         public int ShowFirstRunSettingsCount { get; private set; }
 
-        public void ShowFirstRunSettings()
+        public bool ShowFirstRunSettings()
         {
             ShowFirstRunSettingsCount++;
+
+            return FirstRunAccepted;
         }
+
         public int ShowSettingsCount { get; private set; }
+
         public void ShowSettings()
         {
             ShowSettingsCount++;

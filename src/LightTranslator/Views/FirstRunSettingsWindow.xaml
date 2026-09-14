@@ -11,52 +11,52 @@
 
     <Grid Margin="32">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="24" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="20" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="24"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <TextBlock x:Name="TitleTextBlock"
                    Grid.Row="0"
                    Text="首次设置"
                    FontSize="24"
-                   FontWeight="SemiBold" />
+                   FontWeight="SemiBold"/>
 
         <TextBlock Grid.Row="1"
                    Margin="0,8,0,0"
                    Text="配置 DeepSeek API Key，完成后应用将在后台运行。"
                    Foreground="#666666"
-                   TextWrapping="Wrap" />
+                   TextWrapping="Wrap"/>
 
         <TextBlock Grid.Row="3"
                    Text="DeepSeek API Key"
-                   FontWeight="SemiBold" />
+                   FontWeight="SemiBold"/>
 
         <PasswordBox x:Name="ApiKeyPasswordBox"
                      Grid.Row="4"
                      Height="36"
                      Margin="0,8,0,0"
                      Padding="8,5"
-                     PasswordChanged="OnApiKeyPasswordChanged" />
+                     PasswordChanged="OnApiKeyPasswordChanged"/>
 
         <CheckBox x:Name="StartWithWindowsCheckBox"
                   Grid.Row="6"
                   Content="开机自动启动"
-                  IsChecked="{Binding StartWithWindows, Mode=TwoWay}" />
+                  IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/>
 
         <Button x:Name="SaveButton"
                 Grid.Row="8"
-                Width="140"
+                Width="70"
                 Height="36"
                 HorizontalAlignment="Right"
-                Content="保存并开始使用"
+                Content="保存"
                 IsEnabled="False"
-                Click="OnSaveClick" />
+                Click="OnSaveClick"/>
     </Grid>
 </Window>

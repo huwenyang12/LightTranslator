@@ -132,7 +132,7 @@
                     VerticalAlignment="Center"
                     Foreground="#9CA3AF"
                     FontSize="11"
-                    Text="Enter 复制并关闭 · Shift+Enter 换行 · Esc 关闭"/>
+                    Text="Enter copy"/>
 
             </Grid>
 

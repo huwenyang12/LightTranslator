@@ -14,16 +14,18 @@ public sealed class AppController
             startupView;
     }
 
-    public void Start(
+    public bool Start(
         AppSettings settings
     )
     {
         if (
-            !settings.FirstRunCompleted
+            settings.FirstRunCompleted
         )
         {
-            _startupView.ShowFirstRunSettings();
+            return true;
         }
+
+        return _startupView.ShowFirstRunSettings();
     }
 
     public void OpenSettings()

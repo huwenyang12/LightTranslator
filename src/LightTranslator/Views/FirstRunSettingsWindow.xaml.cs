@@ -7,10 +7,12 @@ public partial class FirstRunSettingsWindow
 {
     private readonly FirstRunSettingsViewModel _viewModel;
     private readonly bool _isFirstRun;
+    private readonly bool _isDialogMode;
 
     public FirstRunSettingsWindow(
         FirstRunSettingsViewModel viewModel,
-        bool isFirstRun = true
+        bool isFirstRun = true,
+        bool isDialogMode = false
     )
     {
         InitializeComponent();
@@ -20,6 +22,9 @@ public partial class FirstRunSettingsWindow
 
         _isFirstRun =
             isFirstRun;
+
+        _isDialogMode =
+            isDialogMode;
 
         DataContext =
             viewModel;
@@ -65,7 +70,15 @@ public partial class FirstRunSettingsWindow
                 firstRunStartupSaved
             )
             {
-                Close();
+                if (_isDialogMode)
+                {
+                    DialogResult =
+                        true;
+                }
+                else
+                {
+                    Close();
+                }
             }
 
             return;

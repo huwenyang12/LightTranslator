@@ -8,6 +8,92 @@ public class FirstRunSettingsWindowTests
 {
 
     [Fact]
+    public void FirstRunMode_SaveButtonClick_ReturnsTrueDialogResult()
+    {
+        Exception? exception =
+            null;
+
+        bool? dialogResult =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var firstRunPersistence =
+                            new FakeFirstRunSettingsPersistence();
+
+                        var startupPersistence =
+                            new FakeStartWithWindowsSettingsPersistence();
+
+                        var viewModel =
+                            new FirstRunSettingsViewModel(
+                                firstRunPersistence,
+                                startupPersistence
+                            );
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: true,
+                                isDialogMode: true
+                            );
+
+                        window.Loaded +=
+                            (_, _) =>
+                            {
+                                var passwordBox =
+                                    (System.Windows.Controls.PasswordBox)
+                                    window.FindName(
+                                        "ApiKeyPasswordBox"
+                                    );
+
+                                var saveButton =
+                                    (System.Windows.Controls.Button)
+                                    window.FindName(
+                                        "SaveButton"
+                                    );
+
+                                passwordBox.Password =
+                                    "test-key";
+
+                                saveButton.RaiseEvent(
+                                    new System.Windows.RoutedEventArgs(
+                                        System.Windows.Controls.Button.ClickEvent
+                                    )
+                                );
+                            };
+
+                        dialogResult =
+                            window.ShowDialog();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+
+        Assert.True(
+            dialogResult == true
+        );
+    }
+
+    [Fact]
     public void SaveButtonClick_SavesStartWithWindows()
     {
         Exception? exception =

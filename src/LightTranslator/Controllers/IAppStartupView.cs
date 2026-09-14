@@ -2,7 +2,7 @@ namespace LightTranslator.Controllers;
 
 public interface IAppStartupView
 {
-    void ShowFirstRunSettings();
+    bool ShowFirstRunSettings();
 
     void ShowSettings();
 }
