@@ -17,7 +17,8 @@ namespace LightTranslator;
 
 public partial class App
     : System.Windows.Application,
-      IAppStartupView
+      IAppStartupView,
+      IScreenshotTranslationView
 {
     private HttpClient? _httpClient;
     private IApiKeyValidator? _apiKeyValidator;
@@ -127,6 +128,7 @@ public partial class App
         // 首次启动判断
         _appController =
             new AppController(
+                this,
                 this
             );
 
@@ -263,7 +265,8 @@ public partial class App
         // Alt + T
         _hotkeyService.TextTranslationRequested +=
             _windowManager.ToggleTranslateWindow;
-
+        _hotkeyService.ScreenshotTranslationRequested +=
+            _appController.OpenScreenshotTranslation;
 
         var registered =
             _hotkeyService.RegisterTextTranslation(
@@ -280,6 +283,22 @@ public partial class App
 
             Shutdown();
 
+            return;
+        }
+
+        var screenshotRegistered =
+            _hotkeyService.RegisterScreenshotTranslation(
+                settings.ScreenshotTranslationHotkey
+            );
+
+        if (!screenshotRegistered)
+        {
+            System.Windows.MessageBox.Show(
+                "截图翻译快捷键注册失败，可能已被其他程序占用。",
+                "LightTranslator"
+            );
+
+            Shutdown();
             return;
         }
 
@@ -432,6 +451,14 @@ public partial class App
         window.Show();
     }
 
+    public void ShowScreenshotTranslation()
+    {
+        System.Windows.MessageBox.Show(
+            "截图翻译将在下一阶段启用。",
+            "LightTranslator"
+        );
+    }
+
 
     protected override void OnExit(
         System.Windows.ExitEventArgs e
@@ -447,10 +474,21 @@ public partial class App
                 _windowManager.ToggleTranslateWindow;
         }
 
+        if (
+            _hotkeyService is not null &&
+            _appController is not null
+        )
+        {
+            _hotkeyService.ScreenshotTranslationRequested -=
+                _appController.OpenScreenshotTranslation;
+        }
 
         // 注销系统热键
         _hotkeyBackend?.Unregister(
             HotkeyService.TextTranslationHotkeyId
+        );
+        _hotkeyBackend?.Unregister(
+            HotkeyService.ScreenshotTranslationHotkeyId
         );
 
 

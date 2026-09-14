@@ -12,8 +12,10 @@ public sealed class HotkeyService
     private readonly IHotkeyBackend _backend;
 
     public const int TextTranslationHotkeyId = 1;
+    public const int ScreenshotTranslationHotkeyId = 2;
 
     public event Action? TextTranslationRequested;
+    public event Action? ScreenshotTranslationRequested;
 
     public HotkeyService(
         IHotkeyBackend backend
@@ -92,6 +94,23 @@ public sealed class HotkeyService
         );
     }
 
+    public bool RegisterScreenshotTranslation(
+        HotkeyDefinition hotkey
+    )
+    {
+        var modifiers =
+            GetModifiers(hotkey);
+
+        var virtualKey =
+            GetVirtualKey(hotkey.Key);
+
+        return _backend.Register(
+            ScreenshotTranslationHotkeyId,
+            modifiers,
+            virtualKey
+        );
+    }
+
     private void OnHotkeyPressed(
         int id
     )
@@ -102,6 +121,15 @@ public sealed class HotkeyService
         )
         {
             TextTranslationRequested?.Invoke();
+            return;
+        }
+
+        if (
+            id ==
+            ScreenshotTranslationHotkeyId
+        )
+        {
+            ScreenshotTranslationRequested?.Invoke();
         }
     }
 

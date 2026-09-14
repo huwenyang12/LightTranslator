@@ -7,6 +7,29 @@ public class AppControllerTests
 {
 
     [Fact]
+    public void OpenScreenshotTranslation_ShowsScreenshotTranslation()
+    {
+        var startupView =
+            new FakeAppStartupView();
+
+        var screenshotView =
+            new FakeScreenshotTranslationView();
+
+        var controller =
+            new AppController(
+                startupView,
+                screenshotView
+            );
+
+        controller.OpenScreenshotTranslation();
+
+        Assert.Equal(
+            1,
+            screenshotView.ShowCount
+        );
+    }
+
+    [Fact]
     public void Start_WhenFirstRunCancelled_ReturnsFalse()
     {
         var startupView =
@@ -122,6 +145,21 @@ public class AppControllerTests
         public void ShowSettings()
         {
             ShowSettingsCount++;
+        }
+    }
+
+    private sealed class FakeScreenshotTranslationView
+        : IScreenshotTranslationView
+    {
+        public int ShowCount
+        {
+            get;
+            private set;
+        }
+
+        public void ShowScreenshotTranslation()
+        {
+            ShowCount++;
         }
     }
 }

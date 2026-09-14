@@ -7,6 +7,86 @@ public class HotkeyServiceTests
 {
 
     [Fact]
+    public void RegisterScreenshotTranslation_UsesScreenshotHotkeyId()
+    {
+        var backend =
+            new FakeHotkeyBackend();
+
+        var service =
+            new HotkeyService(
+                backend
+            );
+
+        var hotkey =
+            new HotkeyDefinition(
+                "Q",
+                Alt: true,
+                Control: false,
+                Shift: false,
+                Windows: false
+            );
+
+        var registered =
+            service.RegisterScreenshotTranslation(
+                hotkey
+            );
+
+        Assert.True(
+            registered
+        );
+
+        Assert.Single(
+            backend.RegisterCalls
+        );
+
+        var call =
+            backend.RegisterCalls[0];
+
+        Assert.Equal(
+            HotkeyService.ScreenshotTranslationHotkeyId,
+            call.Id
+        );
+
+        Assert.Equal(
+            0x0001u,
+            call.Modifiers
+        );
+
+        Assert.Equal(
+            (uint)'Q',
+            call.VirtualKey
+        );
+    }
+
+    [Fact]
+    public void BackendRaisesScreenshotTranslationId_RaisesScreenshotTranslationRequested()
+    {
+        var backend =
+            new FakeHotkeyBackend();
+
+        var service =
+            new HotkeyService(
+                backend
+            );
+
+        var raisedCount =
+            0;
+
+        service.ScreenshotTranslationRequested +=
+            () => raisedCount++;
+
+        backend.RaiseHotkey(
+            HotkeyService.ScreenshotTranslationHotkeyId
+        );
+
+        Assert.Equal(
+            1,
+            raisedCount
+        );
+    }
+
+
+    [Fact]
     public void ReplaceTextTranslation_WhenNewHotkeyRegisters_UnregistersOldAndRegistersNew()
     {
         var backend =
@@ -261,7 +341,7 @@ public class HotkeyServiceTests
         } =
             new Queue<bool>();
 
-        public List<(uint Modifiers, uint VirtualKey)>
+        public List<(int Id, uint Modifiers, uint VirtualKey)>
             RegisterCalls
         {
             get;
@@ -285,6 +365,7 @@ public class HotkeyServiceTests
 
             RegisterCalls.Add(
                 (
+                    id,
                     modifiers,
                     virtualKey
                 )
