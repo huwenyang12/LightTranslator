@@ -7,6 +7,10 @@ public interface ITrayIconBackend
 
     event Action? ExitRequested;
 
+    event Action? TextTranslationRequested;
+
+    event Action? ScreenshotTranslationRequested;
+
     void Show();
 
     void Hide();

@@ -6,6 +6,56 @@ public class TrayServiceTests
 {
 
     [Fact]
+    public void BackendRequestsTextTranslation_RaisesTextTranslationRequested()
+    {
+        var backend =
+            new FakeTrayIconBackend();
+
+        var service =
+            new TrayService(
+                backend
+            );
+
+        var raisedCount =
+            0;
+
+        service.TextTranslationRequested +=
+            () => raisedCount++;
+
+        backend.RaiseTextTranslationRequested();
+
+        Assert.Equal(
+            1,
+            raisedCount
+        );
+    }
+
+    [Fact]
+    public void BackendRequestsScreenshotTranslation_RaisesScreenshotTranslationRequested()
+    {
+        var backend =
+            new FakeTrayIconBackend();
+
+        var service =
+            new TrayService(
+                backend
+            );
+
+        var raisedCount =
+            0;
+
+        service.ScreenshotTranslationRequested +=
+            () => raisedCount++;
+
+        backend.RaiseScreenshotTranslationRequested();
+
+        Assert.Equal(
+            1,
+            raisedCount
+        );
+    }
+
+    [Fact]
     public void BackendRequestsSettings_RaisesSettingsRequested()
     {
         var backend =
@@ -80,6 +130,18 @@ public class TrayServiceTests
         public event Action? SettingsRequested;
 
         public event Action? ExitRequested;
+        public event Action? TextTranslationRequested;
+        public event Action? ScreenshotTranslationRequested;
+
+        public void RaiseScreenshotTranslationRequested()
+        {
+            ScreenshotTranslationRequested?.Invoke();
+        }
+
+        public void RaiseTextTranslationRequested()
+        {
+            TextTranslationRequested?.Invoke();
+        }
 
         public void Show()
         {

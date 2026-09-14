@@ -8,7 +8,8 @@ public sealed class TrayService
     public event Action? SettingsRequested;
 
     public event Action? ExitRequested;
-
+    public event Action? TextTranslationRequested;
+    public event Action? ScreenshotTranslationRequested;
     public TrayService(
         ITrayIconBackend backend
     )
@@ -21,6 +22,22 @@ public sealed class TrayService
 
         _backend.ExitRequested +=
             OnExitRequested;
+
+        _backend.TextTranslationRequested +=
+            OnTextTranslationRequested;
+
+        _backend.ScreenshotTranslationRequested +=
+            OnScreenshotTranslationRequested;
+    }
+
+    private void OnScreenshotTranslationRequested()
+    {
+        ScreenshotTranslationRequested?.Invoke();
+    }
+
+    private void OnTextTranslationRequested()
+    {
+        TextTranslationRequested?.Invoke();
     }
 
     public void Start()
@@ -50,6 +67,12 @@ public sealed class TrayService
 
         _backend.ExitRequested -=
             OnExitRequested;
+
+        _backend.TextTranslationRequested -=
+            OnTextTranslationRequested;
+
+        _backend.ScreenshotTranslationRequested -=
+            OnScreenshotTranslationRequested;
 
         _backend.Hide();
 

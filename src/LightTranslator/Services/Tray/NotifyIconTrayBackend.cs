@@ -19,6 +19,8 @@ public sealed class NotifyIconTrayBackend
     public event Action? SettingsRequested;
 
     public event Action? ExitRequested;
+    public event Action? TextTranslationRequested;
+    public event Action? ScreenshotTranslationRequested;
 
 
     public NotifyIconTrayBackend()

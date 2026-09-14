@@ -321,10 +321,17 @@ public partial class App
         _trayService.ExitRequested +=
             OnTrayExitRequested;
 
+        _trayService.ScreenshotTranslationRequested +=
+            OnTrayScreenshotTranslationRequested;
+
 
         _trayService.Start();
     }
 
+    private void OnTrayScreenshotTranslationRequested()
+    {
+        _appController?.OpenScreenshotTranslation();
+    }
 
     private void OnTraySettingsRequested()
     {
@@ -453,10 +460,10 @@ public partial class App
 
     public void ShowScreenshotTranslation()
     {
-        System.Windows.MessageBox.Show(
-            "截图翻译将在下一阶段启用。",
-            "LightTranslator"
-        );
+        var window =
+            new ScreenshotTranslationWindow();
+
+        window.Show();
     }
 
 
@@ -505,6 +512,9 @@ public partial class App
 
             _trayService.ExitRequested -=
                 OnTrayExitRequested;
+
+            _trayService.ScreenshotTranslationRequested -=
+                OnTrayScreenshotTranslationRequested;
 
 
             _trayService.Dispose();

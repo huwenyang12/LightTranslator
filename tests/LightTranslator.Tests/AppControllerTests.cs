@@ -25,7 +25,7 @@ public class AppControllerTests
 
         Assert.Equal(
             1,
-            screenshotView.ShowCount
+            screenshotView.ShowScreenshotTranslationCount
         );
     }
 
@@ -151,7 +151,7 @@ public class AppControllerTests
     private sealed class FakeScreenshotTranslationView
         : IScreenshotTranslationView
     {
-        public int ShowCount
+        public int ShowScreenshotTranslationCount
         {
             get;
             private set;
@@ -159,7 +159,7 @@ public class AppControllerTests
 
         public void ShowScreenshotTranslation()
         {
-            ShowCount++;
+            ShowScreenshotTranslationCount++;
         }
     }
 }
