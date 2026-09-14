@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using LightTranslator.Services.Logging;
+using System.Net.Http;
 
 using LightTranslator.Controllers;
 using LightTranslator.Infrastructure.Security;
@@ -110,13 +111,29 @@ public partial class App
 
 
         // 翻译服务
-        var translationService =
+        var deepSeekTranslationService =
             new DeepSeekTranslationService(
                 _httpClient,
                 () =>
                     _secretStorage.Load(
                         "deepseek-api-key"
                     )
+            );
+
+        var logSink =
+            new FileLogSink(
+                LogFilePathProvider.GetDefaultPath()
+            );
+
+        var appLogger =
+            new AppLogger(
+                logSink
+            );
+
+        var translationService =
+            new LoggingTranslationService(
+                deepSeekTranslationService,
+                appLogger
             );
 
 
