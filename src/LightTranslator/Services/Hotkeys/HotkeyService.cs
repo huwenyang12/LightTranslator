@@ -25,6 +25,56 @@ public sealed class HotkeyService
             OnHotkeyPressed;
     }
 
+    public bool ReplaceTextTranslation(
+        HotkeyDefinition oldHotkey,
+        HotkeyDefinition newHotkey
+    )
+    {
+        _backend.Unregister(
+            TextTranslationHotkeyId
+        );
+
+        var newModifiers =
+            GetModifiers(
+                newHotkey
+            );
+
+        var newVirtualKey =
+            GetVirtualKey(
+                newHotkey.Key
+            );
+
+        var registered =
+            _backend.Register(
+                TextTranslationHotkeyId,
+                newModifiers,
+                newVirtualKey
+            );
+
+        if (registered)
+        {
+            return true;
+        }
+
+        var oldModifiers =
+            GetModifiers(
+                oldHotkey
+            );
+
+        var oldVirtualKey =
+            GetVirtualKey(
+                oldHotkey.Key
+            );
+
+        _backend.Register(
+            TextTranslationHotkeyId,
+            oldModifiers,
+            oldVirtualKey
+        );
+
+        return false;
+    }
+
     public bool RegisterTextTranslation(
         HotkeyDefinition hotkey
     )

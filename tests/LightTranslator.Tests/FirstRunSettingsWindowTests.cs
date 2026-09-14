@@ -9,6 +9,899 @@ public class FirstRunSettingsWindowTests
 {
 
     [Fact]
+    public void SaveButton_WhenHotkeyChanged_SavesTextTranslationHotkey()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var changeService =
+                            new FakeTextTranslationHotkeyChangeService();
+
+                        var oldHotkey =
+                            new LightTranslator.Models.HotkeyDefinition(
+                                "T",
+                                Alt: true,
+                                Control: false,
+                                Shift: false,
+                                Windows: false
+                            );
+
+                        var newHotkey =
+                            new LightTranslator.Models.HotkeyDefinition(
+                                "Q",
+                                Alt: false,
+                                Control: true,
+                                Shift: true,
+                                Windows: false
+                            );
+
+                        var viewModel =
+                            new FirstRunSettingsViewModel(
+                                hotkeyChangeService:
+                                    changeService,
+                                currentTextTranslationHotkey:
+                                    oldHotkey
+                            );
+
+                        viewModel.SetTextTranslationHotkey(
+                            newHotkey
+                        );
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: false
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var saveButton =
+                            (System.Windows.Controls.Button)
+                            window.FindName(
+                                "SaveButton"
+                            );
+
+                        saveButton.RaiseEvent(
+                            new System.Windows.RoutedEventArgs(
+                                System.Windows.Controls.Button.ClickEvent
+                            )
+                        );
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.Background
+                        );
+
+                        Assert.Equal(
+                            1,
+                            changeService.ApplyCallCount
+                        );
+
+                        Assert.Equal(
+                            oldHotkey,
+                            changeService.OldHotkey
+                        );
+
+                        Assert.Equal(
+                            newHotkey,
+                            changeService.NewHotkey
+                        );
+
+                        if (window.IsVisible)
+                        {
+                            window.Close();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+    [Fact]
+    public void HotkeyCaptureBox_CtrlShiftQ_UpdatesCurrentHotkey()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var viewModel =
+                            new FirstRunSettingsViewModel();
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: false,
+                                modifierKeysProvider:
+                                    () =>
+                                        System.Windows.Input.ModifierKeys.Control |
+                                        System.Windows.Input.ModifierKeys.Shift
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var hotkeyBox =
+                            (System.Windows.Controls.TextBox)
+                            window.FindName(
+                                "TextTranslationHotkeyBox"
+                            );
+
+                        hotkeyBox.RaiseEvent(
+                            new System.Windows.RoutedEventArgs(
+                                System.Windows.UIElement.GotFocusEvent
+                            )
+                        );
+
+                        var source =
+                            System.Windows.PresentationSource.FromVisual(
+                                window
+                            );
+
+                        var keyEvent =
+                            new System.Windows.Input.KeyEventArgs(
+                                System.Windows.Input.Keyboard.PrimaryDevice,
+                                source!,
+                                0,
+                                System.Windows.Input.Key.Q
+                            )
+                            {
+                                RoutedEvent =
+                                    System.Windows.Input.Keyboard.PreviewKeyDownEvent
+                            };
+
+                        hotkeyBox.RaiseEvent(
+                            keyEvent
+                        );
+
+                        Assert.Equal(
+                            new LightTranslator.Models.HotkeyDefinition(
+                                "Q",
+                                Alt: false,
+                                Control: true,
+                                Shift: true,
+                                Windows: false
+                            ),
+                            viewModel.TextTranslationHotkey
+                        );
+
+                        Assert.Equal(
+                            "Ctrl + Shift + Q",
+                            hotkeyBox.Text
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+    [Fact]
+    public void HotkeyCaptureBox_Escape_RestoresCurrentHotkey()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var viewModel =
+                            new FirstRunSettingsViewModel();
+
+                        viewModel.TextTranslationHotkey =
+                            new LightTranslator.Models.HotkeyDefinition(
+                                "T",
+                                Alt: true,
+                                Control: false,
+                                Shift: false,
+                                Windows: false
+                            );
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: false
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var hotkeyBox =
+                            (System.Windows.Controls.TextBox)
+                            window.FindName(
+                                "TextTranslationHotkeyBox"
+                            );
+
+                        hotkeyBox.RaiseEvent(
+                            new System.Windows.RoutedEventArgs(
+                                System.Windows.UIElement.GotFocusEvent
+                            )
+                        );
+
+                        Assert.Equal(
+                            "请按快捷键",
+                            hotkeyBox.Text
+                        );
+
+                        var source =
+                            System.Windows.PresentationSource.FromVisual(
+                                window
+                            );
+
+                        var keyEvent =
+                            new System.Windows.Input.KeyEventArgs(
+                                System.Windows.Input.Keyboard.PrimaryDevice,
+                                source!,
+                                0,
+                                System.Windows.Input.Key.Escape
+                            )
+                            {
+                                RoutedEvent =
+                                    System.Windows.Input.Keyboard.PreviewKeyDownEvent
+                            };
+
+                        hotkeyBox.RaiseEvent(
+                            keyEvent
+                        );
+
+                        Assert.Equal(
+                            "Alt + T",
+                            hotkeyBox.Text
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+    [Fact]
+    public void NormalMode_ShowsCombinedTextTranslationHotkey()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var viewModel =
+                            new FirstRunSettingsViewModel();
+
+                        viewModel.TextTranslationHotkey =
+                            new LightTranslator.Models.HotkeyDefinition(
+                                "Q",
+                                Alt: false,
+                                Control: true,
+                                Shift: true,
+                                Windows: false
+                            );
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: false
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var hotkeyBox =
+                            (System.Windows.Controls.TextBox)
+                            window.FindName(
+                                "TextTranslationHotkeyBox"
+                            );
+
+                        Assert.Equal(
+                            "Ctrl + Shift + Q",
+                            hotkeyBox.Text
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+    [Fact]
+    public void NormalMode_ShowsCurrentTextTranslationHotkey()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var viewModel =
+                            new FirstRunSettingsViewModel();
+
+                        viewModel.TextTranslationHotkey =
+                            new LightTranslator.Models.HotkeyDefinition(
+                                "T",
+                                Alt: true,
+                                Control: false,
+                                Shift: false,
+                                Windows: false
+                            );
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: false
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var hotkeyBox =
+                            (System.Windows.Controls.TextBox)
+                            window.FindName(
+                                "TextTranslationHotkeyBox"
+                            );
+
+                        Assert.Equal(
+                            "Alt + T",
+                            hotkeyBox.Text
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+    [Fact]
+    public void HotkeyCaptureBox_GotFocus_ShowsCapturePrompt()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var viewModel =
+                            new FirstRunSettingsViewModel();
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: false
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var hotkeyBox =
+                            (System.Windows.Controls.TextBox)
+                            window.FindName(
+                                "TextTranslationHotkeyBox"
+                            );
+
+                        hotkeyBox.RaiseEvent(
+                            new System.Windows.RoutedEventArgs(
+                                System.Windows.UIElement.GotFocusEvent
+                            )
+                        );
+
+                        Assert.Equal(
+                            "请按快捷键",
+                            hotkeyBox.Text
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+
+    [Fact]
+    public void SaveButton_WhenHotkeySaveFails_KeepsWindowOpen()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var changeService =
+                            new FakeTextTranslationHotkeyChangeService
+                            {
+                                Result =
+                                    false
+                            };
+
+                        var oldHotkey =
+                            new LightTranslator.Models.HotkeyDefinition(
+                                "T",
+                                Alt: true,
+                                Control: false,
+                                Shift: false,
+                                Windows: false
+                            );
+
+                        var newHotkey =
+                            new LightTranslator.Models.HotkeyDefinition(
+                                "Q",
+                                Alt: false,
+                                Control: true,
+                                Shift: true,
+                                Windows: false
+                            );
+
+                        var viewModel =
+                            new FirstRunSettingsViewModel(
+                                hotkeyChangeService:
+                                    changeService,
+                                currentTextTranslationHotkey:
+                                    oldHotkey
+                            );
+
+                        viewModel.SetTextTranslationHotkey(
+                            newHotkey
+                        );
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: false
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var saveButton =
+                            (System.Windows.Controls.Button)
+                            window.FindName(
+                                "SaveButton"
+                            );
+
+                        saveButton.RaiseEvent(
+                            new System.Windows.RoutedEventArgs(
+                                System.Windows.Controls.Button.ClickEvent
+                            )
+                        );
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.Background
+                        );
+
+                        Assert.Equal(
+                            1,
+                            changeService.ApplyCallCount
+                        );
+
+                        Assert.True(
+                            window.IsVisible
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+    [Fact]
+    public void SaveButton_WhenHotkeySaveFails_ShowsErrorMessage()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var changeService =
+                            new FakeTextTranslationHotkeyChangeService
+                            {
+                                Result =
+                                    false
+                            };
+
+                        var oldHotkey =
+                            new LightTranslator.Models.HotkeyDefinition(
+                                "T",
+                                Alt: true,
+                                Control: false,
+                                Shift: false,
+                                Windows: false
+                            );
+
+                        var newHotkey =
+                            new LightTranslator.Models.HotkeyDefinition(
+                                "Q",
+                                Alt: false,
+                                Control: true,
+                                Shift: true,
+                                Windows: false
+                            );
+
+                        var viewModel =
+                            new FirstRunSettingsViewModel(
+                                hotkeyChangeService:
+                                    changeService,
+                                currentTextTranslationHotkey:
+                                    oldHotkey
+                            );
+
+                        viewModel.SetTextTranslationHotkey(
+                            newHotkey
+                        );
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: false
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var saveButton =
+                            (System.Windows.Controls.Button)
+                            window.FindName(
+                                "SaveButton"
+                            );
+
+                        saveButton.RaiseEvent(
+                            new System.Windows.RoutedEventArgs(
+                                System.Windows.Controls.Button.ClickEvent
+                            )
+                        );
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.Background
+                        );
+
+                        var errorTextBlock =
+                            (System.Windows.Controls.TextBlock)
+                            window.FindName(
+                                "TextTranslationHotkeyErrorTextBlock"
+                            );
+
+                        Assert.Equal(
+                            "快捷键注册失败，可能已被其他程序占用",
+                            errorTextBlock.Text
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+    [Fact]
+    public void SaveButton_WhenHotkeySaveFails_RestoresDisplayedHotkey()
+    {
+        Exception? exception =
+            null;
+
+        var thread =
+            new Thread(
+                () =>
+                {
+                    try
+                    {
+                        var changeService =
+                            new FakeTextTranslationHotkeyChangeService
+                            {
+                                Result =
+                                    false
+                            };
+
+                        var oldHotkey =
+                            new LightTranslator.Models.HotkeyDefinition(
+                                "T",
+                                Alt: true,
+                                Control: false,
+                                Shift: false,
+                                Windows: false
+                            );
+
+                        var newHotkey =
+                            new LightTranslator.Models.HotkeyDefinition(
+                                "Q",
+                                Alt: false,
+                                Control: true,
+                                Shift: true,
+                                Windows: false
+                            );
+
+                        var viewModel =
+                            new FirstRunSettingsViewModel(
+                                hotkeyChangeService:
+                                    changeService,
+                                currentTextTranslationHotkey:
+                                    oldHotkey
+                            );
+
+                        viewModel.SetTextTranslationHotkey(
+                            newHotkey
+                        );
+
+                        var window =
+                            new FirstRunSettingsWindow(
+                                viewModel,
+                                isFirstRun: false
+                            );
+
+                        window.Show();
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.DataBind
+                        );
+
+                        var hotkeyBox =
+                            (System.Windows.Controls.TextBox)
+                            window.FindName(
+                                "TextTranslationHotkeyBox"
+                            );
+
+                        var saveButton =
+                            (System.Windows.Controls.Button)
+                            window.FindName(
+                                "SaveButton"
+                            );
+
+                        Assert.Equal(
+                            "Ctrl + Shift + Q",
+                            hotkeyBox.Text
+                        );
+
+                        saveButton.RaiseEvent(
+                            new System.Windows.RoutedEventArgs(
+                                System.Windows.Controls.Button.ClickEvent
+                            )
+                        );
+
+                        window.Dispatcher.Invoke(
+                            () =>
+                            {
+                            },
+                            System.Windows.Threading.DispatcherPriority.Background
+                        );
+
+                        Assert.Equal(
+                            "Alt + T",
+                            hotkeyBox.Text
+                        );
+
+                        window.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        exception =
+                            ex;
+                    }
+                }
+            );
+
+        thread.SetApartmentState(
+            ApartmentState.STA
+        );
+
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(
+            exception
+        );
+    }
+
+    [Fact]
     public void ApiKeyChangedAfterValidation_ClearsDisplayedTestMessage()
     {
         Exception? exception =
@@ -1257,6 +2150,56 @@ public class FirstRunSettingsWindowTests
                 new InvalidOperationException(
                     "validation failed"
                 )
+            );
+        }
+    }
+
+    private sealed class FakeTextTranslationHotkeyChangeService
+        : LightTranslator.Services.Hotkeys.ITextTranslationHotkeyChangeService
+    {
+
+        public bool Result
+        {
+            get;
+            set;
+        } =
+            true;
+        public int ApplyCallCount
+        {
+            get;
+            private set;
+        }
+
+        public LightTranslator.Models.HotkeyDefinition?
+            OldHotkey
+        {
+            get;
+            private set;
+        }
+
+        public LightTranslator.Models.HotkeyDefinition?
+            NewHotkey
+        {
+            get;
+            private set;
+        }
+
+        public Task<bool> ApplyAsync(
+            LightTranslator.Models.HotkeyDefinition oldHotkey,
+            LightTranslator.Models.HotkeyDefinition newHotkey,
+            CancellationToken cancellationToken = default
+        )
+        {
+            ApplyCallCount++;
+
+            OldHotkey =
+                oldHotkey;
+
+            NewHotkey =
+                newHotkey;
+
+            return Task.FromResult(
+                Result
             );
         }
     }

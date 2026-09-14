@@ -1,5 +1,6 @@
 using LightTranslator.ViewModels;
-
+using System.Collections.Generic;
+using LightTranslator.Services.Hotkeys;
 namespace LightTranslator.Views;
 
 public partial class FirstRunSettingsWindow
@@ -9,10 +10,14 @@ public partial class FirstRunSettingsWindow
     private readonly bool _isFirstRun;
     private readonly bool _isDialogMode;
 
+    private readonly Func<System.Windows.Input.ModifierKeys>
+        _modifierKeysProvider;
+
     public FirstRunSettingsWindow(
         FirstRunSettingsViewModel viewModel,
         bool isFirstRun = true,
-        bool isDialogMode = false
+        bool isDialogMode = false,
+        Func<System.Windows.Input.ModifierKeys>? modifierKeysProvider = null
     )
     {
         InitializeComponent();
@@ -34,9 +39,110 @@ public partial class FirstRunSettingsWindow
                 ? "首次设置"
                 : "设置";
 
+        TextTranslationHotkeyBox.Text =
+            FormatHotkey(
+                _viewModel.TextTranslationHotkey
+            );
+
         SaveButton.IsEnabled =
             !_isFirstRun ||
             _viewModel.CanSave;
+
+        _modifierKeysProvider =
+            modifierKeysProvider
+            ?? (() => System.Windows.Input.Keyboard.Modifiers);
+    }
+
+    private static string FormatHotkey(
+        LightTranslator.Models.HotkeyDefinition hotkey
+    )
+    {
+        var parts =
+            new List<string>();
+
+        if (hotkey.Control)
+        {
+            parts.Add(
+                "Ctrl"
+            );
+        }
+
+        if (hotkey.Alt)
+        {
+            parts.Add(
+                "Alt"
+            );
+        }
+
+        if (hotkey.Shift)
+        {
+            parts.Add(
+                "Shift"
+            );
+        }
+
+        if (hotkey.Windows)
+        {
+            parts.Add(
+                "Win"
+            );
+        }
+
+        parts.Add(
+            hotkey.Key
+        );
+
+        return string.Join(
+            " + ",
+            parts
+        );
+    }
+
+    private void OnTextTranslationHotkeyBoxPreviewKeyDown(
+        object sender,
+        System.Windows.Input.KeyEventArgs e
+    )
+    {
+        if (e.Key == System.Windows.Input.Key.Escape)
+        {
+            TextTranslationHotkeyBox.Text =
+                FormatHotkey(
+                    _viewModel.TextTranslationHotkey
+                );
+
+            e.Handled =
+                true;
+
+            return;
+        }
+
+        var captured =
+            HotkeyCaptureParser.TryCapture(
+                e.Key,
+                e.SystemKey,
+                _modifierKeysProvider(),
+                out var hotkey
+            );
+
+        if (
+            !captured ||
+            hotkey is null
+        )
+        {
+            return;
+        }
+
+        _viewModel.SetTextTranslationHotkey(
+            hotkey
+        );
+
+        TextTranslationHotkeyBox.Text =
+            FormatHotkey(
+                hotkey
+            );
+
+        e.Handled =
+            true;
     }
 
     private void OnApiKeyPasswordChanged(
@@ -93,11 +199,36 @@ public partial class FirstRunSettingsWindow
                 _viewModel.CanSave;
     }
 
+    private void OnTextTranslationHotkeyBoxGotFocus(
+        object sender,
+        System.Windows.RoutedEventArgs e
+    )
+    {
+        TextTranslationHotkeyBox.Text =
+            "请按快捷键";
+    }
+
     private async void OnSaveClick(
         object sender,
         System.Windows.RoutedEventArgs e
     )
     {
+        var hotkeySaved =
+            await _viewModel.SaveTextTranslationHotkeyAsync();
+
+        TextTranslationHotkeyErrorTextBlock.Text =
+            hotkeySaved
+                ? string.Empty
+                : "快捷键注册失败，可能已被其他程序占用";
+
+        if (!hotkeySaved)
+        {
+            TextTranslationHotkeyBox.Text =
+                FormatHotkey(
+                    _viewModel.TextTranslationHotkey
+                );
+        }
+
         if (_isFirstRun)
         {
             var firstRunApiKeySaved =

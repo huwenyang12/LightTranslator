@@ -1,5 +1,7 @@
 using LightTranslator.Services.Settings;
 using LightTranslator.Services.Translation;
+using LightTranslator.Models;
+using LightTranslator.Services.Hotkeys;
 namespace LightTranslator.ViewModels;
 
 public sealed class FirstRunSettingsViewModel
@@ -15,10 +17,77 @@ public sealed class FirstRunSettingsViewModel
     string.Empty;
     private readonly IApiKeyValidator? _apiKeyValidator;
     public bool IsTestingApiKey { get; private set; }
+    public HotkeyDefinition TextTranslationHotkey { get; set; } =
+    AppSettings.CreateDefault()
+        .TextTranslationHotkey;
+    private readonly ITextTranslationHotkeyPersistence?
+        _hotkeyPersistence;
+
+    private readonly ITextTranslationHotkeyChangeService?
+        _hotkeyChangeService;
+
+    private HotkeyDefinition
+        _currentTextTranslationHotkey;
+
+    public void SetTextTranslationHotkey(
+        HotkeyDefinition hotkey
+    )
+    {
+        TextTranslationHotkey =
+            hotkey;
+    }
+    public async Task<bool> SaveTextTranslationHotkeyAsync(
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (
+            TextTranslationHotkey ==
+            _currentTextTranslationHotkey
+        )
+        {
+            return true;
+        }
+
+        if (_hotkeyChangeService is not null)
+        {
+            var saved =
+                await _hotkeyChangeService.ApplyAsync(
+                    _currentTextTranslationHotkey,
+                    TextTranslationHotkey,
+                    cancellationToken
+                );
+
+            if (saved)
+            {
+                _currentTextTranslationHotkey =
+                    TextTranslationHotkey;
+            }
+            else
+            {
+                TextTranslationHotkey =
+                    _currentTextTranslationHotkey;
+            }
+
+            return saved;
+        }
+
+        if (_hotkeyPersistence is null)
+        {
+            return false;
+        }
+
+        return await _hotkeyPersistence.SaveAsync(
+            TextTranslationHotkey,
+            cancellationToken
+        );
+    }
     public FirstRunSettingsViewModel(
         IFirstRunSettingsPersistence? persistence = null,
         IStartWithWindowsSettingsPersistence? startupPersistence = null,
-        IApiKeyValidator? apiKeyValidator = null
+        IApiKeyValidator? apiKeyValidator = null,
+        ITextTranslationHotkeyPersistence? hotkeyPersistence = null,
+        ITextTranslationHotkeyChangeService? hotkeyChangeService = null,
+        HotkeyDefinition? currentTextTranslationHotkey = null
     )
     {
         _persistence =
@@ -29,6 +98,20 @@ public sealed class FirstRunSettingsViewModel
 
         _apiKeyValidator =
             apiKeyValidator;
+
+        _hotkeyPersistence =
+            hotkeyPersistence;
+
+        _hotkeyChangeService =
+            hotkeyChangeService;
+
+        _currentTextTranslationHotkey =
+            currentTextTranslationHotkey
+            ?? AppSettings.CreateDefault()
+                .TextTranslationHotkey;
+
+        TextTranslationHotkey =
+            _currentTextTranslationHotkey;
     }
 
     public string ApiKey

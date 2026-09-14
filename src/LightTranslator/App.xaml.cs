@@ -11,6 +11,7 @@ using LightTranslator.Services.Windows;
 using LightTranslator.ViewModels;
 using LightTranslator.Views;
 using LightTranslator.Services.Startup;
+using LightTranslator.Models;
 
 namespace LightTranslator;
 
@@ -37,6 +38,14 @@ public partial class App
     private TrayService? _trayService;
     private AppController? _appController;
 
+    private ISettingsService? _settingsService;
+
+    private ITextTranslationHotkeyPersistence?
+        _textTranslationHotkeyPersistence;
+
+    private HotkeyDefinition?
+        _startupTextTranslationHotkey;
+
 
     protected override async void OnStartup(
         System.Windows.StartupEventArgs e
@@ -48,6 +57,14 @@ public partial class App
         // 设置服务
         var settingsService =
             new SettingsService();
+
+        _settingsService =
+            settingsService;
+
+        _textTranslationHotkeyPersistence =
+            new TextTranslationHotkeySettingsPersistence(
+                settingsService
+            );
 
 
         // API Key 安全存储
@@ -66,7 +83,8 @@ public partial class App
         // 读取应用设置
         var settings =
             await settingsService.LoadAsync();
-
+        _startupTextTranslationHotkey =
+            settings.TextTranslationHotkey;
 
         var startupBackend =
             new RegistryStartupRegistrationBackend();
@@ -122,6 +140,17 @@ public partial class App
             Shutdown();
             return;
         }
+
+        // 首次设置窗口可能修改了配置，
+        // 继续启动前重新读取最新设置。
+        settings =
+            await settingsService.LoadAsync();
+
+        _startupTextTranslationHotkey =
+            settings.TextTranslationHotkey;
+
+        _startWithWindows =
+            settings.StartWithWindows;
 
 
         // 翻译服务
@@ -295,7 +324,9 @@ public partial class App
         if (
             _firstRunSettingsPersistence is null ||
             _startWithWindowsSettingsPersistence is null ||
-            _apiKeyValidator is null
+            _apiKeyValidator is null ||
+            _textTranslationHotkeyPersistence is null ||
+            _startupTextTranslationHotkey is null
         )
         {
             return false;
@@ -305,7 +336,11 @@ public partial class App
             new FirstRunSettingsViewModel(
                 _firstRunSettingsPersistence,
                 _startWithWindowsSettingsPersistence,
-                _apiKeyValidator
+                _apiKeyValidator,
+                hotkeyPersistence:
+                    _textTranslationHotkeyPersistence,
+                currentTextTranslationHotkey:
+                    _startupTextTranslationHotkey
             )
             {
                 StartWithWindows =
@@ -329,22 +364,52 @@ public partial class App
         return window.ShowDialog() == true;
     }
 
-    public void ShowSettings()
+    public async void ShowSettings()
     {
         if (
             _firstRunSettingsPersistence is null ||
             _startWithWindowsSettingsPersistence is null ||
-            _apiKeyValidator is null
+            _apiKeyValidator is null ||
+            _settingsService is null ||
+            _textTranslationHotkeyPersistence is null ||
+            _hotkeyService is null
         )
         {
             return;
         }
 
+        AppSettings currentSettings;
+
+        try
+        {
+            currentSettings =
+                await _settingsService.LoadAsync();
+        }
+        catch
+        {
+            System.Windows.MessageBox.Show(
+                "读取设置失败。",
+                "LightTranslator"
+            );
+
+            return;
+        }
+
+        var hotkeyChangeService =
+            new TextTranslationHotkeyChangeService(
+                _hotkeyService,
+                _textTranslationHotkeyPersistence
+            );
+
         var viewModel =
             new FirstRunSettingsViewModel(
                 _firstRunSettingsPersistence,
                 _startWithWindowsSettingsPersistence,
-                _apiKeyValidator
+                _apiKeyValidator,
+                hotkeyChangeService:
+                    hotkeyChangeService,
+                currentTextTranslationHotkey:
+                    currentSettings.TextTranslationHotkey
             )
             {
                 StartWithWindows =

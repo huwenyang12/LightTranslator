@@ -4,7 +4,7 @@
         Title="LightTranslator"
         Icon="/LightTranslator;component/Assets/AppIcon.ico"
         Width="460"
-        Height="340"
+        Height="430"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ShowInTaskbar="True">
@@ -69,10 +69,30 @@
            Foreground="#666666"
            Text=""/>
 
-        <CheckBox x:Name="StartWithWindowsCheckBox"
-                  Grid.Row="6"
-                  Content="开机自动启动"
-                  IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/>
+        <StackPanel Grid.Row="6">
+
+            <TextBlock Text="文本翻译快捷键"
+                    Margin="0,0,0,6"/>
+
+            <TextBox x:Name="TextTranslationHotkeyBox"
+                    Height="36"
+                    Padding="8,5"
+                    Margin="0,0,0,6"
+                    IsReadOnly="True"
+                    GotFocus="OnTextTranslationHotkeyBoxGotFocus"
+                    PreviewKeyDown="OnTextTranslationHotkeyBoxPreviewKeyDown"/>
+
+            <TextBlock x:Name="TextTranslationHotkeyErrorTextBlock"
+                    Margin="0,0,0,6"
+                    FontSize="12"
+                    Foreground="#D32F2F"
+                    Text=""/>
+
+            <CheckBox x:Name="StartWithWindowsCheckBox"
+                    Content="开机自动启动"
+                    IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/>
+
+        </StackPanel>
 
         <Button x:Name="SaveButton"
                 Grid.Row="8"

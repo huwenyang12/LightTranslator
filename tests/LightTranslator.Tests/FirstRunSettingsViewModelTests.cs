@@ -1,10 +1,218 @@
 using LightTranslator.ViewModels;
 using LightTranslator.Services.Settings;
 using LightTranslator.Services.Translation;
+using LightTranslator.Models;
+using LightTranslator.Services.Hotkeys;
 namespace LightTranslator.Tests;
 
 public class FirstRunSettingsViewModelTests
 {
+
+    [Fact]
+    public async Task SaveTextTranslationHotkeyAsync_WhenChangeFails_RestoresCurrentHotkey()
+    {
+        var oldHotkey =
+            new HotkeyDefinition(
+                "T",
+                Alt: true,
+                Control: false,
+                Shift: false,
+                Windows: false
+            );
+
+        var newHotkey =
+            new HotkeyDefinition(
+                "Q",
+                Alt: false,
+                Control: true,
+                Shift: true,
+                Windows: false
+            );
+
+        var changeService =
+            new FakeTextTranslationHotkeyChangeService
+            {
+                Result =
+                    false
+            };
+
+        var viewModel =
+            new FirstRunSettingsViewModel(
+                hotkeyChangeService:
+                    changeService,
+                currentTextTranslationHotkey:
+                    oldHotkey
+            );
+
+        viewModel.SetTextTranslationHotkey(
+            newHotkey
+        );
+
+        var saved =
+            await viewModel.SaveTextTranslationHotkeyAsync();
+
+        Assert.False(
+            saved
+        );
+
+        Assert.Equal(
+            oldHotkey,
+            viewModel.TextTranslationHotkey
+        );
+    }
+
+    [Fact]
+    public async Task SaveTextTranslationHotkeyAsync_UsesOldAndNewHotkeys()
+    {
+        var oldHotkey =
+            new HotkeyDefinition(
+                "T",
+                Alt: true,
+                Control: false,
+                Shift: false,
+                Windows: false
+            );
+
+        var newHotkey =
+            new HotkeyDefinition(
+                "Q",
+                Alt: false,
+                Control: true,
+                Shift: true,
+                Windows: false
+            );
+
+        var changeService =
+            new FakeTextTranslationHotkeyChangeService();
+
+        var viewModel =
+            new FirstRunSettingsViewModel(
+                hotkeyChangeService:
+                    changeService,
+                currentTextTranslationHotkey:
+                    oldHotkey
+            );
+
+        viewModel.SetTextTranslationHotkey(
+            newHotkey
+        );
+
+        var saved =
+            await viewModel.SaveTextTranslationHotkeyAsync();
+
+        Assert.True(
+            saved
+        );
+
+        Assert.Equal(
+            oldHotkey,
+            changeService.OldHotkey
+        );
+
+        Assert.Equal(
+            newHotkey,
+            changeService.NewHotkey
+        );
+    }
+
+    [Fact]
+    public async Task SaveTextTranslationHotkeyAsync_WhenPersistenceSucceeds_PersistsCurrentHotkey()
+    {
+        var persistence =
+            new FakeTextTranslationHotkeyPersistence();
+
+        var viewModel =
+            new FirstRunSettingsViewModel(
+                hotkeyPersistence:
+                    persistence
+            );
+
+        var hotkey =
+            new LightTranslator.Models.HotkeyDefinition(
+                "Q",
+                Alt: false,
+                Control: true,
+                Shift: true,
+                Windows: false
+            );
+
+        viewModel.SetTextTranslationHotkey(
+            hotkey
+        );
+
+        var saved =
+            await viewModel.SaveTextTranslationHotkeyAsync();
+
+        Assert.True(
+            saved
+        );
+
+        Assert.Equal(
+            hotkey,
+            persistence.SavedHotkey
+        );
+    }
+
+    [Fact]
+    public void SetTextTranslationHotkey_UpdatesCurrentHotkey()
+    {
+        var viewModel =
+            new FirstRunSettingsViewModel();
+
+        var hotkey =
+            new LightTranslator.Models.HotkeyDefinition(
+                "Q",
+                Alt: false,
+                Control: true,
+                Shift: true,
+                Windows: false
+            );
+
+        viewModel.SetTextTranslationHotkey(
+            hotkey
+        );
+
+        Assert.Equal(
+            hotkey,
+            viewModel.TextTranslationHotkey
+        );
+    }
+
+    [Fact]
+    public async Task SaveTextTranslationHotkeyAsync_WhenHotkeyUnchanged_DoesNotApplyChange()
+    {
+        var hotkey =
+            new HotkeyDefinition(
+                "T",
+                Alt: true,
+                Control: false,
+                Shift: false,
+                Windows: false
+            );
+
+        var changeService =
+            new FakeTextTranslationHotkeyChangeService();
+
+        var viewModel =
+            new FirstRunSettingsViewModel(
+                hotkeyChangeService:
+                    changeService,
+                currentTextTranslationHotkey:
+                    hotkey
+            );
+
+        var saved =
+            await viewModel.SaveTextTranslationHotkeyAsync();
+
+        Assert.True(
+            saved
+        );
+
+        Assert.Equal(
+            0,
+            changeService.ApplyCallCount
+        );
+    }
 
     [Fact]
     public async Task TestApiKeyAsync_WhenValidatorSucceeds_AllowsSave()
@@ -480,6 +688,76 @@ public class FirstRunSettingsViewModelTests
         {
             _completion.SetException(
                 exception
+            );
+        }
+    }
+    private sealed class FakeTextTranslationHotkeyPersistence
+        : ITextTranslationHotkeyPersistence
+    {
+        public LightTranslator.Models.HotkeyDefinition?
+            SavedHotkey
+        {
+            get;
+            private set;
+        }
+
+        public Task<bool> SaveAsync(
+            LightTranslator.Models.HotkeyDefinition hotkey,
+            CancellationToken cancellationToken = default
+        )
+        {
+            SavedHotkey =
+                hotkey;
+
+            return Task.FromResult(
+                true
+            );
+        }
+    }
+
+    private sealed class FakeTextTranslationHotkeyChangeService
+        : ITextTranslationHotkeyChangeService
+    {
+
+        public int ApplyCallCount
+        {
+            get;
+            private set;
+        }
+        public HotkeyDefinition? OldHotkey
+        {
+            get;
+            private set;
+        }
+
+        public bool Result
+        {
+            get;
+            set;
+        } =
+            true;
+
+        public HotkeyDefinition? NewHotkey
+        {
+            get;
+            private set;
+        }
+
+        public Task<bool> ApplyAsync(
+            HotkeyDefinition oldHotkey,
+            HotkeyDefinition newHotkey,
+            CancellationToken cancellationToken = default
+        )
+        {
+            ApplyCallCount++;
+            OldHotkey =
+                oldHotkey;
+
+            NewHotkey =
+                newHotkey;
+
+            return Task.FromResult(
+                Result
             );
         }
     }
