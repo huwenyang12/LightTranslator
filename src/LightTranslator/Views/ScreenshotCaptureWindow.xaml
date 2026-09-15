@@ -1,0 +1,25 @@
+<Window x:Class="LightTranslator.Views.ScreenshotCaptureWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        WindowState="Maximized"
+        Cursor="Cross">
+
+    <Canvas x:Name="CaptureCanvas"
+            Background="#66000000"
+            MouseLeftButtonDown="OnMouseLeftButtonDown"
+            MouseMove="OnMouseMove"
+            MouseLeftButtonUp="OnMouseLeftButtonUp">
+
+        <Rectangle x:Name="SelectionRectangle"
+                   Stroke="White"
+                   StrokeThickness="2"
+                   Visibility="Collapsed"/>
+
+    </Canvas>
+
+</Window>
