@@ -1,8 +1,8 @@
 """Prepare pinned PP-OCRv5 Mobile assets for LightTranslator.
 
-This development-only script downloads official PaddlePaddle inference models,
-converts them to ONNX, downloads the matching official character dictionary,
-and records source revisions plus output SHA-256 hashes.
+This development-only script downloads official PaddlePaddle ONNX models and
+the matching official character dictionary, verifies pinned model checksums,
+and records source revisions plus runtime asset SHA-256 hashes.
 """
 
 from __future__ import annotations
@@ -12,16 +12,22 @@ import importlib.metadata
 import os
 from pathlib import Path
 import shutil
-import subprocess
-import sys
 import tempfile
 import urllib.request
 
 
-DETECTION_REPOSITORY = "PaddlePaddle/PP-OCRv5_mobile_det"
-DETECTION_REVISION = "0d63e78e2b680928f6b1747d76a08db6e645efb7"
-RECOGNITION_REPOSITORY = "PaddlePaddle/PP-OCRv5_mobile_rec"
-RECOGNITION_REVISION = "682f20538d8c086cb2128e5cfac775e6c4904e85"
+DETECTION_REPOSITORY = "PaddlePaddle/PP-OCRv5_mobile_det_onnx"
+DETECTION_REVISION = "e6f4fa85f00e168c862bc462aebca69eef9b3d3d"
+RECOGNITION_REPOSITORY = "PaddlePaddle/PP-OCRv5_mobile_rec_onnx"
+RECOGNITION_REVISION = "ed152b8b495f84de93cda5709d768548a9127622"
+MODEL_SHA256 = {
+    DETECTION_REPOSITORY: (
+        "A431985659DC921974177A95ADCFBB90FD9E51989A5E04D70D0B75F597B6E61D"
+    ),
+    RECOGNITION_REPOSITORY: (
+        "DA72DC72CA4DC220DF0DFDE68C1DEDC31C58D3E76A25871122E5056227D50092"
+    ),
+}
 PADDLEOCR_REVISION = "2661c7c0ef5c613e8f93c6e93b2e052399f0f854"
 DICTIONARY_URL = (
     "https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR/"
@@ -45,58 +51,25 @@ def download_model(repository: str, revision: str) -> Path:
     snapshot = snapshot_download(
         repo_id=repository,
         revision=revision,
-        allow_patterns=(
-            "inference.json",
-            "inference.pdiparams",
-        ),
+        allow_patterns=("inference.onnx",),
     )
 
-    model_directory = Path(snapshot)
-    require_file(model_directory / "inference.json", "Paddle model structure")
-    require_file(model_directory / "inference.pdiparams", "Paddle model parameters")
-    return model_directory
-
-
-def find_converter() -> Path:
-    executable_directory = Path(sys.executable).resolve().parent
-
-    for file_name in ("paddle2onnx.exe", "paddle2onnx"):
-        candidate = executable_directory / file_name
-        if candidate.is_file():
-            return candidate
-
-    converter = shutil.which("paddle2onnx")
-    if converter is not None:
-        return Path(converter)
-
-    raise RuntimeError(
-        "paddle2onnx executable was not found; install the pinned model tools first"
+    model_path = require_file(
+        Path(snapshot) / "inference.onnx",
+        "Official ONNX model",
     )
+    expected_hash = MODEL_SHA256.get(repository)
+    if expected_hash is None:
+        raise RuntimeError(f"No pinned SHA-256 is configured for {repository}")
 
+    actual_hash = sha256(model_path)
+    if actual_hash != expected_hash.upper():
+        raise RuntimeError(
+            f"ONNX model SHA-256 mismatch for {repository}: "
+            f"expected {expected_hash.upper()}, got {actual_hash}"
+        )
 
-def convert_model(model_directory: Path, output_path: Path) -> None:
-    converter = find_converter()
-
-    subprocess.run(
-        [
-            str(converter),
-            "--model_dir",
-            str(model_directory),
-            "--model_filename",
-            "inference.json",
-            "--params_filename",
-            "inference.pdiparams",
-            "--save_file",
-            str(output_path),
-            "--opset_version",
-            "11",
-            "--enable_onnx_checker",
-            "True",
-        ],
-        check=True,
-    )
-
-    require_file(output_path, "Converted ONNX model")
+    return model_path
 
 
 def download_dictionary(output_path: Path) -> None:
@@ -129,7 +102,7 @@ def package_version(name: str) -> str:
 def write_notice(hashes: dict[str, str]) -> None:
     notice = f"""# Third-Party Notices
 
-LightTranslator bundles converted PP-OCRv5 Mobile model assets from the
+LightTranslator bundles official PP-OCRv5 Mobile ONNX model assets from the
 PaddlePaddle project under the Apache License 2.0.
 
 ## Sources
@@ -142,13 +115,11 @@ PaddlePaddle project under the Apache License 2.0.
 - PaddleOCR revision: `{PADDLEOCR_REVISION}`
 - License: Apache License 2.0, https://www.apache.org/licenses/LICENSE-2.0
 
-## Conversion tools
+## Acquisition
 
-- paddlepaddle `{package_version("paddlepaddle")}`
-- paddle2onnx `{package_version("paddle2onnx")}`
 - huggingface-hub `{package_version("huggingface-hub")}`
-- ONNX opset: `11`
-- ONNX checker: enabled
+- Upstream ONNX files are downloaded from pinned revisions and verified against
+  the expected SHA-256 values before being copied into the application assets.
 
 ## Runtime asset SHA-256
 
@@ -169,11 +140,11 @@ PaddlePaddle project under the Apache License 2.0.
 def main() -> None:
     ASSET_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
-    detection_directory = download_model(
+    detection_model = download_model(
         DETECTION_REPOSITORY,
         DETECTION_REVISION,
     )
-    recognition_directory = download_model(
+    recognition_model = download_model(
         RECOGNITION_REPOSITORY,
         RECOGNITION_REVISION,
     )
@@ -186,12 +157,12 @@ def main() -> None:
             "ppocrv5_dict.txt": temporary_directory / "ppocrv5_dict.txt",
         }
 
-        convert_model(
-            detection_directory,
+        shutil.copyfile(
+            detection_model,
             prepared_assets["ppocrv5_mobile_det.onnx"],
         )
-        convert_model(
-            recognition_directory,
+        shutil.copyfile(
+            recognition_model,
             prepared_assets["ppocrv5_mobile_rec.onnx"],
         )
         download_dictionary(prepared_assets["ppocrv5_dict.txt"])

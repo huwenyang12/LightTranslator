@@ -54,11 +54,12 @@
 - `src/LightTranslator/Services/Screenshot/ScreenshotTranslationCoordinator.cs` — single-flight state machine and cancellation owner.
 - `src/LightTranslator/Services/Settings/IScreenshotLanguageSettingsPersistence.cs` — screenshot language persistence contract.
 - `src/LightTranslator/Services/Settings/ScreenshotLanguageSettingsPersistence.cs` — settings update implementation.
-- `src/LightTranslator/Assets/Ocr/ppocrv5_mobile_det.onnx` — bundled official detector converted to ONNX.
-- `src/LightTranslator/Assets/Ocr/ppocrv5_mobile_rec.onnx` — bundled official universal recognizer converted to ONNX.
+- `src/LightTranslator/Assets/Ocr/ppocrv5_mobile_det.onnx` — bundled official ONNX detector.
+- `src/LightTranslator/Assets/Ocr/ppocrv5_mobile_rec.onnx` — bundled official ONNX universal recognizer.
 - `src/LightTranslator/Assets/Ocr/ppocrv5_dict.txt` — matching recognition dictionary.
 - `src/LightTranslator/Assets/Ocr/THIRD-PARTY-NOTICES.md` — model source, version, checksum, and license notice.
-- `tools/prepare_ocr_models.py` — development-only reproducible model acquisition/conversion script.
+- `tools/prepare_ocr_models.py` — development-only reproducible model acquisition and verification script.
+- `tools/test_prepare_ocr_models.py` — model acquisition and checksum regression tests.
 
 ### Modified production files
 
@@ -292,6 +293,7 @@ git commit -m "feat: capture and select current monitor region"
 
 **Files:**
 - Create: `tools/prepare_ocr_models.py`
+- Create: `tools/test_prepare_ocr_models.py`
 - Create: `src/LightTranslator/Assets/Ocr/ppocrv5_mobile_det.onnx`
 - Create: `src/LightTranslator/Assets/Ocr/ppocrv5_mobile_rec.onnx`
 - Create: `src/LightTranslator/Assets/Ocr/ppocrv5_dict.txt`
@@ -356,9 +358,9 @@ Add to `LightTranslator.csproj`:
 
 `tools/prepare_ocr_models.py` must:
 
-1. download pinned revisions of `PaddlePaddle/PP-OCRv5_mobile_det` and `PaddlePaddle/PP-OCRv5_mobile_rec` with `huggingface_hub.snapshot_download`;
-2. locate `inference.json`, `inference.pdiparams`, and the recognition dictionary inside those snapshots;
-3. invoke the installed `paddle2onnx` executable with opset 11 and ONNX checker enabled;
+1. download pinned revisions of `PaddlePaddle/PP-OCRv5_mobile_det_onnx` and `PaddlePaddle/PP-OCRv5_mobile_rec_onnx` with `huggingface_hub.snapshot_download`;
+2. locate `inference.onnx` and verify it against the pinned upstream SHA-256 before staging it;
+3. download the matching recognition dictionary from a pinned PaddleOCR revision;
 4. write only the three runtime assets under `src/LightTranslator/Assets/Ocr`;
 5. print SHA-256 values used verbatim in `THIRD-PARTY-NOTICES.md`.
 
@@ -366,7 +368,8 @@ The preparation command is development-only:
 
 ```powershell
 python -m venv .model-tools
-.\.model-tools\Scripts\python.exe -m pip install "huggingface_hub==0.34.4" "paddle2onnx==2.0.1"
+.\.model-tools\Scripts\python.exe -m pip install "huggingface_hub==0.34.4"
+.\.model-tools\Scripts\python.exe -m unittest -v .\tools\test_prepare_ocr_models.py
 .\.model-tools\Scripts\python.exe .\tools\prepare_ocr_models.py
 ```
 
@@ -377,6 +380,7 @@ The provider implementation uses `AppContext.BaseDirectory`, verifies each file 
 Run:
 
 ```powershell
+.\.model-tools\Scripts\python.exe -m unittest -v .\tools\test_prepare_ocr_models.py
 dotnet test --filter OcrModelProviderTests
 dotnet publish .\src\LightTranslator\LightTranslator.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o .\publish\phase2a-model-gate
 Get-ChildItem .\publish\phase2a-model-gate\Assets\Ocr
@@ -982,4 +986,4 @@ Expected: clean working tree on `feature/phase2a-screenshot-translation`. Do not
 - Scope boundary: no background repair, typography matching, cross-monitor selection, rotated/vertical text optimization, history, saving, editing, copy, export, or result retry control is introduced.
 - Type consistency: `PixelRect`, `ScreenCaptureFrame`, `CapturedSelection`, `OcrBlock`, `IOcrService`, `IScreenshotTextTranslator`, and screenshot view contracts retain identical names and signatures across producer and consumer tasks.
 - Model consistency: all four source codes (`auto`, `zh`, `en`, `ja`) resolve to the same bundled detector/recognizer; no download manager or per-language model selector exists.
-- Verification order: model conversion is gated before OCR implementation; pure algorithms precede live inference; coordinator precedes composition; full regression and clean-machine acceptance are last.
+- Verification order: pinned model acquisition and checksum validation are gated before OCR implementation; pure algorithms precede live inference; coordinator precedes composition; full regression and clean-machine acceptance are last.
