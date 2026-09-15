@@ -313,6 +313,8 @@ public partial class App
                 trayBackend
             );
 
+        _trayService.TextTranslationRequested +=
+            OnTrayTextTranslationRequested;
 
         _trayService.SettingsRequested +=
             OnTraySettingsRequested;
@@ -327,7 +329,10 @@ public partial class App
 
         _trayService.Start();
     }
-
+    private void OnTrayTextTranslationRequested()
+    {
+        _windowManager?.ToggleTranslateWindow();
+    }
     private void OnTrayScreenshotTranslationRequested()
     {
         _appController?.OpenScreenshotTranslation();
@@ -506,16 +511,17 @@ public partial class App
         // 释放托盘
         if (_trayService is not null)
         {
+            _trayService.TextTranslationRequested -=
+                OnTrayTextTranslationRequested;
+
             _trayService.SettingsRequested -=
                 OnTraySettingsRequested;
-
 
             _trayService.ExitRequested -=
                 OnTrayExitRequested;
 
             _trayService.ScreenshotTranslationRequested -=
                 OnTrayScreenshotTranslationRequested;
-
 
             _trayService.Dispose();
         }

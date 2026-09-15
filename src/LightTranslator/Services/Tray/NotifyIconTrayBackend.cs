@@ -9,22 +9,48 @@ public sealed class NotifyIconTrayBackend
 
     private readonly System.Windows.Forms.ContextMenuStrip _contextMenu;
 
-    private readonly System.Windows.Forms.ToolStripMenuItem _settingsItem;
+    private readonly System.Windows.Forms.ToolStripMenuItem
+        _textTranslationItem;
 
-    private readonly System.Windows.Forms.ToolStripMenuItem _exitItem;
+    private readonly System.Windows.Forms.ToolStripMenuItem
+        _screenshotTranslationItem;
+
+    private readonly System.Windows.Forms.ToolStripMenuItem
+        _settingsItem;
+
+    private readonly System.Windows.Forms.ToolStripMenuItem
+        _exitItem;
 
     private bool _disposed;
-
 
     public event Action? SettingsRequested;
 
     public event Action? ExitRequested;
-    public event Action? TextTranslationRequested;
-    public event Action? ScreenshotTranslationRequested;
 
+    public event Action? TextTranslationRequested;
+
+    public event Action? ScreenshotTranslationRequested;
 
     public NotifyIconTrayBackend()
     {
+        _textTranslationItem =
+            new System.Windows.Forms.ToolStripMenuItem(
+                "文本翻译"
+            )
+            {
+                ShortcutKeyDisplayString =
+                    "Alt + T"
+            };
+
+        _screenshotTranslationItem =
+            new System.Windows.Forms.ToolStripMenuItem(
+                "截图翻译"
+            )
+            {
+                ShortcutKeyDisplayString =
+                    "Alt + Q"
+            };
+
         _settingsItem =
             new System.Windows.Forms.ToolStripMenuItem(
                 "设置"
@@ -35,6 +61,11 @@ public sealed class NotifyIconTrayBackend
                 "退出"
             );
 
+        _textTranslationItem.Click +=
+            OnTextTranslationClick;
+
+        _screenshotTranslationItem.Click +=
+            OnScreenshotTranslationClick;
 
         _settingsItem.Click +=
             OnSettingsClick;
@@ -42,9 +73,20 @@ public sealed class NotifyIconTrayBackend
         _exitItem.Click +=
             OnExitClick;
 
-
         _contextMenu =
             new System.Windows.Forms.ContextMenuStrip();
+
+        _contextMenu.Items.Add(
+            _textTranslationItem
+        );
+
+        _contextMenu.Items.Add(
+            _screenshotTranslationItem
+        );
+
+        _contextMenu.Items.Add(
+            new System.Windows.Forms.ToolStripSeparator()
+        );
 
         _contextMenu.Items.Add(
             _settingsItem
@@ -58,13 +100,11 @@ public sealed class NotifyIconTrayBackend
             _exitItem
         );
 
-
         var executablePath =
             Environment.ProcessPath
             ?? throw new InvalidOperationException(
                 "Unable to determine application executable path."
             );
-
 
         _icon =
             System.Drawing.Icon.ExtractAssociatedIcon(
@@ -72,7 +112,6 @@ public sealed class NotifyIconTrayBackend
             )
             ?? (System.Drawing.Icon)
                 System.Drawing.SystemIcons.Application.Clone();
-
 
         _notifyIcon =
             new System.Windows.Forms.NotifyIcon
@@ -91,7 +130,6 @@ public sealed class NotifyIconTrayBackend
             };
     }
 
-
     public void Show()
     {
         ThrowIfDisposed();
@@ -99,7 +137,6 @@ public sealed class NotifyIconTrayBackend
         _notifyIcon.Visible =
             true;
     }
-
 
     public void Hide()
     {
@@ -112,6 +149,21 @@ public sealed class NotifyIconTrayBackend
             false;
     }
 
+    private void OnTextTranslationClick(
+        object? sender,
+        EventArgs e
+    )
+    {
+        TextTranslationRequested?.Invoke();
+    }
+
+    private void OnScreenshotTranslationClick(
+        object? sender,
+        EventArgs e
+    )
+    {
+        ScreenshotTranslationRequested?.Invoke();
+    }
 
     private void OnSettingsClick(
         object? sender,
@@ -121,7 +173,6 @@ public sealed class NotifyIconTrayBackend
         SettingsRequested?.Invoke();
     }
 
-
     private void OnExitClick(
         object? sender,
         EventArgs e
@@ -129,7 +180,6 @@ public sealed class NotifyIconTrayBackend
     {
         ExitRequested?.Invoke();
     }
-
 
     public void Dispose()
     {
@@ -141,10 +191,14 @@ public sealed class NotifyIconTrayBackend
         _disposed =
             true;
 
-
         _notifyIcon.Visible =
             false;
 
+        _textTranslationItem.Click -=
+            OnTextTranslationClick;
+
+        _screenshotTranslationItem.Click -=
+            OnScreenshotTranslationClick;
 
         _settingsItem.Click -=
             OnSettingsClick;
@@ -152,18 +206,12 @@ public sealed class NotifyIconTrayBackend
         _exitItem.Click -=
             OnExitClick;
 
-
         _notifyIcon.Dispose();
 
         _contextMenu.Dispose();
 
-        _settingsItem.Dispose();
-
-        _exitItem.Dispose();
-
         _icon.Dispose();
     }
-
 
     private void ThrowIfDisposed()
     {

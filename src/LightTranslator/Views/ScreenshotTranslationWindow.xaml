@@ -10,8 +10,10 @@
     <Grid>
 
         <TextBlock
-            Text="截图翻译"
-            FontSize="28"
+            x:Name="PhaseNoticeTextBlock"
+            Text="截图翻译将在下一阶段启用"
+            FontSize="22"
+            Foreground="#444444"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"/>
 
