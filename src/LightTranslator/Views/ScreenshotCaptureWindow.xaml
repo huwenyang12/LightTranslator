@@ -3,23 +3,34 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None"
         AllowsTransparency="True"
-        Background="Transparent"
+        Background="Black"
         Topmost="True"
         ShowInTaskbar="False"
-        WindowState="Maximized"
+        WindowState="Normal"
+        WindowStartupLocation="Manual"
+        ResizeMode="NoResize"
         Cursor="Cross">
 
-    <Canvas x:Name="CaptureCanvas"
-            Background="#66000000"
-            MouseLeftButtonDown="OnMouseLeftButtonDown"
-            MouseMove="OnMouseMove"
-            MouseLeftButtonUp="OnMouseLeftButtonUp">
+    <Grid>
 
-        <Rectangle x:Name="SelectionRectangle"
-                   Stroke="White"
-                   StrokeThickness="2"
-                   Visibility="Collapsed"/>
+        <Image x:Name="FrozenScreenImage"
+               Stretch="Fill"
+               IsHitTestVisible="False"/>
 
-    </Canvas>
+        <Canvas x:Name="CaptureCanvas"
+                Background="#66000000"
+                MouseLeftButtonDown="OnMouseLeftButtonDown"
+                MouseMove="OnMouseMove"
+                MouseLeftButtonUp="OnMouseLeftButtonUp">
+
+            <Rectangle x:Name="SelectionRectangle"
+                       Stroke="White"
+                       StrokeThickness="2"
+                       Fill="#11000000"
+                       Visibility="Collapsed"/>
+
+        </Canvas>
+
+    </Grid>
 
 </Window>

@@ -1,37 +1,84 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Shapes;
 using LightTranslator.Models;
+using LightTranslator.Services.ScreenCapture;
 
-using WpfPoint = System.Windows.Point;
-using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
-using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
+using WpfKeyEventArgs =
+    System.Windows.Input.KeyEventArgs;
+
+using WpfMouseEventArgs =
+    System.Windows.Input.MouseEventArgs;
+
+using WpfPoint =
+    System.Windows.Point;
 
 namespace LightTranslator.Views;
 
 public partial class ScreenshotCaptureWindow
     : Window
 {
+    private readonly ScreenCaptureFrame _frame;
 
     private WpfPoint? _startPoint;
 
-
-    public ScreenshotSelection? Selection
+    public ScreenshotCaptureWindow(
+        ScreenCaptureFrame frame
+    )
     {
-        get;
-        private set;
-    }
+        _frame =
+            frame ??
+            throw new ArgumentNullException(
+                nameof(
+                    frame
+                )
+            );
 
-
-    public ScreenshotCaptureWindow()
-    {
         InitializeComponent();
+
+        FrozenScreenImage.Source =
+            frame.Image;
+
+        var windowBounds =
+            DpiCoordinateMapper.PixelsToDips(
+                frame.MonitorBounds,
+                frame.DpiX,
+                frame.DpiY
+            );
+
+        Left =
+            windowBounds.X;
+
+        Top =
+            windowBounds.Y;
+
+        Width =
+            windowBounds.Width;
+
+        Height =
+            windowBounds.Height;
 
         PreviewKeyDown +=
             OnPreviewKeyDown;
     }
 
+    public PixelRect? Selection
+    {
+        get;
+        private set;
+    }
+
+    internal PixelRect ConvertSelectionToPixels(
+        Rect selectionBounds
+    )
+    {
+        return
+            DpiCoordinateMapper.DipsToPixels(
+                selectionBounds,
+                _frame.DpiX,
+                _frame.DpiY
+            );
+    }
 
     private void OnMouseLeftButtonDown(
         object sender,
@@ -42,6 +89,8 @@ public partial class ScreenshotCaptureWindow
             e.GetPosition(
                 CaptureCanvas
             );
+
+        CaptureCanvas.CaptureMouse();
 
         SelectionRectangle.Visibility =
             Visibility.Visible;
@@ -55,8 +104,13 @@ public partial class ScreenshotCaptureWindow
             SelectionRectangle,
             _startPoint.Value.Y
         );
-    }
 
+        SelectionRectangle.Width =
+            0;
+
+        SelectionRectangle.Height =
+            0;
+    }
 
     private void OnMouseMove(
         object sender,
@@ -68,57 +122,12 @@ public partial class ScreenshotCaptureWindow
             return;
         }
 
-
-        var current =
+        UpdateSelectionRectangle(
             e.GetPosition(
                 CaptureCanvas
-            );
-
-
-        var x =
-            Math.Min(
-                _startPoint.Value.X,
-                current.X
-            );
-
-        var y =
-            Math.Min(
-                _startPoint.Value.Y,
-                current.Y
-            );
-
-
-        var width =
-            Math.Abs(
-                current.X -
-                _startPoint.Value.X
-            );
-
-        var height =
-            Math.Abs(
-                current.Y -
-                _startPoint.Value.Y
-            );
-
-
-        Canvas.SetLeft(
-            SelectionRectangle,
-            x
+            )
         );
-
-        Canvas.SetTop(
-            SelectionRectangle,
-            y
-        );
-
-
-        SelectionRectangle.Width =
-            width;
-
-        SelectionRectangle.Height =
-            height;
     }
-
 
     private void OnMouseLeftButtonUp(
         object sender,
@@ -130,48 +139,118 @@ public partial class ScreenshotCaptureWindow
             return;
         }
 
-
-        var end =
+        var endPoint =
             e.GetPosition(
                 CaptureCanvas
             );
 
+        UpdateSelectionRectangle(
+            endPoint
+        );
 
-        Selection =
-            new ScreenshotSelection(
-                Math.Min(
-                    _startPoint.Value.X,
-                    end.X
-                ),
-                Math.Min(
-                    _startPoint.Value.Y,
-                    end.Y
-                ),
-                Math.Abs(
-                    end.X -
-                    _startPoint.Value.X
-                ),
-                Math.Abs(
-                    end.Y -
-                    _startPoint.Value.Y
-                )
+        var selectionBounds =
+            CreateSelectionBounds(
+                _startPoint.Value,
+                endPoint
             );
 
+        _startPoint =
+            null;
+
+        CaptureCanvas.ReleaseMouseCapture();
+
+        var selection =
+            ConvertSelectionToPixels(
+                selectionBounds
+            );
+
+        if (selection.IsEmpty)
+        {
+            SelectionRectangle.Visibility =
+                Visibility.Collapsed;
+
+            return;
+        }
+
+        Selection =
+            selection;
 
         DialogResult =
             true;
     }
 
+    private void UpdateSelectionRectangle(
+        WpfPoint current
+    )
+    {
+        if (_startPoint is null)
+        {
+            return;
+        }
+
+        var bounds =
+            CreateSelectionBounds(
+                _startPoint.Value,
+                current
+            );
+
+        Canvas.SetLeft(
+            SelectionRectangle,
+            bounds.X
+        );
+
+        Canvas.SetTop(
+            SelectionRectangle,
+            bounds.Y
+        );
+
+        SelectionRectangle.Width =
+            bounds.Width;
+
+        SelectionRectangle.Height =
+            bounds.Height;
+    }
+
+    private static Rect CreateSelectionBounds(
+        WpfPoint start,
+        WpfPoint end
+    )
+    {
+        return
+            new Rect(
+                Math.Min(
+                    start.X,
+                    end.X
+                ),
+                Math.Min(
+                    start.Y,
+                    end.Y
+                ),
+                Math.Abs(
+                    end.X -
+                    start.X
+                ),
+                Math.Abs(
+                    end.Y -
+                    start.Y
+                )
+            );
+    }
 
     private void OnPreviewKeyDown(
         object sender,
         WpfKeyEventArgs e
     )
     {
-        if (e.Key == Key.Escape)
+        if (e.Key != Key.Escape)
         {
-            DialogResult =
-                false;
+            return;
         }
+
+        Selection =
+            null;
+
+        DialogResult =
+            false;
     }
 }
