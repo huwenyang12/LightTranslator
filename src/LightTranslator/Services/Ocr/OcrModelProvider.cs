@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace LightTranslator.Services.Ocr;
 
 public sealed class OcrModelProvider
