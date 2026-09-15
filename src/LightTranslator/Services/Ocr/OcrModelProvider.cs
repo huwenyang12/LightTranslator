@@ -66,6 +66,7 @@ public sealed class OcrModelProvider
         catch (Exception exception)
             when (
                 exception is IOException or
+                InvalidDataException or
                 UnauthorizedAccessException
             )
         {
