@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import urllib.request
 
@@ -56,16 +57,29 @@ def download_model(repository: str, revision: str) -> Path:
     return model_directory
 
 
-def convert_model(model_directory: Path, output_path: Path) -> None:
+def find_converter() -> Path:
+    executable_directory = Path(sys.executable).resolve().parent
+
+    for file_name in ("paddle2onnx.exe", "paddle2onnx"):
+        candidate = executable_directory / file_name
+        if candidate.is_file():
+            return candidate
+
     converter = shutil.which("paddle2onnx")
-    if converter is None:
-        raise RuntimeError(
-            "paddle2onnx executable was not found; install the pinned model tools first"
-        )
+    if converter is not None:
+        return Path(converter)
+
+    raise RuntimeError(
+        "paddle2onnx executable was not found; install the pinned model tools first"
+    )
+
+
+def convert_model(model_directory: Path, output_path: Path) -> None:
+    converter = find_converter()
 
     subprocess.run(
         [
-            converter,
+            str(converter),
             "--model_dir",
             str(model_directory),
             "--model_filename",
