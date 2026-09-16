@@ -16,14 +16,13 @@ public class SettingsServiceTests
 
         var settings = await service.LoadAsync();
 
-        Assert.Equal(
-            new HotkeyDefinition(
-                "T",
-                Alt: true,
-                Control: false,
-                Shift: false,
-                Windows: false),
-            settings.TextTranslationHotkey);
+        Assert.Null(
+            settings.TextTranslationHotkey
+        );
+
+        Assert.Null(
+            settings.ScreenshotTranslationHotkey
+        );
 
         Assert.Equal("auto", settings.TextSourceLanguage);
         Assert.Equal("zh", settings.TextTargetLanguage);
