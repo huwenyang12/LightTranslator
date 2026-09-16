@@ -12,23 +12,9 @@ public sealed record AppSettings
 
     public string ScreenshotTargetLanguage { get; init; } = "zh";
 
-    public HotkeyDefinition TextTranslationHotkey { get; init; } =
-        new(
-            "T",
-            Alt: true,
-            Control: false,
-            Shift: false,
-            Windows: false
-        );
+    public HotkeyDefinition? TextTranslationHotkey { get; init; }
 
-    public HotkeyDefinition ScreenshotTranslationHotkey { get; init; } =
-        new(
-            "Q",
-            Alt: true,
-            Control: false,
-            Shift: false,
-            Windows: false
-        );
+    public HotkeyDefinition? ScreenshotTranslationHotkey { get; init; }
 
     public bool StartWithWindows { get; init; }
 

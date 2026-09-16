@@ -28,13 +28,18 @@ public sealed class HotkeyService
     }
 
     public bool ReplaceTextTranslation(
-        HotkeyDefinition oldHotkey,
-        HotkeyDefinition newHotkey
+        HotkeyDefinition? oldHotkey,
+        HotkeyDefinition? newHotkey
     )
     {
         _backend.Unregister(
             TextTranslationHotkeyId
         );
+
+        if (newHotkey is null)
+        {
+            return true;
+        }
 
         var newModifiers =
             GetModifiers(
@@ -58,29 +63,37 @@ public sealed class HotkeyService
             return true;
         }
 
-        var oldModifiers =
-            GetModifiers(
-                oldHotkey
-            );
+        if (oldHotkey is not null)
+        {
+            var oldModifiers =
+                GetModifiers(
+                    oldHotkey
+                );
 
-        var oldVirtualKey =
-            GetVirtualKey(
-                oldHotkey.Key
-            );
+            var oldVirtualKey =
+                GetVirtualKey(
+                    oldHotkey.Key
+                );
 
-        _backend.Register(
-            TextTranslationHotkeyId,
-            oldModifiers,
-            oldVirtualKey
-        );
+            _backend.Register(
+                TextTranslationHotkeyId,
+                oldModifiers,
+                oldVirtualKey
+            );
+        }
 
         return false;
     }
 
     public bool RegisterTextTranslation(
-        HotkeyDefinition hotkey
+        HotkeyDefinition? hotkey
     )
     {
+        if (hotkey is null)
+        {
+            return true;
+        }
+
         var modifiers =
             GetModifiers(hotkey);
 
@@ -95,9 +108,14 @@ public sealed class HotkeyService
     }
 
     public bool RegisterScreenshotTranslation(
-        HotkeyDefinition hotkey
+        HotkeyDefinition? hotkey
     )
     {
+        if (hotkey is null)
+        {
+            return true;
+        }
+
         var modifiers =
             GetModifiers(hotkey);
 

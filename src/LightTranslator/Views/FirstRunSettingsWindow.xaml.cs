@@ -55,9 +55,14 @@ public partial class FirstRunSettingsWindow
     }
 
     private static string FormatHotkey(
-        LightTranslator.Models.HotkeyDefinition hotkey
+        LightTranslator.Models.HotkeyDefinition? hotkey
     )
     {
+        if (hotkey is null)
+        {
+            return string.Empty;
+        }
+
         var parts =
             new List<string>();
 

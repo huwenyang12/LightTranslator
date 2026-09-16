@@ -26,9 +26,7 @@ public sealed class FirstRunSettingsViewModel
 
     public bool IsTestingApiKey { get; private set; }
 
-    public HotkeyDefinition TextTranslationHotkey { get; set; } =
-        AppSettings.CreateDefault()
-            .TextTranslationHotkey;
+    public HotkeyDefinition? TextTranslationHotkey { get; set; }
 
     private readonly ITextTranslationHotkeyPersistence?
         _hotkeyPersistence;
@@ -36,7 +34,7 @@ public sealed class FirstRunSettingsViewModel
     private readonly ITextTranslationHotkeyChangeService?
         _hotkeyChangeService;
 
-    private HotkeyDefinition
+    private HotkeyDefinition?
         _currentTextTranslationHotkey;
 
     public IReadOnlyList<LanguageOption> ScreenshotSourceLanguages =>
@@ -77,11 +75,16 @@ public sealed class FirstRunSettingsViewModel
             return true;
         }
 
+        if (TextTranslationHotkey is null)
+        {
+            return false;
+        }
+
         if (_hotkeyChangeService is not null)
         {
             var saved =
                 await _hotkeyChangeService.ApplyAsync(
-                    _currentTextTranslationHotkey,
+                    _currentTextTranslationHotkey!,
                     TextTranslationHotkey,
                     cancellationToken
                 );
@@ -142,9 +145,7 @@ public sealed class FirstRunSettingsViewModel
             screenshotLanguagePersistence;
 
         _currentTextTranslationHotkey =
-            currentTextTranslationHotkey
-            ?? AppSettings.CreateDefault()
-                .TextTranslationHotkey;
+            currentTextTranslationHotkey;
 
         TextTranslationHotkey =
             _currentTextTranslationHotkey;

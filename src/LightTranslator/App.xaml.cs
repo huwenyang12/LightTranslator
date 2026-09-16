@@ -1,4 +1,4 @@
-﻿using System.Net.Http;
+using System.Net.Http;
 using LightTranslator.Controllers;
 using LightTranslator.Infrastructure.Security;
 using LightTranslator.Models;
@@ -312,7 +312,6 @@ public partial class App
                 _hotkeyBackend
             );
 
-        // Alt + T / Alt + Q
         _hotkeyService.TextTranslationRequested +=
             _windowManager.ToggleTranslateWindow;
 
@@ -402,8 +401,7 @@ public partial class App
             _startWithWindowsSettingsPersistence is null ||
             _apiKeyValidator is null ||
             _textTranslationHotkeyPersistence is null ||
-            _screenshotLanguageSettingsPersistence is null ||
-            _startupTextTranslationHotkey is null
+            _screenshotLanguageSettingsPersistence is null
         )
         {
             return false;
