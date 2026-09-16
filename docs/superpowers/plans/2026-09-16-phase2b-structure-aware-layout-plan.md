@@ -4,7 +4,7 @@
 
 **Goal:** Preserve title/body structure and source-scale typography in screenshot translation while keeping translated text inside OCR bounds and avoiding any additional model or network call.
 
-**Architecture:** Add a screenshot-specific `ScreenshotTextRegion` model and a pure `ScreenshotTextRegionAnalyzer` between OCR and translation. Keep `IScreenshotTextTranslator` unchanged by adapting regions back to temporary `OcrBlock` items for the existing single batch request, then render regions with DPI-aware font normalization, dynamic padding, alignment rules, and lightweight source-background sampling.
+**Architecture:** Add `ScreenshotTextRegion` plus a pure `ScreenshotTextRegionAnalyzer` between OCR and translation. Keep `IScreenshotTextTranslator` unchanged by adapting regions to temporary `OcrBlock` items for the existing one-call batch translator, then render regions with DPI-aware font normalization, dynamic padding, alignment rules, and lightweight source-background sampling.
 
 **Tech Stack:** C# 12, .NET 8, WPF, xUnit.
 
@@ -12,23 +12,23 @@
 
 ## Global Constraints
 
-- `OcrBlock` remains raw OCR data; do not add title/body or rendering fields to it.
-- `ScreenshotTextRegion.Bounds` and `SourceLineHeight` use physical screenshot pixels.
-- Convert `SourceLineHeight` to DIP with `SourceLineHeight * 96 / dpiY` before font calculation.
-- Title/body detection uses geometry only; DeepSeek never classifies structure.
-- Keep `IScreenshotTextTranslator` unchanged and keep one batch translation network request per screenshot.
-- Translation containers remain fixed to OCR-derived bounds and clip at those bounds.
-- Font fitting starts from source-scale typography and may shrink to 6 DIP; never below 6 DIP.
-- Similar body text normalizes around the screenshot body-font median; titles keep their own larger estimate.
-- Single-line translations are vertically centered; wrapped or explicit-newline translations are top aligned.
-- Padding is dynamic using `horizontal = clamp(height * 0.12, 1, 4)` and `vertical = clamp(height * 0.06, 0, 2)` in DIP.
-- Flat backgrounds use sampled opaque source color and black/white contrast text; complex or unsampleable backgrounds use `ARGB(235,17,24,39)` with white text.
-- Do not add OCR passes, DeepSeek calls, ONNX layout/background models, screenshot disk writes, or new NuGet dependencies.
-- Preserve existing cancellation, privacy-safe logging, API-key errors, network errors, DPI coordinate mapping, close bindings, and Phase 2B fixed-bounds behavior.
+- `OcrBlock` stays raw OCR data; do not add title/body/rendering fields.
+- `ScreenshotTextRegion.Bounds` and `SourceLineHeight` are physical screenshot pixels.
+- Convert line height to DIP with `SourceLineHeight * 96 / dpiY` before font sizing.
+- Title/body classification uses geometry only.
+- `IScreenshotTextTranslator` stays unchanged and one screenshot still produces exactly one translator call.
+- Translation boxes remain fixed to OCR-derived bounds and clip at those bounds.
+- Font fitting never goes below 6 DIP.
+- Similar body text normalizes around a screenshot-wide body-font median; titles keep their own larger estimate.
+- One-line translations are vertically centered; wrapped/newline translations are top aligned.
+- Dynamic padding: `horizontal = clamp(height * 0.12, 1, 4)`, `vertical = clamp(height * 0.06, 0, 2)` in DIP.
+- Flat backgrounds use sampled opaque source color plus black/white contrast text; complex/unsampleable backgrounds use `ARGB(235,17,24,39)` plus white text.
+- No extra OCR pass, DeepSeek call, ONNX layout/background model, screenshot persistence, or new NuGet dependency.
+- Preserve cancellation, privacy-safe logging, error messages, DPI mapping, close bindings, and the already-tested fixed-bounds overflow behavior.
 
 ---
 
-### Task 1: Add screenshot text regions and preserve body-line geometry
+### Task 1: Add structure-aware text regions
 
 **Files:**
 - Create: `src/LightTranslator/Models/ScreenshotTextRegion.cs`
@@ -36,12 +36,9 @@
 - Create: `tests/LightTranslator.Tests/ScreenshotTextRegionAnalyzerTests.cs`
 
 **Interfaces:**
-- Consumes: filtered/sorted `IReadOnlyList<OcrBlock>` values in physical-pixel coordinates.
-- Produces: `IReadOnlyList<ScreenshotTextRegion>` from `ScreenshotTextRegionAnalyzer.Analyze(IReadOnlyList<OcrBlock> blocks)`.
+- Produces `IReadOnlyList<ScreenshotTextRegion> ScreenshotTextRegionAnalyzer.Analyze(IReadOnlyList<OcrBlock> blocks)`.
 
-- [ ] **Step 1: Write the RED body-grouping test**
-
-Create `ScreenshotTextRegionAnalyzerTests.cs` with this first test:
+- [ ] **Step 1: Write the first failing body-grouping test**
 
 ```csharp
 using LightTranslator.Models;
@@ -92,18 +89,16 @@ public sealed class ScreenshotTextRegionAnalyzerTests
 }
 ```
 
-- [ ] **Step 2: Run the test and verify RED**
+- [ ] **Step 2: Run RED**
 
 ```powershell
 dotnet test `
   --filter "FullyQualifiedName~ScreenshotTextRegionAnalyzerTests.Analyze_GroupsBodyLinesInReadingOrderAndKeepsMedianLineHeight"
 ```
 
-Expected: compile/test failure because `ScreenshotTextRegion`, `ScreenshotTextRole`, and `ScreenshotTextRegionAnalyzer` do not exist yet.
+Expected: compile/test failure because the new model/analyzer do not exist.
 
 - [ ] **Step 3: Add the region model**
-
-Create `ScreenshotTextRegion.cs`:
 
 ```csharp
 namespace LightTranslator.Models;
@@ -125,139 +120,35 @@ public sealed record ScreenshotTextRegion(
 );
 ```
 
-- [ ] **Step 4: Add the minimum analyzer implementation for body grouping**
+- [ ] **Step 4: Add the minimum body-grouping analyzer**
 
-Create `ScreenshotTextRegionAnalyzer.cs` with a deterministic proximity cluster and median-height calculation:
+Use the existing paragraph proximity rule (`1.5x` max neighboring line height), reading-order sort `(Y, X)`, merged bounds, average confidence, joined text with spaces, and a median helper:
 
 ```csharp
-using LightTranslator.Models;
-
-namespace LightTranslator.Services.Screenshot;
-
-public static class ScreenshotTextRegionAnalyzer
+private static double Median(IEnumerable<double> values)
 {
-    private const double MaximumLineGapRatio = 1.5d;
+    var ordered = values.OrderBy(value => value).ToArray();
+    var middle = ordered.Length / 2;
 
-    public static IReadOnlyList<ScreenshotTextRegion> Analyze(
-        IReadOnlyList<OcrBlock> blocks
-    )
-    {
-        ArgumentNullException.ThrowIfNull(blocks);
-
-        var ordered =
-            blocks
-                .Where(
-                    block =>
-                        !string.IsNullOrWhiteSpace(block.Text) &&
-                        !block.Bounds.IsEmpty
-                )
-                .OrderBy(block => block.Bounds.Y)
-                .ThenBy(block => block.Bounds.X)
-                .ToArray();
-
-        if (ordered.Length == 0)
-        {
-            return Array.Empty<ScreenshotTextRegion>();
-        }
-
-        var clusters =
-            new List<List<OcrBlock>>();
-
-        var current =
-            new List<OcrBlock>
-            {
-                ordered[0]
-            };
-
-        for (var index = 1; index < ordered.Length; index++)
-        {
-            var previous = current[^1];
-            var next = ordered[index];
-
-            var previousBottom =
-                previous.Bounds.Y + previous.Bounds.Height;
-
-            var gap =
-                Math.Max(
-                    0,
-                    next.Bounds.Y - previousBottom
-                );
-
-            var referenceHeight =
-                Math.Max(
-                    previous.Bounds.Height,
-                    next.Bounds.Height
-                );
-
-            if (gap > referenceHeight * MaximumLineGapRatio)
-            {
-                clusters.Add(current);
-                current = new List<OcrBlock>();
-            }
-
-            current.Add(next);
-        }
-
-        clusters.Add(current);
-
-        return
-            clusters
-                .Select(
-                    (cluster, index) =>
-                        CreateRegion(
-                            cluster,
-                            index + 1,
-                            ScreenshotTextRole.Body
-                        )
-                )
-                .ToArray();
-    }
-
-    private static ScreenshotTextRegion CreateRegion(
-        IReadOnlyList<OcrBlock> lines,
-        int number,
-        ScreenshotTextRole role
-    )
-    {
-        var left = lines.Min(line => line.Bounds.X);
-        var top = lines.Min(line => line.Bounds.Y);
-        var right = lines.Max(line => line.Bounds.X + line.Bounds.Width);
-        var bottom = lines.Max(line => line.Bounds.Y + line.Bounds.Height);
-
-        return
-            new ScreenshotTextRegion(
-                $"region-{number:0000}",
-                string.Join(" ", lines.Select(line => line.Text.Trim())),
-                lines.Average(line => line.Confidence),
-                new PixelRect(left, top, right - left, bottom - top),
-                Median(lines.Select(line => (double)line.Bounds.Height)),
-                role
-            );
-    }
-
-    private static double Median(IEnumerable<double> values)
-    {
-        var ordered = values.OrderBy(value => value).ToArray();
-        var middle = ordered.Length / 2;
-
-        return
-            ordered.Length % 2 == 1
-                ? ordered[middle]
-                : (ordered[middle - 1] + ordered[middle]) / 2d;
-    }
+    return
+        ordered.Length % 2 == 1
+            ? ordered[middle]
+            : (ordered[middle - 1] + ordered[middle]) / 2d;
 }
 ```
 
-- [ ] **Step 5: Run the focused analyzer test**
+Create region IDs as `region-0001`, `region-0002`, ... in final reading order. For this task every region is `Body`.
+
+- [ ] **Step 5: Run GREEN**
 
 ```powershell
 dotnet test `
-  --filter "FullyQualifiedName~ScreenshotTextRegionAnalyzerTests.Analyze_GroupsBodyLinesInReadingOrderAndKeepsMedianLineHeight"
+  --filter "FullyQualifiedName~ScreenshotTextRegionAnalyzerTests"
 ```
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit Task 1**
+- [ ] **Step 6: Commit**
 
 ```powershell
 git add `
@@ -270,19 +161,16 @@ git commit -m "feat: preserve screenshot text region geometry"
 
 ---
 
-### Task 2: Add conservative title detection without misclassifying UI text
+### Task 2: Add conservative title detection
 
 **Files:**
 - Modify: `src/LightTranslator/Services/Screenshot/ScreenshotTextRegionAnalyzer.cs`
 - Modify: `tests/LightTranslator.Tests/ScreenshotTextRegionAnalyzerTests.cs`
 
 **Interfaces:**
-- Consumes: one proximity cluster of OCR lines.
-- Produces: either one `Body` region, or a separate first-line `Title` region followed by a `Body` region.
+- A proximity cluster becomes either one `Body` region or one first-line `Title` region plus one `Body` region.
 
-- [ ] **Step 1: Add three RED title-detection tests**
-
-Append tests equivalent to:
+- [ ] **Step 1: Add the positive title RED test**
 
 ```csharp
 [Fact]
@@ -324,7 +212,88 @@ public void Analyze_SeparatesLargerShortTitleFromFollowingBodyLines()
     );
     Assert.Equal(24d, regions[1].SourceLineHeight, 6);
 }
+```
 
+- [ ] **Step 2: Run RED**
+
+```powershell
+dotnet test `
+  --filter "FullyQualifiedName~ScreenshotTextRegionAnalyzerTests.Analyze_SeparatesLargerShortTitleFromFollowingBodyLines"
+```
+
+Expected: FAIL because the analyzer emits one body region.
+
+- [ ] **Step 3: Implement the exact conservative title predicate**
+
+Within one proximity cluster, only test the first line as a title and only when at least two following lines exist:
+
+```csharp
+private static bool IsTitleCandidate(
+    OcrBlock candidate,
+    IReadOnlyList<OcrBlock> following
+)
+{
+    if (following.Count < 2 ||
+        candidate.Text.Trim().Length > 60)
+    {
+        return false;
+    }
+
+    var bodyMedianHeight =
+        Median(
+            following.Select(
+                line => (double)line.Bounds.Height
+            )
+        );
+
+    if (bodyMedianHeight <= 0d ||
+        candidate.Bounds.Height < bodyMedianHeight * 1.30d)
+    {
+        return false;
+    }
+
+    if (following.Any(
+            line =>
+                Math.Abs(line.Bounds.Height - bodyMedianHeight) /
+                bodyMedianHeight > 0.20d
+        ))
+    {
+        return false;
+    }
+
+    var bodyLeft = following.Min(line => line.Bounds.X);
+    var bodyRight =
+        following.Max(
+            line => line.Bounds.X + line.Bounds.Width
+        );
+
+    var alignmentTolerance =
+        Math.Max(
+            12d,
+            (bodyRight - bodyLeft) * 0.08d
+        );
+
+    if (Math.Abs(candidate.Bounds.X - bodyLeft) > alignmentTolerance)
+    {
+        return false;
+    }
+
+    var gap =
+        Math.Max(
+            0,
+            following[0].Bounds.Y -
+            (candidate.Bounds.Y + candidate.Bounds.Height)
+        );
+
+    return gap <= bodyMedianHeight * 1.5d;
+}
+```
+
+If true, emit the first line as `Title` and the remaining cluster as `Body`; otherwise emit the entire cluster as `Body`.
+
+- [ ] **Step 4: Add two negative regression tests**
+
+```csharp
 [Fact]
 public void Analyze_DoesNotClassifyIsolatedLargeLabelAsTitle()
 {
@@ -380,98 +349,16 @@ public void Analyze_DoesNotClassifySameHeightShortLineAsTitle()
 }
 ```
 
-- [ ] **Step 2: Run the title slice and verify RED**
+- [ ] **Step 5: Run all analyzer tests**
 
 ```powershell
 dotnet test `
   --filter "FullyQualifiedName~ScreenshotTextRegionAnalyzerTests"
 ```
 
-Expected: the positive title test fails because the analyzer currently emits one body region.
+Expected: PASS.
 
-- [ ] **Step 3: Implement conservative first-line title splitting inside each proximity cluster**
-
-Before emitting each cluster, evaluate only its first line as a possible title. Require at least three lines in the cluster. Use the remaining lines as the body evidence:
-
-```csharp
-private static bool IsTitleCandidate(
-    OcrBlock candidate,
-    IReadOnlyList<OcrBlock> following
-)
-{
-    if (following.Count < 2 ||
-        candidate.Text.Trim().Length > 60)
-    {
-        return false;
-    }
-
-    var bodyMedianHeight =
-        Median(
-            following.Select(
-                line => (double)line.Bounds.Height
-            )
-        );
-
-    if (bodyMedianHeight <= 0d ||
-        candidate.Bounds.Height < bodyMedianHeight * 1.30d)
-    {
-        return false;
-    }
-
-    if (following.Any(
-            line =>
-                Math.Abs(line.Bounds.Height - bodyMedianHeight) /
-                bodyMedianHeight > 0.20d
-        ))
-    {
-        return false;
-    }
-
-    var bodyLeft =
-        following.Min(line => line.Bounds.X);
-
-    var bodyRight =
-        following.Max(
-            line => line.Bounds.X + line.Bounds.Width
-        );
-
-    var bodyWidth =
-        bodyRight - bodyLeft;
-
-    var alignmentTolerance =
-        Math.Max(
-            12d,
-            bodyWidth * 0.08d
-        );
-
-    if (Math.Abs(candidate.Bounds.X - bodyLeft) > alignmentTolerance)
-    {
-        return false;
-    }
-
-    var gap =
-        Math.Max(
-            0,
-            following[0].Bounds.Y -
-            (candidate.Bounds.Y + candidate.Bounds.Height)
-        );
-
-    return gap <= bodyMedianHeight * 1.5d;
-}
-```
-
-When the test passes, emit the candidate line as a `Title` region and all remaining cluster lines as one `Body` region. Otherwise emit the whole cluster as one `Body` region. Assign `region-0001`, `region-0002`, etc. in final reading order after splitting.
-
-- [ ] **Step 4: Run all analyzer tests**
-
-```powershell
-dotnet test `
-  --filter "FullyQualifiedName~ScreenshotTextRegionAnalyzerTests"
-```
-
-Expected: all analyzer tests PASS.
-
-- [ ] **Step 5: Commit Task 2**
+- [ ] **Step 6: Commit**
 
 ```powershell
 git add `
@@ -483,7 +370,7 @@ git commit -m "feat: detect screenshot titles conservatively"
 
 ---
 
-### Task 3: Move the screenshot pipeline to structure-aware regions while keeping one translator call
+### Task 3: Carry structure through the existing one-call translation pipeline
 
 **Files:**
 - Modify: `src/LightTranslator/Services/Screenshot/ScreenshotTranslationCoordinator.cs`
@@ -496,13 +383,46 @@ git commit -m "feat: detect screenshot titles conservatively"
 - Delete after migration: `tests/LightTranslator.Tests/OcrParagraphGrouperTests.cs`
 
 **Interfaces:**
-- Keeps: `IScreenshotTextTranslator.TranslateAsync(IReadOnlyList<OcrBlock>, ...)` unchanged.
-- Changes: `IScreenshotResultView.ShowResults(IReadOnlyList<ScreenshotTextRegion> regions)`.
-- Coordinator adapts each region to a temporary `OcrBlock`, calls the translator once, reattaches translated text by region ID, then renders regions.
+- Keep `IScreenshotTextTranslator.TranslateAsync(IReadOnlyList<OcrBlock>, ...)` unchanged.
+- Final result-view interface becomes `ShowResults(IReadOnlyList<ScreenshotTextRegion> regions)`.
 
-- [ ] **Step 1: Make the existing coordinator success test RED on the new structure behavior without changing interfaces yet**
+- [ ] **Step 1: Make the coordinator success test RED on structure splitting**
 
-Change its OCR fixture to a title plus two body lines and add a translator call counter. Assert that the translator receives two items in one call:
+Use this OCR fixture:
+
+```csharp
+fixture.Ocr.Blocks =
+    new[]
+    {
+        new OcrBlock(
+            "title",
+            "Paragraph 1",
+            0.98,
+            new PixelRect(20, 10, 150, 40)
+        ),
+        new OcrBlock(
+            "body-1",
+            "Learning is rewarding.",
+            0.96,
+            new PixelRect(20, 56, 300, 24)
+        ),
+        new OcrBlock(
+            "body-2",
+            "Practice every day.",
+            0.95,
+            new PixelRect(20, 86, 320, 24)
+        )
+    };
+
+fixture.Translator.Result =
+    new Dictionary<string, string>
+    {
+        ["region-0001"] = "第1段",
+        ["region-0002"] = "学习很有收获。每天练习。"
+    };
+```
+
+Add `CallCount` to the fake translator and increment it at the start of `TranslateAsync`. Assert after rendering:
 
 ```csharp
 Assert.Equal(1, fixture.Translator.CallCount);
@@ -514,20 +434,16 @@ Assert.Equal(
 );
 ```
 
-Set translator results with `region-0001` and `region-0002` keys.
-
-- [ ] **Step 2: Run the coordinator success test and verify RED**
+- [ ] **Step 2: Run RED**
 
 ```powershell
 dotnet test `
   --filter "FullyQualifiedName~ScreenshotTranslationCoordinatorTests.Toggle_CompletesCaptureOcrTranslationAndRendering"
 ```
 
-Expected: FAIL because the current coordinator still calls `OcrParagraphGrouper` and sends the old paragraph grouping.
+Expected: FAIL because the coordinator still uses `OcrParagraphGrouper`.
 
-- [ ] **Step 3: Replace the old paragraph grouping call with region analysis and temporary translator blocks**
-
-Use this flow in `ScreenshotTranslationCoordinator.RunAsync`:
+- [ ] **Step 3: Replace paragraph grouping with analyzer output and adapt regions to temporary translator blocks**
 
 ```csharp
 var regions =
@@ -545,17 +461,9 @@ var translationBlocks =
                 )
         )
         .ToArray();
-
-var translations =
-    await _textTranslator.TranslateAsync(
-        translationBlocks,
-        settings.ScreenshotSourceLanguage,
-        settings.ScreenshotTargetLanguage,
-        cancellationToken
-    );
 ```
 
-Reattach by ID:
+Call `_textTranslator.TranslateAsync(...)` once with `translationBlocks`, then reattach translation text by ID:
 
 ```csharp
 var translatedRegions =
@@ -574,20 +482,20 @@ var translatedRegions =
         .ToArray();
 ```
 
-For this RED/GREEN step only, adapt `translatedRegions` back to `OcrBlock` for the still-old result view so the coordinator behavior can turn green before the interface refactor.
+For this first GREEN only, map translated regions back to temporary `OcrBlock` values before calling the still-old result view.
 
-- [ ] **Step 4: Run the coordinator success test and verify GREEN**
+- [ ] **Step 4: Run GREEN for the coordinator behavior**
 
 ```powershell
 dotnet test `
   --filter "FullyQualifiedName~ScreenshotTranslationCoordinatorTests.Toggle_CompletesCaptureOcrTranslationAndRendering"
 ```
 
-Expected: PASS and translator `CallCount == 1`.
+Expected: PASS and `CallCount == 1`.
 
-- [ ] **Step 5: Refactor the result-view interface to carry `ScreenshotTextRegion` without changing visible behavior**
+- [ ] **Step 5: Refactor the internal result-view interface to regions while behavior stays green**
 
-Change:
+Change `IScreenshotResultView` to:
 
 ```csharp
 void ShowResults(
@@ -595,37 +503,44 @@ void ShowResults(
 );
 ```
 
-Update the coordinator to pass `translatedRegions` directly. Update the fake result view to store `IReadOnlyList<ScreenshotTextRegion>`. Update `ScreenshotTranslationWindow.ShowResults`/`AddTranslationBlock` parameter types to `ScreenshotTextRegion` while continuing to use the same `Bounds`, `TranslatedText`, fixed size, shrink-to-fit, and clipping behavior already covered by the window regression tests.
-
-Add assertions to the coordinator success test that rendered items preserve roles and source line heights:
+Update the fake view property to:
 
 ```csharp
-Assert.Equal(ScreenshotTextRole.Title, rendered[0].Role);
-Assert.Equal(40d, rendered[0].SourceLineHeight, 6);
-Assert.Equal(ScreenshotTextRole.Body, rendered[1].Role);
-Assert.Equal(24d, rendered[1].SourceLineHeight, 6);
+public IReadOnlyList<ScreenshotTextRegion> LastResults { get; private set; } =
+    Array.Empty<ScreenshotTextRegion>();
 ```
 
-- [ ] **Step 6: Run coordinator and screenshot-window regressions after the interface refactor**
+Update `ScreenshotTranslationWindow.ShowResults` and `AddTranslationBlock` parameter types to `ScreenshotTextRegion`, but keep the already-tested fixed bounds, shrink-to-fit, wrapping, trimming, and clipping behavior unchanged in this refactor.
+
+The coordinator now passes `translatedRegions` directly. Add assertions:
+
+```csharp
+Assert.Equal(ScreenshotTextRole.Title, fixture.ResultView.LastResults[0].Role);
+Assert.Equal(40d, fixture.ResultView.LastResults[0].SourceLineHeight, 6);
+Assert.Equal(ScreenshotTextRole.Body, fixture.ResultView.LastResults[1].Role);
+Assert.Equal(24d, fixture.ResultView.LastResults[1].SourceLineHeight, 6);
+```
+
+- [ ] **Step 6: Run coordinator/window regressions**
 
 ```powershell
 dotnet test `
   --filter "FullyQualifiedName~ScreenshotTranslationCoordinatorTests|FullyQualifiedName~ScreenshotTranslationWindowTests|FullyQualifiedName~ScreenshotTranslationLayoutRegressionTests"
 ```
 
-Expected: all selected tests PASS.
+Expected: PASS.
 
-- [ ] **Step 7: Retire the obsolete grouping path**
+- [ ] **Step 7: Remove the obsolete grouper**
 
-Delete `OcrParagraphGrouper.cs` and `OcrParagraphGrouperTests.cs` only after the new analyzer tests and coordinator tests are green. Search the branch for `OcrParagraphGrouper` and require zero production references.
+Delete `OcrParagraphGrouper.cs` and `OcrParagraphGrouperTests.cs`, then run:
 
 ```powershell
 git grep "OcrParagraphGrouper"
 ```
 
-Expected after deletion: no output.
+Expected: no output.
 
-- [ ] **Step 8: Commit Task 3**
+- [ ] **Step 8: Commit**
 
 ```powershell
 git add -A
@@ -635,7 +550,7 @@ git commit -m "refactor: carry screenshot structure through translation"
 
 ---
 
-### Task 4: Add DPI-aware typography normalization, dynamic padding, and alignment
+### Task 4: Preserve source-scale typography and improve paragraph layout
 
 **Files:**
 - Create: `src/LightTranslator/Services/Screenshot/ScreenshotTranslationTypography.cs`
@@ -645,16 +560,13 @@ git commit -m "refactor: carry screenshot structure through translation"
 - Modify: `tests/LightTranslator.Tests/ScreenshotTranslationLayoutRegressionTests.cs`
 
 **Interfaces:**
-- Produces: `ScreenshotTranslationTypography.CalculatePreferredFontSizes(regions, dpiY)` returning a dictionary from region ID to normalized starting font size in DIP.
-- Renderer then applies existing measured shrink-to-fit from that starting size.
+- `ScreenshotTranslationTypography.CalculatePreferredFontSizes(IReadOnlyList<ScreenshotTextRegion> regions, double dpiY)` returns starting font sizes in DIP keyed by region ID.
 
-- [ ] **Step 1: Write RED typography tests for body normalization, title preservation, and DPI conversion**
-
-Create tests using regions such as:
+- [ ] **Step 1: Write RED tests for normalization and DPI**
 
 ```csharp
 [Fact]
-public void CalculatePreferredFontSizes_NormalizesSimilarBodyTextButKeepsLargeTitle()
+public void CalculatePreferredFontSizes_NormalizesSimilarBodiesAndKeepsLargeTitle()
 {
     var regions =
         new[]
@@ -725,27 +637,25 @@ public void CalculatePreferredFontSizes_ConvertsPhysicalLineHeightToDip(
 }
 ```
 
-- [ ] **Step 2: Run typography tests and verify RED**
+- [ ] **Step 2: Run RED**
 
 ```powershell
 dotnet test `
   --filter "FullyQualifiedName~ScreenshotTranslationTypographyTests"
 ```
 
-Expected: compile/test failure because the helper does not exist.
+- [ ] **Step 3: Implement typography helper**
 
-- [ ] **Step 3: Implement the pure typography helper**
-
-Use:
+For every region:
 
 ```csharp
-sourceDip = region.SourceLineHeight * 96d / dpiY;
-preferred = Math.Clamp(sourceDip * 0.80d, 6d, 32d);
+var sourceDip = region.SourceLineHeight * 96d / dpiY;
+var preferred = Math.Clamp(sourceDip * 0.80d, 6d, 32d);
 ```
 
-Calculate the median preferred size among `Body` regions. Any body preferred size within `20%` of the median uses the exact median; outliers keep their own preferred size. Titles always keep their own preferred size.
+Compute the median preferred size of all `Body` regions. If a body preferred size is within `20%` of that median, replace it with the exact median; otherwise keep its own size. Titles never normalize to the body median.
 
-- [ ] **Step 4: Run typography tests and verify GREEN**
+- [ ] **Step 4: Run typography GREEN**
 
 ```powershell
 dotnet test `
@@ -754,33 +664,48 @@ dotnet test `
 
 Expected: PASS.
 
-- [ ] **Step 5: Add RED WPF assertions for dynamic padding and vertical alignment**
+- [ ] **Step 5: Add RED window assertions for padding, alignment, and >18 DIP title sizing**
 
-Extend `ScreenshotTranslationWindowTests` so one short translation in a wide region asserts `VerticalAlignment.Center`, while an explicit-newline or forced-wrap translation asserts `VerticalAlignment.Top`.
+Use `ScreenshotTextRegion` fixtures and assert:
 
-Also render a small and large region and assert their `Border.Padding` values differ according to:
+```csharp
+Assert.Equal(
+    new Thickness(1.44, 0.72, 1.44, 0.72),
+    smallBorder.Padding
+);
 
-```text
-horizontal = clamp(mappedHeight * 0.12, 1, 4)
-vertical   = clamp(mappedHeight * 0.06, 0, 2)
+Assert.Equal(
+    new Thickness(4, 2, 4, 2),
+    largeBorder.Padding
+);
+
+Assert.Equal(
+    VerticalAlignment.Center,
+    singleLineText.VerticalAlignment
+);
+
+Assert.Equal(
+    VerticalAlignment.Top,
+    wrappedText.VerticalAlignment
+);
+
+Assert.True(titleText.FontSize > 18d);
 ```
 
-At 120 DPI, a 15 px source height maps to 12 DIP and should produce approximately `Thickness(1.44, 0.72, 1.44, 0.72)`. A 50 px source height maps to 40 DIP and should clamp to `Thickness(4, 2, 4, 2)`.
+At 120 DPI use a 15 px-high small region (12 DIP mapped height) and a 50 px-high large region (40 DIP mapped height). Give the title enough width/height that its preferred size can fit without shrinking below 18 DIP.
 
-Add a font assertion that a large title can begin above the old 18 DIP maximum when it fits.
-
-- [ ] **Step 6: Run the window/layout slice and verify RED**
+- [ ] **Step 6: Run window RED**
 
 ```powershell
 dotnet test `
   --filter "FullyQualifiedName~ScreenshotTranslationWindowTests|FullyQualifiedName~ScreenshotTranslationLayoutRegressionTests"
 ```
 
-Expected: failures because the window still uses fixed padding, center alignment, and the old 18 DIP source-height start.
+Expected: failures from fixed padding, always-center alignment, and old 18 DIP start behavior.
 
-- [ ] **Step 7: Integrate normalized starting fonts and dynamic layout into the window**
+- [ ] **Step 7: Integrate typography and layout rules**
 
-In `ShowResults`, calculate preferred sizes once:
+In `ShowResults` calculate preferred fonts once:
 
 ```csharp
 var preferredFonts =
@@ -790,16 +715,25 @@ var preferredFonts =
     );
 ```
 
-For each region:
+For every region:
 
-1. Map its bounds to DIP with `DpiCoordinateMapper`.
-2. Calculate padding from mapped region height.
-3. Use `preferredFonts[region.Id]` as the starting font.
-4. Measure/shrink by 1 DIP until text fits or reaches 6 DIP.
-5. Decide multi-line status after the final font size: explicit newline OR unconstrained desired text width greater than usable width means top alignment; otherwise center.
-6. Keep fixed `Width`, fixed `Height`, `TextWrapping.Wrap`, `TextTrimming.None`, and `ClipToBounds = true`.
+```csharp
+var horizontal =
+    Math.Clamp(bounds.Height * 0.12d, 1d, 4d);
 
-Change the fit helper signature so it accepts the preferred start explicitly instead of recalculating from merged region height:
+var vertical =
+    Math.Clamp(bounds.Height * 0.06d, 0d, 2d);
+
+var padding =
+    new Thickness(
+        horizontal,
+        vertical,
+        horizontal,
+        vertical
+    );
+```
+
+Change the fit helper to start from the provided preferred size:
 
 ```csharp
 private static double CalculateTranslationFontSize(
@@ -810,16 +744,18 @@ private static double CalculateTranslationFontSize(
 )
 ```
 
-- [ ] **Step 8: Run typography + window + DPI regressions**
+Measure/shrink by 1 DIP to a 6 DIP floor. After the final font is chosen, classify visual layout as multiline when either `TranslatedText` contains `\n`/`\r` or unconstrained measured width is greater than available width. Use `Top` for multiline and `Center` otherwise. Keep `TextWrapping.Wrap`, `TextTrimming.None`, fixed bounds, and `ClipToBounds = true`.
+
+- [ ] **Step 8: Run layout regressions**
 
 ```powershell
 dotnet test `
   --filter "FullyQualifiedName~ScreenshotTranslationTypographyTests|FullyQualifiedName~ScreenshotTranslationWindowTests|FullyQualifiedName~ScreenshotTranslationLayoutRegressionTests|FullyQualifiedName~DpiCoordinateMapperTests"
 ```
 
-Expected: all selected tests PASS.
+Expected: PASS.
 
-- [ ] **Step 9: Commit Task 4**
+- [ ] **Step 9: Commit**
 
 ```powershell
 git add `
@@ -834,7 +770,7 @@ git commit -m "feat: preserve source-scale screenshot typography"
 
 ---
 
-### Task 5: Adapt translation-block colors to flat source backgrounds
+### Task 5: Adapt overlay colors to source backgrounds
 
 **Files:**
 - Create: `src/LightTranslator/Services/Screenshot/ScreenshotBackgroundStyleResolver.cs`
@@ -843,110 +779,171 @@ git commit -m "feat: preserve source-scale screenshot typography"
 - Modify: `tests/LightTranslator.Tests/ScreenshotTranslationWindowTests.cs`
 
 **Interfaces:**
-- Produces: `ScreenshotBackgroundStyleResolver.Resolve(BitmapSource image, PixelRect bounds)` returning background/foreground WPF colors.
-- Uses physical-pixel region bounds directly against the cropped screenshot bitmap.
+- `ScreenshotBackgroundStyleResolver.Resolve(BitmapSource image, PixelRect bounds)` returns background/foreground colors.
+- `ScreenshotBackgroundStyleResolver.Fallback` is the deterministic complex/unsafe fallback.
 
-- [ ] **Step 1: Write RED background-style tests**
+- [ ] **Step 1: Write RED resolver tests**
 
-Cover four cases with small `WriteableBitmap` fixtures in a supported 24/32-bit BGR(A) format:
+Use these four assertions:
 
 ```csharp
-[Fact]
-public void Resolve_FlatLightBackgroundUsesSampledColorAndDarkText()
-{
-    var image = CreateSolidBitmap(100, 60, 245, 245, 245);
+Assert.Equal(
+    Color.FromArgb(255, 245, 245, 245),
+    ScreenshotBackgroundStyleResolver.Resolve(
+        CreateSolidBitmap(100, 60, 245, 245, 245),
+        new PixelRect(10, 10, 60, 30)
+    ).Background
+);
 
-    var style =
-        ScreenshotBackgroundStyleResolver.Resolve(
-            image,
-            new PixelRect(10, 10, 60, 30)
+Assert.Equal(
+    Colors.Black,
+    ScreenshotBackgroundStyleResolver.Resolve(
+        CreateSolidBitmap(100, 60, 245, 245, 245),
+        new PixelRect(10, 10, 60, 30)
+    ).Foreground
+);
+
+Assert.Equal(
+    Colors.White,
+    ScreenshotBackgroundStyleResolver.Resolve(
+        CreateSolidBitmap(100, 60, 20, 20, 20),
+        new PixelRect(10, 10, 60, 30)
+    ).Foreground
+);
+
+Assert.Equal(
+    Color.FromArgb(235, 17, 24, 39),
+    ScreenshotBackgroundStyleResolver.Resolve(
+        CreateCheckerboardBitmap(100, 60),
+        new PixelRect(10, 10, 60, 30)
+    ).Background
+);
+
+Assert.Equal(
+    ScreenshotBackgroundStyleResolver.Fallback,
+    ScreenshotBackgroundStyleResolver.Resolve(
+        CreateSolidBitmap(20, 20, 245, 245, 245),
+        new PixelRect(30, 30, 10, 10)
+    )
+);
+```
+
+Define the test bitmap helpers in the same test file so no helper is implicit:
+
+```csharp
+private static BitmapSource CreateSolidBitmap(
+    int width,
+    int height,
+    byte red,
+    byte green,
+    byte blue
+)
+{
+    var pixels = new byte[width * height * 4];
+
+    for (var index = 0; index < pixels.Length; index += 4)
+    {
+        pixels[index] = blue;
+        pixels[index + 1] = green;
+        pixels[index + 2] = red;
+        pixels[index + 3] = 255;
+    }
+
+    var bitmap =
+        BitmapSource.Create(
+            width,
+            height,
+            96,
+            96,
+            PixelFormats.Bgra32,
+            null,
+            pixels,
+            width * 4
         );
 
-    Assert.Equal(Color.FromArgb(255, 245, 245, 245), style.Background);
-    Assert.Equal(Colors.Black, style.Foreground);
+    bitmap.Freeze();
+    return bitmap;
 }
 
-[Fact]
-public void Resolve_FlatDarkBackgroundUsesSampledColorAndWhiteText()
+private static BitmapSource CreateCheckerboardBitmap(
+    int width,
+    int height
+)
 {
-    var image = CreateSolidBitmap(100, 60, 20, 20, 20);
+    var pixels = new byte[width * height * 4];
 
-    var style =
-        ScreenshotBackgroundStyleResolver.Resolve(
-            image,
-            new PixelRect(10, 10, 60, 30)
+    for (var y = 0; y < height; y++)
+    {
+        for (var x = 0; x < width; x++)
+        {
+            var value =
+                ((x / 5) + (y / 5)) % 2 == 0
+                    ? (byte)0
+                    : (byte)255;
+
+            var index = (y * width + x) * 4;
+            pixels[index] = value;
+            pixels[index + 1] = value;
+            pixels[index + 2] = value;
+            pixels[index + 3] = 255;
+        }
+    }
+
+    var bitmap =
+        BitmapSource.Create(
+            width,
+            height,
+            96,
+            96,
+            PixelFormats.Bgra32,
+            null,
+            pixels,
+            width * 4
         );
 
-    Assert.Equal(Color.FromArgb(255, 20, 20, 20), style.Background);
-    Assert.Equal(Colors.White, style.Foreground);
-}
-
-[Fact]
-public void Resolve_HighVarianceBackgroundUsesOpaqueDarkFallback()
-{
-    var image = CreateCheckerboardBitmap(100, 60);
-
-    var style =
-        ScreenshotBackgroundStyleResolver.Resolve(
-            image,
-            new PixelRect(10, 10, 60, 30)
-        );
-
-    Assert.Equal(Color.FromArgb(235, 17, 24, 39), style.Background);
-    Assert.Equal(Colors.White, style.Foreground);
-}
-
-[Fact]
-public void Resolve_OutOfBoundsRegionUsesSafeFallback()
-{
-    var image = CreateSolidBitmap(20, 20, 245, 245, 245);
-
-    var style =
-        ScreenshotBackgroundStyleResolver.Resolve(
-            image,
-            new PixelRect(30, 30, 10, 10)
-        );
-
-    Assert.Equal(Color.FromArgb(235, 17, 24, 39), style.Background);
-    Assert.Equal(Colors.White, style.Foreground);
+    bitmap.Freeze();
+    return bitmap;
 }
 ```
 
-- [ ] **Step 2: Run resolver tests and verify RED**
+- [ ] **Step 2: Run RED**
 
 ```powershell
 dotnet test `
   --filter "FullyQualifiedName~ScreenshotBackgroundStyleResolverTests"
 ```
 
-Expected: compile/test failure because the resolver does not exist.
-
-- [ ] **Step 3: Implement the resolver**
-
-Create:
+- [ ] **Step 3: Implement exact style types and fallback**
 
 ```csharp
 public readonly record struct ScreenshotBackgroundStyle(
     Color Background,
     Color Foreground
 );
+
+public static class ScreenshotBackgroundStyleResolver
+{
+    public static ScreenshotBackgroundStyle Fallback { get; } =
+        new(
+            Color.FromArgb(235, 17, 24, 39),
+            Colors.White
+        );
+}
 ```
 
-and a static resolver with these rules:
+`Resolve` must:
 
-- Reject empty/out-of-bounds regions to fallback.
-- Support `PixelFormats.Bgr24`, `PixelFormats.Bgr32`, `PixelFormats.Bgra32`, and `PixelFormats.Pbgra32`; unsupported formats fall back safely.
-- Generate 5 evenly spaced X positions and 5 Y positions inside the region, staying one pixel inside edges when dimensions permit.
-- Sample at most 25 pixels with `BitmapSource.CopyPixels`.
-- Median R/G/B is calculated independently.
-- Per-sample luma is `(0.2126 * R + 0.7152 * G + 0.0722 * B)` on the `0..255` scale for standard deviation.
-- Flat only when luma standard deviation `<= 12` and every RGB channel range `<= 24`.
-- Flat style: `Color.FromArgb(255, medianR, medianG, medianB)` and black foreground when normalized median luma `>= 0.55`, otherwise white.
-- Fallback: `Color.FromArgb(235, 17, 24, 39)` and white foreground.
+- return `Fallback` for empty/out-of-bounds bounds;
+- support `Bgr24`, `Bgr32`, `Bgra32`, and `Pbgra32`, otherwise return `Fallback`;
+- choose 5 evenly spaced X positions and 5 Y positions inside the region, one pixel from edges where dimensions permit;
+- sample at most 25 pixels with `CopyPixels`;
+- calculate median R/G/B independently;
+- calculate luma per sample on `0..255` as `0.2126R + 0.7152G + 0.0722B`;
+- classify flat only when luma standard deviation `<= 12` and each RGB range `<= 24`;
+- for flat regions return opaque median RGB and black text when normalized median luma `>= 0.55`, otherwise white;
+- catch sampling/format exceptions and return `Fallback`.
 
-Keep this helper deterministic and free of UI-window state.
-
-- [ ] **Step 4: Run resolver tests and verify GREEN**
+- [ ] **Step 4: Run resolver GREEN**
 
 ```powershell
 dotnet test `
@@ -955,28 +952,34 @@ dotnet test `
 
 Expected: PASS.
 
-- [ ] **Step 5: Add a RED integration assertion in the screenshot window**
+- [ ] **Step 5: Add RED integration assertions to the window**
 
-Use a flat light test selection, call `ShowResults`, and assert the rendered `Border.Background` resolves to the sampled light color and the child `TextBlock.Foreground` is black. Add a complex checkerboard selection assertion for the `ARGB(235,17,24,39)` fallback.
+Create one flat-light selection and one checkerboard selection. After `ShowResults`, assert the rendered `Border.Background`/`TextBlock.Foreground` colors match the resolver output. These tests must use region bounds that sit fully inside the test bitmap.
 
-- [ ] **Step 6: Run window tests and verify RED**
+- [ ] **Step 6: Run window RED**
 
 ```powershell
 dotnet test `
   --filter "FullyQualifiedName~ScreenshotTranslationWindowTests"
 ```
 
-Expected: background assertions fail because the window still uses the old universal dark block.
+Expected: background assertions fail because the window still uses the old universal dark color.
 
-- [ ] **Step 7: Retain the selection bitmap and apply resolved styles per region**
+- [ ] **Step 7: Retain the selection bitmap and apply per-region styles**
 
-Add a field:
+Add:
 
 ```csharp
 private BitmapSource? _selectionImage;
 ```
 
-Set it in `ApplySelection` from `selection.Image`. In `AddTranslationBlock`, call:
+Set it in `ApplySelection`:
+
+```csharp
+_selectionImage = selection.Image;
+```
+
+In `AddTranslationBlock`:
 
 ```csharp
 var style =
@@ -988,18 +991,18 @@ var style =
         );
 ```
 
-Use an opaque sampled `SolidColorBrush(style.Background)` and `SolidColorBrush(style.Foreground)`. Do not save or mutate the screenshot.
+Use `new SolidColorBrush(style.Background)` for the border and `new SolidColorBrush(style.Foreground)` for translated text. Do not alter or persist the source bitmap.
 
-- [ ] **Step 8: Run all screenshot rendering tests**
+- [ ] **Step 8: Run screenshot-rendering regressions**
 
 ```powershell
 dotnet test `
   --filter "FullyQualifiedName~ScreenshotBackgroundStyleResolverTests|FullyQualifiedName~ScreenshotTranslationWindowTests|FullyQualifiedName~ScreenshotTranslationLayoutRegressionTests"
 ```
 
-Expected: all selected tests PASS.
+Expected: PASS.
 
-- [ ] **Step 9: Commit Task 5**
+- [ ] **Step 9: Commit**
 
 ```powershell
 git add `
@@ -1013,23 +1016,18 @@ git commit -m "feat: adapt screenshot translation backgrounds"
 
 ---
 
-### Task 6: Full regression, build, and manual comparison
+### Task 6: Full verification and manual comparison
 
 **Files:**
-- No new production changes expected.
-- Verify all changes from Tasks 1-5.
+- No production changes expected.
 
-**Interfaces:**
-- Consumes: the complete structure-aware screenshot translation pipeline.
-- Produces: evidence that Phase 2B remains stable and that the manual result improves over the current screenshots.
-
-- [ ] **Step 1: Run all Release tests**
+- [ ] **Step 1: Run full Release tests**
 
 ```powershell
 dotnet test -c Release
 ```
 
-Expected: 0 failed and 0 skipped tests.
+Expected: 0 failed, 0 skipped.
 
 - [ ] **Step 2: Run Release build**
 
@@ -1037,9 +1035,9 @@ Expected: 0 failed and 0 skipped tests.
 dotnet build -c Release
 ```
 
-Expected: 0 warnings and 0 errors.
+Expected: 0 warnings, 0 errors.
 
-- [ ] **Step 3: Check repository consistency**
+- [ ] **Step 3: Check dead code, whitespace, and cleanliness**
 
 ```powershell
 git grep "OcrParagraphGrouper"
@@ -1047,29 +1045,29 @@ git diff --check
 git status --short
 ```
 
-Expected: no `OcrParagraphGrouper` references, no whitespace errors, and a clean working tree after commits.
+Expected: all three commands produce no output after intended commits.
 
-- [ ] **Step 4: Launch the exact Release build from this branch**
+- [ ] **Step 4: Launch this branch's Release executable**
 
 ```powershell
 Start-Process "D:\PROJECT2\me\LightTranslator\src\LightTranslator\bin\Release\net8.0-windows\Bridgo.exe"
 ```
 
-- [ ] **Step 5: Repeat the same manual comparison scenario used to expose the current defects**
+- [ ] **Step 5: Repeat the exact manual comparison scenario**
 
-Verify these concrete outcomes:
+Verify:
 
 ```text
-1. "Paragraph 1" / "Paragraph 2" are separate title regions when their geometry is clearly larger than following body text.
-2. The title is visibly larger than body translation.
-3. Normal body translation no longer starts unnecessarily tiny.
-4. Long body translation still shrinks and stays inside its original OCR rectangle.
-5. Multi-line paragraphs start at the top of their region.
-6. Short one-line labels remain vertically centered.
-7. White/flat page areas use a light sampled block with dark text instead of a universal dark rectangle.
-8. Complex/game/image backgrounds use the near-opaque dark fallback with white text.
-9. Original English text is substantially less visible through the overlay than in the previous manual screenshot.
-10. Click, Esc, and Alt+Q still close the result overlay.
+1. Paragraph 1 / Paragraph 2 become separate title regions when geometry supports it.
+2. Titles remain visibly larger than body text.
+3. Normal body text no longer starts unnecessarily tiny.
+4. Long translations still stay inside their OCR rectangles and shrink only as needed.
+5. Multi-line paragraphs begin at the top; one-line labels stay centered.
+6. Small boxes lose less space to padding.
+7. Flat white/light areas blend using sampled light backgrounds and dark text.
+8. Complex/game/image areas use the near-opaque dark fallback and white text.
+9. Original source text is materially less visible through translated blocks.
+10. Click, Esc, and Alt+Q still close the overlay.
 ```
 
 If any item fails, stop and add the smallest focused RED regression test before changing production code.
