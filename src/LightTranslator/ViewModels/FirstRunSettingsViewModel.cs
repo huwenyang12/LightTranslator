@@ -2,6 +2,7 @@ using LightTranslator.Services.Settings;
 using LightTranslator.Services.Translation;
 using LightTranslator.Models;
 using LightTranslator.Services.Hotkeys;
+
 namespace LightTranslator.ViewModels;
 
 public sealed class FirstRunSettingsViewModel
@@ -11,15 +12,24 @@ public sealed class FirstRunSettingsViewModel
     private readonly IStartWithWindowsSettingsPersistence?
         _startupPersistence;
 
+    private readonly IScreenshotLanguageSettingsPersistence?
+        _screenshotLanguagePersistence;
+
     private string _apiKey = string.Empty;
+
     public bool ApiKeyTestSucceeded { get; set; }
+
     public string ApiKeyTestMessage { get; private set; } =
-    string.Empty;
+        string.Empty;
+
     private readonly IApiKeyValidator? _apiKeyValidator;
+
     public bool IsTestingApiKey { get; private set; }
+
     public HotkeyDefinition TextTranslationHotkey { get; set; } =
-    AppSettings.CreateDefault()
-        .TextTranslationHotkey;
+        AppSettings.CreateDefault()
+            .TextTranslationHotkey;
+
     private readonly ITextTranslationHotkeyPersistence?
         _hotkeyPersistence;
 
@@ -29,6 +39,24 @@ public sealed class FirstRunSettingsViewModel
     private HotkeyDefinition
         _currentTextTranslationHotkey;
 
+    public IReadOnlyList<LanguageOption> ScreenshotSourceLanguages =>
+        LanguageOption.SourceLanguages;
+
+    public IReadOnlyList<LanguageOption> ScreenshotTargetLanguages =>
+        LanguageOption.TargetLanguages;
+
+    public string ScreenshotSourceLanguage
+    {
+        get;
+        set;
+    }
+
+    public string ScreenshotTargetLanguage
+    {
+        get;
+        set;
+    }
+
     public void SetTextTranslationHotkey(
         HotkeyDefinition hotkey
     )
@@ -36,6 +64,7 @@ public sealed class FirstRunSettingsViewModel
         TextTranslationHotkey =
             hotkey;
     }
+
     public async Task<bool> SaveTextTranslationHotkeyAsync(
         CancellationToken cancellationToken = default
     )
@@ -81,13 +110,17 @@ public sealed class FirstRunSettingsViewModel
             cancellationToken
         );
     }
+
     public FirstRunSettingsViewModel(
         IFirstRunSettingsPersistence? persistence = null,
         IStartWithWindowsSettingsPersistence? startupPersistence = null,
         IApiKeyValidator? apiKeyValidator = null,
         ITextTranslationHotkeyPersistence? hotkeyPersistence = null,
         ITextTranslationHotkeyChangeService? hotkeyChangeService = null,
-        HotkeyDefinition? currentTextTranslationHotkey = null
+        HotkeyDefinition? currentTextTranslationHotkey = null,
+        IScreenshotLanguageSettingsPersistence? screenshotLanguagePersistence = null,
+        string? currentScreenshotSourceLanguage = null,
+        string? currentScreenshotTargetLanguage = null
     )
     {
         _persistence =
@@ -105,6 +138,9 @@ public sealed class FirstRunSettingsViewModel
         _hotkeyChangeService =
             hotkeyChangeService;
 
+        _screenshotLanguagePersistence =
+            screenshotLanguagePersistence;
+
         _currentTextTranslationHotkey =
             currentTextTranslationHotkey
             ?? AppSettings.CreateDefault()
@@ -112,6 +148,17 @@ public sealed class FirstRunSettingsViewModel
 
         TextTranslationHotkey =
             _currentTextTranslationHotkey;
+
+        var defaultSettings =
+            AppSettings.CreateDefault();
+
+        ScreenshotSourceLanguage =
+            currentScreenshotSourceLanguage
+            ?? defaultSettings.ScreenshotSourceLanguage;
+
+        ScreenshotTargetLanguage =
+            currentScreenshotTargetLanguage
+            ?? defaultSettings.ScreenshotTargetLanguage;
     }
 
     public string ApiKey
@@ -184,11 +231,39 @@ public sealed class FirstRunSettingsViewModel
         return true;
     }
 
-    public async Task<bool> TestApiKeyAsync(
-        CancellationToken cancellationToken = default)
+    public async Task<bool> SaveScreenshotLanguagesAsync(
+        CancellationToken cancellationToken = default
+    )
     {
-        if (_apiKeyValidator is null ||
-            string.IsNullOrWhiteSpace(ApiKey))
+        if (_screenshotLanguagePersistence is null)
+        {
+            return true;
+        }
+
+        try
+        {
+            await _screenshotLanguagePersistence.SaveAsync(
+                ScreenshotSourceLanguage,
+                ScreenshotTargetLanguage,
+                cancellationToken
+            );
+
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> TestApiKeyAsync(
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (
+            _apiKeyValidator is null ||
+            string.IsNullOrWhiteSpace(ApiKey)
+        )
         {
             return false;
         }
@@ -196,7 +271,8 @@ public sealed class FirstRunSettingsViewModel
         var apiKeyToValidate =
             ApiKey;
 
-        IsTestingApiKey = true;
+        IsTestingApiKey =
+            true;
 
         try
         {

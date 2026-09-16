@@ -4,7 +4,7 @@
         Title="LightTranslator"
         Icon="/LightTranslator;component/Assets/AppIcon.ico"
         Width="460"
-        Height="430"
+        Height="560"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ShowInTaskbar="True">
@@ -15,6 +15,8 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="24"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="20"/>
             <RowDefinition Height="Auto"/>
@@ -39,7 +41,7 @@
                    FontWeight="SemiBold"/>
 
         <Grid Grid.Row="4"
-            Margin="0,8,0,0">
+              Margin="0,8,0,0">
 
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -48,10 +50,10 @@
             </Grid.ColumnDefinitions>
 
             <PasswordBox x:Name="ApiKeyPasswordBox"
-                        Grid.Column="0"
-                        Height="36"
-                        Padding="8,5"
-                        PasswordChanged="OnApiKeyPasswordChanged"/>
+                         Grid.Column="0"
+                         Height="36"
+                         Padding="8,5"
+                         PasswordChanged="OnApiKeyPasswordChanged"/>
 
             <Button x:Name="TestApiKeyButton"
                     Grid.Column="2"
@@ -63,39 +65,77 @@
         </Grid>
 
         <TextBlock x:Name="ApiKeyTestMessageTextBlock"
-           Grid.Row="5"
-           Margin="0,6,0,0"
-           FontSize="12"
-           Foreground="#666666"
-           Text=""/>
+                   Grid.Row="5"
+                   Margin="0,6,0,0"
+                   FontSize="12"
+                   Foreground="#666666"
+                   Text=""/>
 
         <StackPanel Grid.Row="6">
 
             <TextBlock Text="文本翻译快捷键"
-                    Margin="0,0,0,6"/>
+                       Margin="0,0,0,6"/>
 
             <TextBox x:Name="TextTranslationHotkeyBox"
-                    Height="36"
-                    Padding="8,5"
-                    Margin="0,0,0,6"
-                    IsReadOnly="True"
-                    GotFocus="OnTextTranslationHotkeyBoxGotFocus"
-                    PreviewKeyDown="OnTextTranslationHotkeyBoxPreviewKeyDown"/>
+                     Height="36"
+                     Padding="8,5"
+                     Margin="0,0,0,6"
+                     IsReadOnly="True"
+                     GotFocus="OnTextTranslationHotkeyBoxGotFocus"
+                     PreviewKeyDown="OnTextTranslationHotkeyBoxPreviewKeyDown"/>
 
             <TextBlock x:Name="TextTranslationHotkeyErrorTextBlock"
-                    Margin="0,0,0,6"
-                    FontSize="12"
-                    Foreground="#D32F2F"
-                    Text=""/>
+                       Margin="0,0,0,6"
+                       FontSize="12"
+                       Foreground="#D32F2F"
+                       Text=""/>
 
             <CheckBox x:Name="StartWithWindowsCheckBox"
-                    Content="开机自动启动"
-                    IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/>
+                      Content="开机自动启动"
+                      IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/>
 
         </StackPanel>
 
+        <StackPanel Grid.Row="8">
+            <TextBlock Text="截图翻译"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,8"/>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="源语言"
+                               Margin="0,0,0,6"/>
+
+                    <ComboBox x:Name="ScreenshotSourceLanguageComboBox"
+                              Height="36"
+                              ItemsSource="{Binding ScreenshotSourceLanguages}"
+                              DisplayMemberPath="DisplayName"
+                              SelectedValuePath="Code"
+                              SelectedValue="{Binding ScreenshotSourceLanguage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="目标语言"
+                               Margin="0,0,0,6"/>
+
+                    <ComboBox x:Name="ScreenshotTargetLanguageComboBox"
+                              Height="36"
+                              ItemsSource="{Binding ScreenshotTargetLanguages}"
+                              DisplayMemberPath="DisplayName"
+                              SelectedValuePath="Code"
+                              SelectedValue="{Binding ScreenshotTargetLanguage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+
         <Button x:Name="SaveButton"
-                Grid.Row="8"
+                Grid.Row="10"
                 Width="70"
                 Height="36"
                 HorizontalAlignment="Right"

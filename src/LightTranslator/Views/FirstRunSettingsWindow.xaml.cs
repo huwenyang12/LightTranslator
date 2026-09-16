@@ -1,6 +1,7 @@
 using LightTranslator.ViewModels;
 using System.Collections.Generic;
 using LightTranslator.Services.Hotkeys;
+
 namespace LightTranslator.Views;
 
 public partial class FirstRunSettingsWindow
@@ -227,6 +228,16 @@ public partial class FirstRunSettingsWindow
                 FormatHotkey(
                     _viewModel.TextTranslationHotkey
                 );
+
+            return;
+        }
+
+        var screenshotLanguagesSaved =
+            await _viewModel.SaveScreenshotLanguagesAsync();
+
+        if (!screenshotLanguagesSaved)
+        {
+            return;
         }
 
         if (_isFirstRun)
