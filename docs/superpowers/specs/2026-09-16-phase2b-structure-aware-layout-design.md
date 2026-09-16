@@ -50,6 +50,8 @@ public sealed record ScreenshotTextRegion(
 
 `ScreenshotTextRegion` is produced after OCR filtering and sorting, before translation. It carries merged source text, merged region bounds, representative original single-line height, conservative `Title` or `Body` role, and translated text once translation completes.
 
+`Bounds` and `SourceLineHeight` are stored in the OCR coordinate system: physical screenshot pixels. WPF rendering converts both through the selection DPI before calculating DIP positions or font sizes.
+
 ## Structure Analysis
 
 Introduce `ScreenshotTextRegionAnalyzer` as the production structure-analysis component for screenshot translation. It supersedes direct use of `OcrParagraphGrouper` in the screenshot translation pipeline.
@@ -58,7 +60,7 @@ Introduce `ScreenshotTextRegionAnalyzer` as the production structure-analysis co
 
 ### Body paragraph grouping
 
-Body lines remain grouped using vertical proximity and reading order. The representative `SourceLineHeight` of a merged body region is the median height of its component OCR lines, not the height of the final merged rectangle.
+Body lines remain grouped using vertical proximity and reading order. The representative `SourceLineHeight` of a merged body region is the median physical-pixel height of its component OCR lines, not the height of the final merged rectangle.
 
 Using the median makes one noisy OCR box less likely to distort the rendered font size.
 
@@ -94,17 +96,18 @@ A title region and a body region are independent translation items because they 
 
 ### Source font estimate
 
-For each region, derive the preferred source-scale font from `SourceLineHeight` rather than merged region height.
+For each region, convert the physical-pixel `SourceLineHeight` to WPF DIP using the selection vertical DPI, then derive the preferred source-scale font from that DIP height:
 
 ```text
-preferredFont = clamp(SourceLineHeight * 0.80, 6 DIP, 32 DIP)
+sourceLineHeightDip = SourceLineHeight * 96 / dpiY
+preferredFont = clamp(sourceLineHeightDip * 0.80, 6 DIP, 32 DIP)
 ```
 
-The upper bound increases from the current 18 DIP so visibly larger headings and larger webpage body text are not artificially reduced before fitting is attempted.
+The upper bound increases from the current 18 DIP so visibly larger headings and larger webpage body text are not artificially reduced before fitting is attempted. DPI conversion must happen before body-font normalization so 100%, 125%, and 150% displays produce equivalent visual sizes.
 
 ### Body normalization
 
-Within one screenshot, collect preferred font estimates for all `Body` regions. Use their median as the representative body font.
+Within one screenshot, collect DIP preferred-font estimates for all `Body` regions. Use their median as the representative body font.
 
 A body region whose preferred estimate is within `20%` of the body median uses the median value exactly. A body region outside that tolerance keeps its own estimate. This stabilizes ordinary paragraph text without flattening clearly different UI text sizes.
 
@@ -299,6 +302,7 @@ Required font/layout tests:
 
 - similar body regions normalize to one median preferred font
 - an obviously larger title retains a larger preferred font
+- 100%, 125%, and 150% DPI convert the same physical/source-scale relationship correctly before normalization
 - translated text starts at source-scale font and shrinks only when needed
 - single-line translations are vertically centered
 - wrapped or explicit-newline translations are top aligned
