@@ -267,7 +267,7 @@ public partial class ScreenshotTranslationWindow
                 candidate;
 
             text.Measure(
-                new Size(
+                new System.Windows.Size(
                     availableWidth,
                     double.PositiveInfinity
                 )
