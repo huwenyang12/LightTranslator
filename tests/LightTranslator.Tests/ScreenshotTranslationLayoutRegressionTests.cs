@@ -100,6 +100,88 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
         );
     }
 
+    [Fact]
+    public void ShowResults_ExtremeTranslationStopsAtMinimumFontAndClipsToSourceBox()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new ScreenshotTranslationWindow(
+                        CreateSelection()
+                    );
+
+                try
+                {
+                    window.ShowResults(
+                        new[]
+                        {
+                            new OcrBlock(
+                                "block-0001",
+                                "X",
+                                0.95,
+                                new PixelRect(
+                                    20,
+                                    20,
+                                    60,
+                                    12
+                                ),
+                                new string(
+                                    '译',
+                                    200
+                                )
+                            )
+                        }
+                    );
+
+                    var canvas =
+                        Assert.IsType<Canvas>(
+                            window.FindName(
+                                "TranslationCanvas"
+                            )
+                        );
+
+                    var container =
+                        Assert.Single(
+                            canvas.Children
+                                .OfType<Border>()
+                        );
+
+                    var translatedText =
+                        Assert.IsType<TextBlock>(
+                            container.Child
+                        );
+
+                    Assert.Equal(
+                        6d,
+                        translatedText.FontSize,
+                        6
+                    );
+
+                    Assert.True(
+                        container.ClipToBounds
+                    );
+
+                    Assert.Equal(
+                        48d,
+                        container.Width,
+                        6
+                    );
+
+                    Assert.Equal(
+                        9.6d,
+                        container.Height,
+                        6
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
     private static CapturedSelection CreateSelection()
     {
         return
