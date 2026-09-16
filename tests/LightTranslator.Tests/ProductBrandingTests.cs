@@ -89,7 +89,7 @@ public sealed class ProductBrandingTests
     }
 
     [Fact]
-    public void UserFacingWindows_UseChineseProductName()
+    public void SettingsWindow_HidesTitleText_OtherWindowsUseChineseProductName()
     {
         RunOnSta(
             () =>
@@ -107,7 +107,7 @@ public sealed class ProductBrandingTests
 
                 var mainWindow = new MainWindow();
 
-                Assert.Equal("语桥", settingsWindow.Title);
+                Assert.Equal(string.Empty, settingsWindow.Title);
                 Assert.Equal("语桥", translateWindow.Title);
                 Assert.Equal("语桥", mainWindow.Title);
 
