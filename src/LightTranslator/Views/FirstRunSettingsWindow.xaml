@@ -4,7 +4,7 @@
         Title="LightTranslator"
         Icon="/LightTranslator;component/Assets/AppIcon.ico"
         Width="460"
-        Height="560"
+        Height="640"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ShowInTaskbar="True">
@@ -100,6 +100,23 @@
             <TextBlock Text="截图翻译"
                        FontWeight="SemiBold"
                        Margin="0,0,0,8"/>
+
+            <TextBlock Text="截图翻译快捷键"
+                       Margin="0,0,0,6"/>
+
+            <TextBox x:Name="ScreenshotTranslationHotkeyBox"
+                     Height="36"
+                     Padding="8,5"
+                     Margin="0,0,0,6"
+                     IsReadOnly="True"
+                     GotFocus="OnScreenshotTranslationHotkeyBoxGotFocus"
+                     PreviewKeyDown="OnScreenshotTranslationHotkeyBoxPreviewKeyDown"/>
+
+            <TextBlock x:Name="ScreenshotTranslationHotkeyErrorTextBlock"
+                       Margin="0,0,0,10"
+                       FontSize="12"
+                       Foreground="#D32F2F"
+                       Text=""/>
 
             <Grid>
                 <Grid.ColumnDefinitions>

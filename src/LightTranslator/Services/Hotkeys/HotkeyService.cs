@@ -22,9 +22,7 @@ public sealed class HotkeyService
     )
     {
         _backend = backend;
-
-        _backend.HotkeyPressed +=
-            OnHotkeyPressed;
+        _backend.HotkeyPressed += OnHotkeyPressed;
     }
 
     public bool ReplaceTextTranslation(
@@ -32,31 +30,82 @@ public sealed class HotkeyService
         HotkeyDefinition? newHotkey
     )
     {
-        _backend.Unregister(
-            TextTranslationHotkeyId
+        return ReplaceHotkey(
+            TextTranslationHotkeyId,
+            oldHotkey,
+            newHotkey
         );
+    }
+
+    public bool ReplaceScreenshotTranslation(
+        HotkeyDefinition? oldHotkey,
+        HotkeyDefinition? newHotkey
+    )
+    {
+        return ReplaceHotkey(
+            ScreenshotTranslationHotkeyId,
+            oldHotkey,
+            newHotkey
+        );
+    }
+
+    public bool RegisterTextTranslation(
+        HotkeyDefinition? hotkey
+    )
+    {
+        return RegisterHotkey(
+            TextTranslationHotkeyId,
+            hotkey
+        );
+    }
+
+    public bool RegisterScreenshotTranslation(
+        HotkeyDefinition? hotkey
+    )
+    {
+        return RegisterHotkey(
+            ScreenshotTranslationHotkeyId,
+            hotkey
+        );
+    }
+
+    private bool RegisterHotkey(
+        int id,
+        HotkeyDefinition? hotkey
+    )
+    {
+        if (hotkey is null)
+        {
+            return true;
+        }
+
+        var modifiers = GetModifiers(hotkey);
+        var virtualKey = GetVirtualKey(hotkey.Key);
+
+        return _backend.Register(
+            id,
+            modifiers,
+            virtualKey
+        );
+    }
+
+    private bool ReplaceHotkey(
+        int id,
+        HotkeyDefinition? oldHotkey,
+        HotkeyDefinition? newHotkey
+    )
+    {
+        _backend.Unregister(id);
 
         if (newHotkey is null)
         {
             return true;
         }
 
-        var newModifiers =
-            GetModifiers(
-                newHotkey
-            );
-
-        var newVirtualKey =
-            GetVirtualKey(
-                newHotkey.Key
-            );
-
-        var registered =
-            _backend.Register(
-                TextTranslationHotkeyId,
-                newModifiers,
-                newVirtualKey
-            );
+        var registered = RegisterHotkey(
+            id,
+            newHotkey
+        );
 
         if (registered)
         {
@@ -65,87 +114,26 @@ public sealed class HotkeyService
 
         if (oldHotkey is not null)
         {
-            var oldModifiers =
-                GetModifiers(
-                    oldHotkey
-                );
-
-            var oldVirtualKey =
-                GetVirtualKey(
-                    oldHotkey.Key
-                );
-
-            _backend.Register(
-                TextTranslationHotkeyId,
-                oldModifiers,
-                oldVirtualKey
+            RegisterHotkey(
+                id,
+                oldHotkey
             );
         }
 
         return false;
     }
 
-    public bool RegisterTextTranslation(
-        HotkeyDefinition? hotkey
-    )
-    {
-        if (hotkey is null)
-        {
-            return true;
-        }
-
-        var modifiers =
-            GetModifiers(hotkey);
-
-        var virtualKey =
-            GetVirtualKey(hotkey.Key);
-
-        return _backend.Register(
-            TextTranslationHotkeyId,
-            modifiers,
-            virtualKey
-        );
-    }
-
-    public bool RegisterScreenshotTranslation(
-        HotkeyDefinition? hotkey
-    )
-    {
-        if (hotkey is null)
-        {
-            return true;
-        }
-
-        var modifiers =
-            GetModifiers(hotkey);
-
-        var virtualKey =
-            GetVirtualKey(hotkey.Key);
-
-        return _backend.Register(
-            ScreenshotTranslationHotkeyId,
-            modifiers,
-            virtualKey
-        );
-    }
-
     private void OnHotkeyPressed(
         int id
     )
     {
-        if (
-            id ==
-            TextTranslationHotkeyId
-        )
+        if (id == TextTranslationHotkeyId)
         {
             TextTranslationRequested?.Invoke();
             return;
         }
 
-        if (
-            id ==
-            ScreenshotTranslationHotkeyId
-        )
+        if (id == ScreenshotTranslationHotkeyId)
         {
             ScreenshotTranslationRequested?.Invoke();
         }
@@ -195,8 +183,6 @@ public sealed class HotkeyService
             );
         }
 
-        return char.ToUpperInvariant(
-            key[0]
-        );
+        return char.ToUpperInvariant(key[0]);
     }
 }

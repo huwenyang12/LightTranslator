@@ -23,17 +23,11 @@ public partial class FirstRunSettingsWindow
     {
         InitializeComponent();
 
-        _viewModel =
-            viewModel;
+        _viewModel = viewModel;
+        _isFirstRun = isFirstRun;
+        _isDialogMode = isDialogMode;
 
-        _isFirstRun =
-            isFirstRun;
-
-        _isDialogMode =
-            isDialogMode;
-
-        DataContext =
-            viewModel;
+        DataContext = viewModel;
 
         TitleTextBlock.Text =
             isFirstRun
@@ -43,6 +37,11 @@ public partial class FirstRunSettingsWindow
         TextTranslationHotkeyBox.Text =
             FormatHotkey(
                 _viewModel.TextTranslationHotkey
+            );
+
+        ScreenshotTranslationHotkeyBox.Text =
+            FormatHotkey(
+                _viewModel.ScreenshotTranslationHotkey
             );
 
         SaveButton.IsEnabled =
@@ -63,40 +62,29 @@ public partial class FirstRunSettingsWindow
             return string.Empty;
         }
 
-        var parts =
-            new List<string>();
+        var parts = new List<string>();
 
         if (hotkey.Control)
         {
-            parts.Add(
-                "Ctrl"
-            );
+            parts.Add("Ctrl");
         }
 
         if (hotkey.Alt)
         {
-            parts.Add(
-                "Alt"
-            );
+            parts.Add("Alt");
         }
 
         if (hotkey.Shift)
         {
-            parts.Add(
-                "Shift"
-            );
+            parts.Add("Shift");
         }
 
         if (hotkey.Windows)
         {
-            parts.Add(
-                "Win"
-            );
+            parts.Add("Win");
         }
 
-        parts.Add(
-            hotkey.Key
-        );
+        parts.Add(hotkey.Key);
 
         return string.Join(
             " + ",
@@ -116,39 +104,58 @@ public partial class FirstRunSettingsWindow
                     _viewModel.TextTranslationHotkey
                 );
 
-            e.Handled =
-                true;
-
+            e.Handled = true;
             return;
         }
 
-        var captured =
-            HotkeyCaptureParser.TryCapture(
-                e.Key,
-                e.SystemKey,
-                _modifierKeysProvider(),
-                out var hotkey
-            );
+        var captured = HotkeyCaptureParser.TryCapture(
+            e.Key,
+            e.SystemKey,
+            _modifierKeysProvider(),
+            out var hotkey
+        );
 
-        if (
-            !captured ||
-            hotkey is null
-        )
+        if (!captured || hotkey is null)
         {
             return;
         }
 
-        _viewModel.SetTextTranslationHotkey(
-            hotkey
+        _viewModel.SetTextTranslationHotkey(hotkey);
+        TextTranslationHotkeyBox.Text = FormatHotkey(hotkey);
+        e.Handled = true;
+    }
+
+    private void OnScreenshotTranslationHotkeyBoxPreviewKeyDown(
+        object sender,
+        System.Windows.Input.KeyEventArgs e
+    )
+    {
+        if (e.Key == System.Windows.Input.Key.Escape)
+        {
+            ScreenshotTranslationHotkeyBox.Text =
+                FormatHotkey(
+                    _viewModel.ScreenshotTranslationHotkey
+                );
+
+            e.Handled = true;
+            return;
+        }
+
+        var captured = HotkeyCaptureParser.TryCapture(
+            e.Key,
+            e.SystemKey,
+            _modifierKeysProvider(),
+            out var hotkey
         );
 
-        TextTranslationHotkeyBox.Text =
-            FormatHotkey(
-                hotkey
-            );
+        if (!captured || hotkey is null)
+        {
+            return;
+        }
 
-        e.Handled =
-            true;
+        _viewModel.SetScreenshotTranslationHotkey(hotkey);
+        ScreenshotTranslationHotkeyBox.Text = FormatHotkey(hotkey);
+        e.Handled = true;
     }
 
     private void OnApiKeyPasswordChanged(
@@ -156,25 +163,18 @@ public partial class FirstRunSettingsWindow
         System.Windows.RoutedEventArgs e
     )
     {
-        _viewModel.ApiKey =
-            ApiKeyPasswordBox.Password;
-
-        ApiKeyTestMessageTextBlock.Text =
-            _viewModel.ApiKeyTestMessage;
+        _viewModel.ApiKey = ApiKeyPasswordBox.Password;
+        ApiKeyTestMessageTextBlock.Text = _viewModel.ApiKeyTestMessage;
 
         TestApiKeyButton.IsEnabled =
-            !string.IsNullOrWhiteSpace(
-                _viewModel.ApiKey
-            ) &&
+            !string.IsNullOrWhiteSpace(_viewModel.ApiKey) &&
             !_viewModel.IsTestingApiKey;
 
         SaveButton.IsEnabled =
             _isFirstRun
                 ? _viewModel.CanSave
-                : string.IsNullOrWhiteSpace(
-                    _viewModel.ApiKey
-                ) ||
-                _viewModel.CanSave;
+                : string.IsNullOrWhiteSpace(_viewModel.ApiKey) ||
+                  _viewModel.CanSave;
     }
 
     private async void OnTestApiKeyClick(
@@ -182,27 +182,21 @@ public partial class FirstRunSettingsWindow
         System.Windows.RoutedEventArgs e
     )
     {
-        TestApiKeyButton.IsEnabled =
-            false;
+        TestApiKeyButton.IsEnabled = false;
 
         await _viewModel.TestApiKeyAsync();
 
-        ApiKeyTestMessageTextBlock.Text =
-            _viewModel.ApiKeyTestMessage;
+        ApiKeyTestMessageTextBlock.Text = _viewModel.ApiKeyTestMessage;
 
         TestApiKeyButton.IsEnabled =
-            !string.IsNullOrWhiteSpace(
-                _viewModel.ApiKey
-            ) &&
+            !string.IsNullOrWhiteSpace(_viewModel.ApiKey) &&
             !_viewModel.IsTestingApiKey;
 
         SaveButton.IsEnabled =
             _isFirstRun
                 ? _viewModel.CanSave
-                : string.IsNullOrWhiteSpace(
-                    _viewModel.ApiKey
-                ) ||
-                _viewModel.CanSave;
+                : string.IsNullOrWhiteSpace(_viewModel.ApiKey) ||
+                  _viewModel.CanSave;
     }
 
     private void OnTextTranslationHotkeyBoxGotFocus(
@@ -210,8 +204,15 @@ public partial class FirstRunSettingsWindow
         System.Windows.RoutedEventArgs e
     )
     {
-        TextTranslationHotkeyBox.Text =
-            "请按快捷键";
+        TextTranslationHotkeyBox.Text = "请按快捷键";
+    }
+
+    private void OnScreenshotTranslationHotkeyBoxGotFocus(
+        object sender,
+        System.Windows.RoutedEventArgs e
+    )
+    {
+        ScreenshotTranslationHotkeyBox.Text = "请按快捷键";
     }
 
     private async void OnSaveClick(
@@ -232,6 +233,24 @@ public partial class FirstRunSettingsWindow
             TextTranslationHotkeyBox.Text =
                 FormatHotkey(
                     _viewModel.TextTranslationHotkey
+                );
+
+            return;
+        }
+
+        var screenshotHotkeySaved =
+            await _viewModel.SaveScreenshotTranslationHotkeyAsync();
+
+        ScreenshotTranslationHotkeyErrorTextBlock.Text =
+            screenshotHotkeySaved
+                ? string.Empty
+                : "快捷键注册失败，可能已被其他程序占用";
+
+        if (!screenshotHotkeySaved)
+        {
+            ScreenshotTranslationHotkeyBox.Text =
+                FormatHotkey(
+                    _viewModel.ScreenshotTranslationHotkey
                 );
 
             return;
@@ -260,8 +279,7 @@ public partial class FirstRunSettingsWindow
             {
                 if (_isDialogMode)
                 {
-                    DialogResult =
-                        true;
+                    DialogResult = true;
                 }
                 else
                 {
@@ -272,10 +290,7 @@ public partial class FirstRunSettingsWindow
             return;
         }
 
-        // 普通设置：
-        // API Key 留空表示“不修改现有 Key”
-        var normalApiKeySaved =
-            true;
+        var normalApiKeySaved = true;
 
         if (_viewModel.CanSave)
         {

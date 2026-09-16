@@ -29,6 +29,7 @@ public partial class App
     private IFirstRunSettingsPersistence? _firstRunSettingsPersistence;
     private IStartWithWindowsSettingsPersistence? _startWithWindowsSettingsPersistence;
     private IScreenshotLanguageSettingsPersistence? _screenshotLanguageSettingsPersistence;
+    private IScreenshotTranslationHotkeyPersistence? _screenshotTranslationHotkeyPersistence;
     private bool _startWithWindows;
 
     private HotkeyMessageWindow? _hotkeyMessageWindow;
@@ -45,6 +46,9 @@ public partial class App
 
     private HotkeyDefinition?
         _startupTextTranslationHotkey;
+
+    private HotkeyDefinition?
+        _startupScreenshotTranslationHotkey;
 
     private string _startupScreenshotSourceLanguage =
         AppSettings.CreateDefault()
@@ -63,7 +67,6 @@ public partial class App
     {
         base.OnStartup(e);
 
-        // 设置服务
         var settingsService =
             new SettingsService();
 
@@ -75,28 +78,33 @@ public partial class App
                 settingsService
             );
 
+        _screenshotTranslationHotkeyPersistence =
+            new ScreenshotTranslationHotkeySettingsPersistence(
+                settingsService
+            );
+
         _screenshotLanguageSettingsPersistence =
             new ScreenshotLanguageSettingsPersistence(
                 settingsService
             );
 
-        // API Key 安全存储
         _secretStorage =
             new DpapiSecretStorage();
 
-        // 首次设置持久化
         _firstRunSettingsPersistence =
             new FirstRunSettingsPersistence(
                 _secretStorage,
                 settingsService
             );
 
-        // 读取应用设置
         var settings =
             await settingsService.LoadAsync();
 
         _startupTextTranslationHotkey =
             settings.TextTranslationHotkey;
+
+        _startupScreenshotTranslationHotkey =
+            settings.ScreenshotTranslationHotkey;
 
         _startupScreenshotSourceLanguage =
             settings.ScreenshotSourceLanguage;
@@ -130,17 +138,14 @@ public partial class App
             settings.StartWithWindows
         );
 
-        // HTTP
         _httpClient =
             new HttpClient();
 
-        // API Key 验证
         _apiKeyValidator =
             new DeepSeekApiKeyValidator(
                 _httpClient
             );
 
-        // 首次启动判断
         _appController =
             new AppController(
                 this,
@@ -158,12 +163,14 @@ public partial class App
             return;
         }
 
-        // 首次设置窗口可能修改了配置，继续启动前重新读取最新设置。
         settings =
             await settingsService.LoadAsync();
 
         _startupTextTranslationHotkey =
             settings.TextTranslationHotkey;
+
+        _startupScreenshotTranslationHotkey =
+            settings.ScreenshotTranslationHotkey;
 
         _startupScreenshotSourceLanguage =
             settings.ScreenshotSourceLanguage;
@@ -174,7 +181,6 @@ public partial class App
         _startWithWindows =
             settings.StartWithWindows;
 
-        // 翻译服务
         var deepSeekTranslationService =
             new DeepSeekTranslationService(
                 _httpClient,
@@ -200,7 +206,6 @@ public partial class App
                 appLogger
             );
 
-        // Phase 2A 截图翻译服务
         var displayCaptureService =
             new DisplayCaptureService();
 
@@ -238,7 +243,6 @@ public partial class App
                 appLogger
             );
 
-        // 翻译窗口管理
         var textLanguagePersistence =
             new TextLanguageSettingsPersistence(
                 settingsService
@@ -284,21 +288,17 @@ public partial class App
                 }
             );
 
-        // 热键消息路由
         var router =
             new HotkeyMessageRouter();
 
-        // 隐藏消息窗口
         _hotkeyMessageWindow =
             new HotkeyMessageWindow(
                 router
             );
 
-        // Windows 热键 API
         var nativeApi =
             new User32HotkeyNativeApi();
 
-        // Win32 热键后端
         _hotkeyBackend =
             new Win32HotkeyBackend(
                 _hotkeyMessageWindow.Handle,
@@ -306,7 +306,6 @@ public partial class App
                 router
             );
 
-        // 热键服务
         _hotkeyService =
             new HotkeyService(
                 _hotkeyBackend
@@ -350,7 +349,6 @@ public partial class App
             return;
         }
 
-        // 托盘
         var trayBackend =
             new NotifyIconTrayBackend();
 
@@ -401,6 +399,7 @@ public partial class App
             _startWithWindowsSettingsPersistence is null ||
             _apiKeyValidator is null ||
             _textTranslationHotkeyPersistence is null ||
+            _screenshotTranslationHotkeyPersistence is null ||
             _screenshotLanguageSettingsPersistence is null
         )
         {
@@ -421,7 +420,11 @@ public partial class App
                 currentScreenshotSourceLanguage:
                     _startupScreenshotSourceLanguage,
                 currentScreenshotTargetLanguage:
-                    _startupScreenshotTargetLanguage
+                    _startupScreenshotTargetLanguage,
+                screenshotHotkeyPersistence:
+                    _screenshotTranslationHotkeyPersistence,
+                currentScreenshotTranslationHotkey:
+                    _startupScreenshotTranslationHotkey
             )
             {
                 StartWithWindows =
@@ -441,6 +444,9 @@ public partial class App
                 _startWithWindows =
                     viewModel.StartWithWindows;
 
+                _startupScreenshotTranslationHotkey =
+                    viewModel.ScreenshotTranslationHotkey;
+
                 _startupScreenshotSourceLanguage =
                     viewModel.ScreenshotSourceLanguage;
 
@@ -459,6 +465,7 @@ public partial class App
             _apiKeyValidator is null ||
             _settingsService is null ||
             _textTranslationHotkeyPersistence is null ||
+            _screenshotTranslationHotkeyPersistence is null ||
             _screenshotLanguageSettingsPersistence is null ||
             _hotkeyService is null
         )
@@ -489,6 +496,12 @@ public partial class App
                 _textTranslationHotkeyPersistence
             );
 
+        var screenshotHotkeyChangeService =
+            new ScreenshotTranslationHotkeyChangeService(
+                _hotkeyService,
+                _screenshotTranslationHotkeyPersistence
+            );
+
         var viewModel =
             new FirstRunSettingsViewModel(
                 _firstRunSettingsPersistence,
@@ -503,7 +516,11 @@ public partial class App
                 currentScreenshotSourceLanguage:
                     currentSettings.ScreenshotSourceLanguage,
                 currentScreenshotTargetLanguage:
-                    currentSettings.ScreenshotTargetLanguage
+                    currentSettings.ScreenshotTargetLanguage,
+                screenshotHotkeyChangeService:
+                    screenshotHotkeyChangeService,
+                currentScreenshotTranslationHotkey:
+                    currentSettings.ScreenshotTranslationHotkey
             )
             {
                 StartWithWindows =
@@ -538,7 +555,6 @@ public partial class App
     {
         _screenshotTranslationCoordinator?.Dispose();
 
-        // 解绑热键事件
         if (
             _hotkeyService is not null &&
             _windowManager is not null
@@ -557,7 +573,6 @@ public partial class App
                 _appController.OpenScreenshotTranslation;
         }
 
-        // 注销系统热键
         _hotkeyBackend?.Unregister(
             HotkeyService.TextTranslationHotkeyId
         );
@@ -566,10 +581,8 @@ public partial class App
             HotkeyService.ScreenshotTranslationHotkeyId
         );
 
-        // 释放热键消息窗口
         _hotkeyMessageWindow?.Dispose();
 
-        // 释放托盘
         if (_trayService is not null)
         {
             _trayService.TextTranslationRequested -=
@@ -587,7 +600,6 @@ public partial class App
             _trayService.Dispose();
         }
 
-        // 释放 HttpClient
         _httpClient?.Dispose();
 
         base.OnExit(e);
