@@ -115,7 +115,7 @@ internal sealed class CtcTextDecoder
                 );
 
                 confidenceSum +=
-                    SoftmaxProbability(
+                    TokenProbability(
                         logits,
                         step,
                         bestLogit
@@ -137,24 +137,58 @@ internal sealed class CtcTextDecoder
             );
     }
 
-    private static double SoftmaxProbability(
-        float[,,] logits,
+    private static double TokenProbability(
+        float[,,] scores,
         int step,
         float maximum
     )
     {
+        double scoreSum = 0;
+        var containsOnlyProbabilities = true;
+
+        for (var classIndex = 0;
+             classIndex <
+             scores.GetLength(
+                 2
+             );
+             classIndex++)
+        {
+            var score =
+                scores[
+                    0,
+                    step,
+                    classIndex
+                ];
+
+            if (score < 0 ||
+                score > 1)
+            {
+                containsOnlyProbabilities = false;
+            }
+
+            scoreSum += score;
+        }
+
+        if (containsOnlyProbabilities &&
+            Math.Abs(
+                scoreSum - 1d
+            ) <= 0.05d)
+        {
+            return maximum;
+        }
+
         double denominator = 0;
 
         for (var classIndex = 0;
              classIndex <
-             logits.GetLength(
+             scores.GetLength(
                  2
              );
              classIndex++)
         {
             denominator +=
                 Math.Exp(
-                    logits[
+                    scores[
                         0,
                         step,
                         classIndex
