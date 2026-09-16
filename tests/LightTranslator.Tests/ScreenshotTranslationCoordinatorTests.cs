@@ -14,425 +14,222 @@ public sealed class ScreenshotTranslationCoordinatorTests
     [Fact]
     public async Task Toggle_CompletesCaptureOcrTranslationAndRendering()
     {
-        var fixture =
-            CoordinatorFixture.Create();
+        var fixture = CoordinatorFixture.Create();
 
-        fixture.Ocr.Blocks =
-            new[]
-            {
-                new OcrBlock(
-                    "block-0002",
-                    "second",
-                    0.90,
-                    new PixelRect(
-                        120,
-                        60,
-                        100,
-                        30
-                    )
-                ),
-                new OcrBlock(
-                    "low",
-                    "excluded",
-                    0.49,
-                    new PixelRect(
-                        5,
-                        5,
-                        40,
-                        20
-                    )
-                ),
-                new OcrBlock(
-                    "block-0001",
-                    "first",
-                    0.95,
-                    new PixelRect(
-                        10,
-                        10,
-                        100,
-                        30
-                    )
-                )
-            };
+        fixture.Ocr.Blocks = new[]
+        {
+            new OcrBlock(
+                "block-0002",
+                "second",
+                0.90,
+                new PixelRect(120, 60, 100, 30)
+            ),
+            new OcrBlock(
+                "low",
+                "excluded",
+                0.49,
+                new PixelRect(5, 5, 40, 20)
+            ),
+            new OcrBlock(
+                "block-0001",
+                "first",
+                0.95,
+                new PixelRect(10, 10, 100, 30)
+            )
+        };
 
-        fixture.Translator.Result =
-            new Dictionary<string, string>
-            {
-                ["block-0001"] =
-                    "第一",
-                ["block-0002"] =
-                    "第二",
-                ["unknown"] =
-                    "忽略"
-            };
+        fixture.Translator.Result = new Dictionary<string, string>
+        {
+            ["paragraph-0001"] = "第一 第二",
+            ["unknown"] = "忽略"
+        };
 
         fixture.Coordinator.Toggle();
 
         await fixture.ResultView.ResultsShown.Task.WaitAsync(
-            TimeSpan.FromSeconds(
-                3
-            )
+            TimeSpan.FromSeconds(3)
         );
 
-        Assert.Equal(
-            1,
-            fixture.DisplayCapture.CaptureCount
-        );
+        Assert.Equal(1, fixture.DisplayCapture.CaptureCount);
+        Assert.Equal(1, fixture.DisplayCapture.CropCount);
+        Assert.Equal(1, fixture.CaptureView.SelectCount);
+        Assert.Equal(1, fixture.ResultView.ShowLoadingCount);
+        Assert.Equal("正在识别…", fixture.ResultView.LastLoadingMessage);
 
-        Assert.Equal(
-            1,
-            fixture.DisplayCapture.CropCount
-        );
+        var paragraph = Assert.Single(fixture.Translator.LastBlocks);
+        Assert.Equal("paragraph-0001", paragraph.Id);
+        Assert.Equal("first second", paragraph.Text);
+        Assert.Equal(new PixelRect(10, 10, 210, 80), paragraph.Bounds);
 
-        Assert.Equal(
-            1,
-            fixture.CaptureView.SelectCount
-        );
+        Assert.Equal("auto", fixture.Translator.LastSourceLanguage);
+        Assert.Equal("zh", fixture.Translator.LastTargetLanguage);
 
-        Assert.Equal(
-            1,
-            fixture.ResultView.ShowLoadingCount
-        );
-
-        Assert.Equal(
-            "正在识别…",
-            fixture.ResultView.LastLoadingMessage
-        );
-
-        Assert.Equal(
-            new[]
-            {
-                "block-0001",
-                "block-0002"
-            },
-            fixture.Translator.LastBlocks
-                .Select(
-                    block => block.Id
-                )
-        );
-
-        Assert.Equal(
-            "auto",
-            fixture.Translator.LastSourceLanguage
-        );
-
-        Assert.Equal(
-            "zh",
-            fixture.Translator.LastTargetLanguage
-        );
-
-        Assert.Equal(
-            new[]
-            {
-                "第一",
-                "第二"
-            },
-            fixture.ResultView.LastResults
-                .Select(
-                    block =>
-                        block.TranslatedText
-                )
-        );
+        var rendered = Assert.Single(fixture.ResultView.LastResults);
+        Assert.Equal("paragraph-0001", rendered.Id);
+        Assert.Equal("第一 第二", rendered.TranslatedText);
     }
 
     [Fact]
     public async Task Toggle_WhenTaskActive_CancelsAndClosesInsteadOfStartingAnother()
     {
-        var fixture =
-            CoordinatorFixture.Create();
-
-        fixture.Ocr.Handler =
-            async cancellationToken =>
-            {
-                fixture.Ocr.Started.TrySetResult();
-
-                await Task.Delay(
-                    Timeout.InfiniteTimeSpan,
-                    cancellationToken
-                );
-
-                return Array.Empty<OcrBlock>();
-            };
+        var fixture = CoordinatorFixture.Create();
+        fixture.Ocr.Handler = async cancellationToken =>
+        {
+            fixture.Ocr.Started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return Array.Empty<OcrBlock>();
+        };
 
         fixture.Coordinator.Toggle();
-
-        await fixture.Ocr.Started.Task.WaitAsync(
-            TimeSpan.FromSeconds(
-                3
-            )
-        );
-
+        await fixture.Ocr.Started.Task.WaitAsync(TimeSpan.FromSeconds(3));
         fixture.Coordinator.Toggle();
 
         await WaitUntilAsync(
-            () =>
-                fixture.Ocr.LastCancellationToken
-                    .IsCancellationRequested
+            () => fixture.Ocr.LastCancellationToken.IsCancellationRequested
         );
 
-        Assert.Equal(
-            1,
-            fixture.DisplayCapture.CaptureCount
-        );
-
-        Assert.Equal(
-            1,
-            fixture.CaptureView.SelectCount
-        );
-
-        Assert.Equal(
-            1,
-            fixture.ResultView.CloseCount
-        );
+        Assert.Equal(1, fixture.DisplayCapture.CaptureCount);
+        Assert.Equal(1, fixture.CaptureView.SelectCount);
+        Assert.Equal(1, fixture.ResultView.CloseCount);
     }
 
     [Fact]
     public async Task CancelledLateTranslation_CannotUpdateWindow()
     {
-        var fixture =
-            CoordinatorFixture.Create();
-
+        var fixture = CoordinatorFixture.Create();
         var lateTranslation =
             new TaskCompletionSource<IReadOnlyDictionary<string, string>>(
                 TaskCreationOptions.RunContinuationsAsynchronously
             );
 
         fixture.Translator.Handler =
-            (
-                blocks,
-                sourceLanguage,
-                targetLanguage,
-                cancellationToken
-            ) =>
+            (blocks, sourceLanguage, targetLanguage, cancellationToken) =>
             {
                 fixture.Translator.Started.TrySetResult();
-
                 return lateTranslation.Task;
             };
 
         fixture.Coordinator.Toggle();
-
-        await fixture.Translator.Started.Task.WaitAsync(
-            TimeSpan.FromSeconds(
-                3
-            )
-        );
-
+        await fixture.Translator.Started.Task.WaitAsync(TimeSpan.FromSeconds(3));
         fixture.Coordinator.Toggle();
 
-        Assert.Equal(
-            1,
-            fixture.ResultView.CloseCount
-        );
+        Assert.Equal(1, fixture.ResultView.CloseCount);
 
         lateTranslation.SetResult(
             new Dictionary<string, string>
             {
-                ["block-0001"] =
-                    "迟到"
+                ["paragraph-0001"] = "迟到"
             }
         );
 
-        await Task.Delay(
-            100
-        );
+        await Task.Delay(100);
 
-        Assert.Equal(
-            0,
-            fixture.ResultView.ShowResultsCount
-        );
-
-        Assert.Equal(
-            1,
-            fixture.ResultView.CloseCount
-        );
+        Assert.Equal(0, fixture.ResultView.ShowResultsCount);
+        Assert.Equal(1, fixture.ResultView.CloseCount);
     }
 
     [Fact]
     public async Task CloseRequested_CancelsActiveWorkAndClosesView()
     {
-        var fixture =
-            CoordinatorFixture.Create();
-
-        fixture.Ocr.Handler =
-            async cancellationToken =>
-            {
-                fixture.Ocr.Started.TrySetResult();
-
-                await Task.Delay(
-                    Timeout.InfiniteTimeSpan,
-                    cancellationToken
-                );
-
-                return Array.Empty<OcrBlock>();
-            };
+        var fixture = CoordinatorFixture.Create();
+        fixture.Ocr.Handler = async cancellationToken =>
+        {
+            fixture.Ocr.Started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return Array.Empty<OcrBlock>();
+        };
 
         fixture.Coordinator.Toggle();
-
-        await fixture.Ocr.Started.Task.WaitAsync(
-            TimeSpan.FromSeconds(
-                3
-            )
-        );
-
+        await fixture.Ocr.Started.Task.WaitAsync(TimeSpan.FromSeconds(3));
         fixture.ResultView.RaiseCloseRequested();
 
         await WaitUntilAsync(
-            () =>
-                fixture.Ocr.LastCancellationToken
-                    .IsCancellationRequested
+            () => fixture.Ocr.LastCancellationToken.IsCancellationRequested
         );
 
-        Assert.Equal(
-            1,
-            fixture.ResultView.CloseCount
-        );
+        Assert.Equal(1, fixture.ResultView.CloseCount);
     }
 
     [Theory]
-    [InlineData(
-        "NoText",
-        "未识别到文字"
-    )]
-    [InlineData(
-        "Ocr",
-        "文字识别失败，请重试"
-    )]
-    [InlineData(
-        "MissingApiKey",
-        "请先在设置中配置 API Key"
-    )]
-    [InlineData(
-        "Network",
-        "翻译失败，请检查网络后重试"
-    )]
+    [InlineData("NoText", "未识别到文字")]
+    [InlineData("Ocr", "文字识别失败，请重试")]
+    [InlineData("MissingApiKey", "请先在设置中配置 API Key")]
+    [InlineData("Network", "翻译失败，请检查网络后重试")]
     public async Task Failure_ShowsExpectedOverlayMessage(
         string failure,
         string expected
     )
     {
-        var fixture =
-            CoordinatorFixture.Create();
+        var fixture = CoordinatorFixture.Create();
 
         switch (failure)
         {
             case "NoText":
-                fixture.Ocr.Blocks =
-                    Array.Empty<OcrBlock>();
-
+                fixture.Ocr.Blocks = Array.Empty<OcrBlock>();
                 break;
 
             case "Ocr":
-                fixture.Ocr.Exception =
-                    new OcrModelException(
-                        "ModelUnavailable"
-                    );
-
+                fixture.Ocr.Exception = new OcrModelException("ModelUnavailable");
                 break;
 
             case "MissingApiKey":
-                fixture.Translator.Exception =
-                    new TranslationException(
-                        TranslationErrorKind.Configuration,
-                        "Key missing."
-                    );
-
+                fixture.Translator.Exception = new TranslationException(
+                    TranslationErrorKind.Configuration,
+                    "Key missing."
+                );
                 break;
 
             case "Network":
-                fixture.Translator.Exception =
-                    new TranslationException(
-                        TranslationErrorKind.Network,
-                        "Network failed."
-                    );
-
+                fixture.Translator.Exception = new TranslationException(
+                    TranslationErrorKind.Network,
+                    "Network failed."
+                );
                 break;
 
             default:
-                throw new ArgumentOutOfRangeException(
-                    nameof(
-                        failure
-                    )
-                );
+                throw new ArgumentOutOfRangeException(nameof(failure));
         }
 
         fixture.Coordinator.Toggle();
 
         await fixture.ResultView.MessageShown.Task.WaitAsync(
-            TimeSpan.FromSeconds(
-                3
-            )
+            TimeSpan.FromSeconds(3)
         );
 
-        Assert.Equal(
-            expected,
-            fixture.ResultView.LastMessage
-        );
+        Assert.Equal(expected, fixture.ResultView.LastMessage);
     }
 
     [Fact]
     public async Task Dispose_CancelsWorkClosesViewAndDisposesOcr()
     {
-        var fixture =
-            CoordinatorFixture.Create();
-
-        fixture.Ocr.Handler =
-            async cancellationToken =>
-            {
-                fixture.Ocr.Started.TrySetResult();
-
-                await Task.Delay(
-                    Timeout.InfiniteTimeSpan,
-                    cancellationToken
-                );
-
-                return Array.Empty<OcrBlock>();
-            };
+        var fixture = CoordinatorFixture.Create();
+        fixture.Ocr.Handler = async cancellationToken =>
+        {
+            fixture.Ocr.Started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return Array.Empty<OcrBlock>();
+        };
 
         fixture.Coordinator.Toggle();
-
-        await fixture.Ocr.Started.Task.WaitAsync(
-            TimeSpan.FromSeconds(
-                3
-            )
-        );
-
+        await fixture.Ocr.Started.Task.WaitAsync(TimeSpan.FromSeconds(3));
         fixture.Coordinator.Dispose();
 
         await WaitUntilAsync(
-            () =>
-                fixture.Ocr.LastCancellationToken
-                    .IsCancellationRequested
+            () => fixture.Ocr.LastCancellationToken.IsCancellationRequested
         );
 
-        Assert.Equal(
-            1,
-            fixture.ResultView.CloseCount
-        );
-
-        Assert.Equal(
-            1,
-            fixture.Ocr.DisposeCount
-        );
+        Assert.Equal(1, fixture.ResultView.CloseCount);
+        Assert.Equal(1, fixture.Ocr.DisposeCount);
     }
 
-    private static async Task WaitUntilAsync(
-        Func<bool> condition
-    )
+    private static async Task WaitUntilAsync(Func<bool> condition)
     {
         using var timeout =
-            new CancellationTokenSource(
-                TimeSpan.FromSeconds(
-                    3
-                )
-            );
+            new CancellationTokenSource(TimeSpan.FromSeconds(3));
 
         while (!condition())
         {
-            await Task.Delay(
-                10,
-                timeout.Token
-            );
+            await Task.Delay(10, timeout.Token);
         }
     }
 
@@ -440,178 +237,83 @@ public sealed class ScreenshotTranslationCoordinatorTests
     {
         private CoordinatorFixture()
         {
-            var frame =
-                new ScreenCaptureFrame(
-                    CreateBitmap(
-                        400,
-                        200
-                    ),
-                    new PixelRect(
-                        0,
-                        0,
-                        400,
-                        200
-                    ),
-                    120,
-                    120
-                );
+            var frame = new ScreenCaptureFrame(
+                CreateBitmap(400, 200),
+                new PixelRect(0, 0, 400, 200),
+                120,
+                120
+            );
 
-            var selection =
-                new CapturedSelection(
-                    CreateBitmap(
-                        300,
-                        150
-                    ),
-                    new PixelRect(
-                        20,
-                        20,
-                        300,
-                        150
-                    ),
-                    new PixelRect(
-                        20,
-                        20,
-                        300,
-                        150
-                    ),
-                    120,
-                    120
-                );
+            var selection = new CapturedSelection(
+                CreateBitmap(300, 150),
+                new PixelRect(20, 20, 300, 150),
+                new PixelRect(20, 20, 300, 150),
+                120,
+                120
+            );
 
             DisplayCapture =
-                new FakeDisplayCaptureService(
-                    frame,
-                    selection
-                );
-
+                new FakeDisplayCaptureService(frame, selection);
             CaptureView =
                 new FakeScreenshotCaptureView(
-                    new PixelRect(
-                        20,
-                        20,
-                        300,
-                        150
+                    new PixelRect(20, 20, 300, 150)
+                );
+            Ocr = new FakeOcrService
+            {
+                Blocks = new[]
+                {
+                    new OcrBlock(
+                        "block-0001",
+                        "source",
+                        0.90,
+                        new PixelRect(10, 10, 100, 30)
                     )
-                );
-
-            Ocr =
-                new FakeOcrService
+                }
+            };
+            Translator = new FakeScreenshotTextTranslator
+            {
+                Result = new Dictionary<string, string>
                 {
-                    Blocks =
-                        new[]
-                        {
-                            new OcrBlock(
-                                "block-0001",
-                                "source",
-                                0.90,
-                                new PixelRect(
-                                    10,
-                                    10,
-                                    100,
-                                    30
-                                )
-                            )
-                        }
-                };
-
-            Translator =
-                new FakeScreenshotTextTranslator
-                {
-                    Result =
-                        new Dictionary<string, string>
-                        {
-                            ["block-0001"] =
-                                "译文"
-                        }
-                };
-
-            ResultView =
-                new FakeScreenshotResultView();
-
+                    ["paragraph-0001"] = "译文"
+                }
+            };
+            ResultView = new FakeScreenshotResultView();
             ResultFactory =
-                new FakeScreenshotResultViewFactory(
-                    ResultView
-                );
-
+                new FakeScreenshotResultViewFactory(ResultView);
             Settings =
-                new FakeSettingsService(
-                    AppSettings.CreateDefault()
-                );
-
-            Coordinator =
-                new ScreenshotTranslationCoordinator(
-                    DisplayCapture,
-                    CaptureView,
-                    Ocr,
-                    Translator,
-                    ResultFactory,
-                    Settings
-                );
+                new FakeSettingsService(AppSettings.CreateDefault());
+            Coordinator = new ScreenshotTranslationCoordinator(
+                DisplayCapture,
+                CaptureView,
+                Ocr,
+                Translator,
+                ResultFactory,
+                Settings
+            );
         }
 
-        public ScreenshotTranslationCoordinator Coordinator
-        {
-            get;
-        }
+        public ScreenshotTranslationCoordinator Coordinator { get; }
+        public FakeDisplayCaptureService DisplayCapture { get; }
+        public FakeScreenshotCaptureView CaptureView { get; }
+        public FakeOcrService Ocr { get; }
+        public FakeScreenshotTextTranslator Translator { get; }
+        public FakeScreenshotResultView ResultView { get; }
+        public FakeScreenshotResultViewFactory ResultFactory { get; }
+        public FakeSettingsService Settings { get; }
 
-        public FakeDisplayCaptureService DisplayCapture
-        {
-            get;
-        }
+        public static CoordinatorFixture Create() => new();
 
-        public FakeScreenshotCaptureView CaptureView
+        private static BitmapSource CreateBitmap(int width, int height)
         {
-            get;
-        }
-
-        public FakeOcrService Ocr
-        {
-            get;
-        }
-
-        public FakeScreenshotTextTranslator Translator
-        {
-            get;
-        }
-
-        public FakeScreenshotResultView ResultView
-        {
-            get;
-        }
-
-        public FakeScreenshotResultViewFactory ResultFactory
-        {
-            get;
-        }
-
-        public FakeSettingsService Settings
-        {
-            get;
-        }
-
-        public static CoordinatorFixture Create()
-        {
-            return
-                new CoordinatorFixture();
-        }
-
-        private static BitmapSource CreateBitmap(
-            int width,
-            int height
-        )
-        {
-            var bitmap =
-                new WriteableBitmap(
-                    width,
-                    height,
-                    120,
-                    120,
-                    PixelFormats.Bgra32,
-                    null
-                );
-
+            var bitmap = new WriteableBitmap(
+                width,
+                height,
+                120,
+                120,
+                PixelFormats.Bgra32,
+                null
+            );
             bitmap.Freeze();
-
             return bitmap;
         }
     }
@@ -627,29 +329,16 @@ public sealed class ScreenshotTranslationCoordinatorTests
             CapturedSelection selection
         )
         {
-            _frame =
-                frame;
-
-            _selection =
-                selection;
+            _frame = frame;
+            _selection = selection;
         }
 
-        public int CaptureCount
-        {
-            get;
-            private set;
-        }
-
-        public int CropCount
-        {
-            get;
-            private set;
-        }
+        public int CaptureCount { get; private set; }
+        public int CropCount { get; private set; }
 
         public ScreenCaptureFrame CaptureMonitorAtCursor()
         {
             CaptureCount++;
-
             return _frame;
         }
 
@@ -659,7 +348,6 @@ public sealed class ScreenshotTranslationCoordinatorTests
         )
         {
             CropCount++;
-
             return _selection;
         }
     }
@@ -669,19 +357,12 @@ public sealed class ScreenshotTranslationCoordinatorTests
     {
         private readonly PixelRect? _selection;
 
-        public FakeScreenshotCaptureView(
-            PixelRect? selection
-        )
+        public FakeScreenshotCaptureView(PixelRect? selection)
         {
-            _selection =
-                selection;
+            _selection = selection;
         }
 
-        public int SelectCount
-        {
-            get;
-            private set;
-        }
+        public int SelectCount { get; private set; }
 
         public Task<PixelRect?> SelectAsync(
             ScreenCaptureFrame frame,
@@ -689,11 +370,7 @@ public sealed class ScreenshotTranslationCoordinatorTests
         )
         {
             SelectCount++;
-
-            return
-                Task.FromResult(
-                    _selection
-                );
+            return Task.FromResult(_selection);
         }
     }
 
@@ -701,73 +378,37 @@ public sealed class ScreenshotTranslationCoordinatorTests
         : IOcrService,
           IDisposable
     {
-        public IReadOnlyList<OcrBlock> Blocks
-        {
-            get;
-            set;
-        } =
+        public IReadOnlyList<OcrBlock> Blocks { get; set; } =
             Array.Empty<OcrBlock>();
-
-        public Exception? Exception
-        {
-            get;
-            set;
-        }
-
+        public Exception? Exception { get; set; }
         public Func<CancellationToken, Task<IReadOnlyList<OcrBlock>>>? Handler
         {
             get;
             set;
         }
-
-        public TaskCompletionSource Started
-        {
-            get;
-        } =
-            new(
-                TaskCreationOptions.RunContinuationsAsynchronously
-            );
-
-        public CancellationToken LastCancellationToken
-        {
-            get;
-            private set;
-        }
-
-        public int DisposeCount
-        {
-            get;
-            private set;
-        }
+        public TaskCompletionSource Started { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public CancellationToken LastCancellationToken { get; private set; }
+        public int DisposeCount { get; private set; }
 
         public Task<IReadOnlyList<OcrBlock>> RecognizeAsync(
             BitmapSource image,
             CancellationToken cancellationToken = default
         )
         {
-            LastCancellationToken =
-                cancellationToken;
+            LastCancellationToken = cancellationToken;
 
             if (Handler is not null)
             {
-                return
-                    Handler(
-                        cancellationToken
-                    );
+                return Handler(cancellationToken);
             }
 
             if (Exception is not null)
             {
-                return
-                    Task.FromException<IReadOnlyList<OcrBlock>>(
-                        Exception
-                    );
+                return Task.FromException<IReadOnlyList<OcrBlock>>(Exception);
             }
 
-            return
-                Task.FromResult(
-                    Blocks
-                );
+            return Task.FromResult(Blocks);
         }
 
         public void Dispose()
@@ -779,19 +420,9 @@ public sealed class ScreenshotTranslationCoordinatorTests
     private sealed class FakeScreenshotTextTranslator
         : IScreenshotTextTranslator
     {
-        public IReadOnlyDictionary<string, string> Result
-        {
-            get;
-            set;
-        } =
+        public IReadOnlyDictionary<string, string> Result { get; set; } =
             new Dictionary<string, string>();
-
-        public Exception? Exception
-        {
-            get;
-            set;
-        }
-
+        public Exception? Exception { get; set; }
         public Func<
             IReadOnlyList<OcrBlock>,
             string,
@@ -802,33 +433,12 @@ public sealed class ScreenshotTranslationCoordinatorTests
             get;
             set;
         }
-
-        public TaskCompletionSource Started
-        {
-            get;
-        } =
-            new(
-                TaskCreationOptions.RunContinuationsAsynchronously
-            );
-
-        public IReadOnlyList<OcrBlock> LastBlocks
-        {
-            get;
-            private set;
-        } =
+        public TaskCompletionSource Started { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public IReadOnlyList<OcrBlock> LastBlocks { get; private set; } =
             Array.Empty<OcrBlock>();
-
-        public string? LastSourceLanguage
-        {
-            get;
-            private set;
-        }
-
-        public string? LastTargetLanguage
-        {
-            get;
-            private set;
-        }
+        public string? LastSourceLanguage { get; private set; }
+        public string? LastTargetLanguage { get; private set; }
 
         public Task<IReadOnlyDictionary<string, string>> TranslateAsync(
             IReadOnlyList<OcrBlock> blocks,
@@ -837,38 +447,28 @@ public sealed class ScreenshotTranslationCoordinatorTests
             CancellationToken cancellationToken = default
         )
         {
-            LastBlocks =
-                blocks;
-
-            LastSourceLanguage =
-                sourceLanguage;
-
-            LastTargetLanguage =
-                targetLanguage;
+            LastBlocks = blocks;
+            LastSourceLanguage = sourceLanguage;
+            LastTargetLanguage = targetLanguage;
 
             if (Handler is not null)
             {
-                return
-                    Handler(
-                        blocks,
-                        sourceLanguage,
-                        targetLanguage,
-                        cancellationToken
-                    );
+                return Handler(
+                    blocks,
+                    sourceLanguage,
+                    targetLanguage,
+                    cancellationToken
+                );
             }
 
             if (Exception is not null)
             {
-                return
-                    Task.FromException<IReadOnlyDictionary<string, string>>(
-                        Exception
-                    );
+                return Task.FromException<IReadOnlyDictionary<string, string>>(
+                    Exception
+                );
             }
 
-            return
-                Task.FromResult(
-                    Result
-                );
+            return Task.FromResult(Result);
         }
     }
 
@@ -877,17 +477,12 @@ public sealed class ScreenshotTranslationCoordinatorTests
     {
         private readonly IScreenshotResultView _view;
 
-        public FakeScreenshotResultViewFactory(
-            IScreenshotResultView view
-        )
+        public FakeScreenshotResultViewFactory(IScreenshotResultView view)
         {
-            _view =
-                view;
+            _view = view;
         }
 
-        public IScreenshotResultView Create(
-            CapturedSelection selection
-        )
+        public IScreenshotResultView Create(CapturedSelection selection)
         {
             return _view;
         }
@@ -898,58 +493,17 @@ public sealed class ScreenshotTranslationCoordinatorTests
     {
         public event EventHandler? CloseRequested;
 
-        public int ShowLoadingCount
-        {
-            get;
-            private set;
-        }
-
-        public int ShowResultsCount
-        {
-            get;
-            private set;
-        }
-
-        public int CloseCount
-        {
-            get;
-            private set;
-        }
-
-        public string? LastLoadingMessage
-        {
-            get;
-            private set;
-        }
-
-        public string? LastMessage
-        {
-            get;
-            private set;
-        }
-
-        public IReadOnlyList<OcrBlock> LastResults
-        {
-            get;
-            private set;
-        } =
+        public int ShowLoadingCount { get; private set; }
+        public int ShowResultsCount { get; private set; }
+        public int CloseCount { get; private set; }
+        public string? LastLoadingMessage { get; private set; }
+        public string? LastMessage { get; private set; }
+        public IReadOnlyList<OcrBlock> LastResults { get; private set; } =
             Array.Empty<OcrBlock>();
-
-        public TaskCompletionSource ResultsShown
-        {
-            get;
-        } =
-            new(
-                TaskCreationOptions.RunContinuationsAsynchronously
-            );
-
-        public TaskCompletionSource MessageShown
-        {
-            get;
-        } =
-            new(
-                TaskCreationOptions.RunContinuationsAsynchronously
-            );
+        public TaskCompletionSource ResultsShown { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource MessageShown { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public void ShowLoading(
             CapturedSelection selection,
@@ -957,30 +511,19 @@ public sealed class ScreenshotTranslationCoordinatorTests
         )
         {
             ShowLoadingCount++;
-
-            LastLoadingMessage =
-                message;
+            LastLoadingMessage = message;
         }
 
-        public void ShowResults(
-            IReadOnlyList<OcrBlock> blocks
-        )
+        public void ShowResults(IReadOnlyList<OcrBlock> blocks)
         {
             ShowResultsCount++;
-
-            LastResults =
-                blocks;
-
+            LastResults = blocks;
             ResultsShown.TrySetResult();
         }
 
-        public void ShowMessage(
-            string message
-        )
+        public void ShowMessage(string message)
         {
-            LastMessage =
-                message;
-
+            LastMessage = message;
             MessageShown.TrySetResult();
         }
 
@@ -991,10 +534,7 @@ public sealed class ScreenshotTranslationCoordinatorTests
 
         public void RaiseCloseRequested()
         {
-            CloseRequested?.Invoke(
-                this,
-                EventArgs.Empty
-            );
+            CloseRequested?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -1003,22 +543,16 @@ public sealed class ScreenshotTranslationCoordinatorTests
     {
         private readonly AppSettings _settings;
 
-        public FakeSettingsService(
-            AppSettings settings
-        )
+        public FakeSettingsService(AppSettings settings)
         {
-            _settings =
-                settings;
+            _settings = settings;
         }
 
         public Task<AppSettings> LoadAsync(
             CancellationToken cancellationToken = default
         )
         {
-            return
-                Task.FromResult(
-                    _settings
-                );
+            return Task.FromResult(_settings);
         }
 
         public Task SaveAsync(
@@ -1026,8 +560,7 @@ public sealed class ScreenshotTranslationCoordinatorTests
             CancellationToken cancellationToken = default
         )
         {
-            return
-                Task.CompletedTask;
+            return Task.CompletedTask;
         }
     }
 }
