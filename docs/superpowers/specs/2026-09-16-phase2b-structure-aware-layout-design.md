@@ -48,19 +48,13 @@ public sealed record ScreenshotTextRegion(
 
 `OcrBlock` remains the raw OCR representation. It must not gain UI/layout-specific properties.
 
-`ScreenshotTextRegion` is produced after OCR filtering and sorting, before translation. It carries:
-
-- merged source text
-- merged region bounds
-- representative original single-line height
-- conservative `Title` or `Body` role
-- translated text once translation completes
-
-This keeps OCR responsibilities separate from screenshot layout responsibilities.
+`ScreenshotTextRegion` is produced after OCR filtering and sorting, before translation. It carries merged source text, merged region bounds, representative original single-line height, conservative `Title` or `Body` role, and translated text once translation completes.
 
 ## Structure Analysis
 
-Replace the current paragraph-only grouping result with structure-aware regions while retaining the existing reading-order behavior.
+Introduce `ScreenshotTextRegionAnalyzer` as the production structure-analysis component for screenshot translation. It supersedes direct use of `OcrParagraphGrouper` in the screenshot translation pipeline.
+
+`OcrParagraphGrouper` may remain temporarily while tests migrate, but the final production pipeline must have only one grouping path. The implementation plan should remove or retire dead grouping code once the analyzer fully replaces it.
 
 ### Body paragraph grouping
 
@@ -76,9 +70,9 @@ A line is considered a title only when all of the following are true:
 2. The median height of those following body lines can be established.
 3. The candidate title line height is at least `1.30x` the following body-line median height.
 4. The candidate source text is short: no more than 60 trimmed characters.
-5. The candidate and following body block are left-aligned within `max(12 px, 8% of the body region width)`.
+5. The title left edge and the first following body-line left edge differ by no more than `max(12 px, 8% of the eventual body-region width)`.
 6. The vertical gap from the title bottom to the first body line is no more than `1.5x` the body-line median height.
-7. The following body lines have mutually similar heights: each is within `20%` of their median height.
+7. The following candidate body lines have mutually similar heights: each is within `20%` of their median height.
 
 If any condition fails, the line remains `Body`.
 
@@ -86,27 +80,21 @@ These thresholds are deliberately conservative. Missing a title is preferable to
 
 ### Title and body region boundaries
 
-A detected title becomes its own `ScreenshotTextRegion`.
-
-The following body lines are grouped separately. This prevents text such as `Paragraph 1` from being concatenated into the first sentence of the paragraph.
+A detected title becomes its own `ScreenshotTextRegion`. The following body lines are grouped separately. This prevents text such as `Paragraph 1` from being concatenated into the first sentence of the paragraph.
 
 ## Translation Behavior
 
-DeepSeek still translates text only. It does not receive or infer layout roles.
+DeepSeek still translates text only. It does not receive or infer `Title`/`Body` roles.
 
-The screenshot translation service may continue to accept a list of text-bearing items as long as title/body metadata remains local and is reattached after translation. The translation count must not increase merely because structure metadata exists.
+`IScreenshotTextTranslator` remains unchanged. The coordinator adapts each `ScreenshotTextRegion` into a temporary `OcrBlock` with the same `Id`, `Text`, `Confidence`, and `Bounds`, sends those items through the existing batch translation API, then reattaches the returned text to the original regions by `Id`.
 
-A title region and a body region are independent translation units because they are independent visual regions.
-
-No extra translation request is added beyond the existing batch request; all regions remain part of the same batch where supported by the existing translator.
+A title region and a body region are independent translation items because they are independent visual regions. This may increase the number of text items inside the existing batch compared with the old paragraph-only grouping, but it must not add a second DeepSeek network request. One screenshot translation continues to use the existing single batch request path.
 
 ## Font Estimation and Normalization
 
 ### Source font estimate
 
 For each region, derive the preferred source-scale font from `SourceLineHeight` rather than merged region height.
-
-The initial target font is:
 
 ```text
 preferredFont = clamp(SourceLineHeight * 0.80, 6 DIP, 32 DIP)
@@ -116,11 +104,11 @@ The upper bound increases from the current 18 DIP so visibly larger headings and
 
 ### Body normalization
 
-Within one screenshot, collect preferred font estimates for all `Body` regions.
+Within one screenshot, collect preferred font estimates for all `Body` regions. Use their median as the representative body font.
 
-Use the median body preferred font as the representative body font. A body region whose preferred estimate is within `20%` of the body median uses the median value exactly.
+A body region whose preferred estimate is within `20%` of the body median uses the median value exactly. A body region outside that tolerance keeps its own estimate. This stabilizes ordinary paragraph text without flattening clearly different UI text sizes.
 
-A body region outside that tolerance keeps its own estimate. This avoids forcing clearly different UI text sizes into one global size while stabilizing ordinary paragraph text.
+If no stable body median exists, each body region keeps its own estimate.
 
 ### Title sizing
 
@@ -142,18 +130,16 @@ This preserves the already-tested Phase 2B fixed-bounds fallback.
 
 ## Single-Line vs Multi-Line Alignment
 
-Determine whether the translated text requires wrapping by measuring it once at the chosen font size with unconstrained width and comparing the desired width to the available content width.
+Determine whether the translated text requires wrapping by measuring it at the chosen font size with unconstrained width and comparing the desired width with the usable content width.
 
 - If it fits on one line: `VerticalAlignment.Center`.
 - If it requires wrapping: `VerticalAlignment.Top`.
 
-The renderer must not rely on semantic newlines from DeepSeek to decide visual line layout.
+Explicit newline characters also make the region multi-line. The renderer must not ask DeepSeek to insert visual line breaks.
 
 ## Dynamic Padding
 
-Padding must scale with the OCR region instead of always using `Thickness(4, 2, 4, 2)`.
-
-Use this deterministic policy in DIP coordinates:
+Padding scales with the mapped OCR region height instead of always using `Thickness(4, 2, 4, 2)`.
 
 ```text
 horizontal = clamp(regionHeight * 0.12, 1, 4)
@@ -162,31 +148,27 @@ vertical   = clamp(regionHeight * 0.06, 0, 2)
 
 Apply the same horizontal value on left/right and the same vertical value on top/bottom.
 
-This keeps small UI labels from losing a large percentage of usable height while preserving comfortable spacing in larger regions.
-
 ## Background Adaptation
 
-Do not perform inpainting or source-text removal.
-
-Instead, inspect the frozen screenshot pixels inside each translated region.
+Do not perform inpainting or source-text removal. Inspect the frozen screenshot pixels inside each translated region.
 
 ### Sampling
 
-Sample a `5 x 5` evenly distributed grid over the region, staying at least one pixel inside each edge when possible.
+Sample a `5 x 5` evenly distributed grid over the physical-pixel OCR region, staying at least one pixel inside each edge when possible.
 
 For sampled RGB values, calculate:
 
-- median RGB color
-- luminance for each sample
-- luminance standard deviation
+- median R, G, and B independently
+- normalized luma for each sample using `(0.2126 * R + 0.7152 * G + 0.0722 * B) / 255`
+- luma standard deviation expressed on the `0..255` scale for the flatness threshold
 - per-channel range (`max - min` for R, G, and B)
 
 ### Flat-background classification
 
-A region is considered visually flat only when:
+A region is visually flat only when:
 
 ```text
-luminance standard deviation <= 12
+luma standard deviation <= 12
 AND
 R range <= 24
 AND
@@ -198,8 +180,8 @@ B range <= 24
 If flat:
 
 - use the sampled median RGB as an opaque block background
-- choose black or white text according to relative luminance
-- use black text for relative luminance >= 0.55
+- compute median normalized luma from the median RGB
+- use black text when normalized luma is `>= 0.55`
 - otherwise use white text
 
 If complex:
@@ -207,13 +189,11 @@ If complex:
 - use fallback background `ARGB(235, 17, 24, 39)`
 - use white text
 
-The fallback is intentionally more opaque than the current Phase 2A background so the original source text does not strongly show through.
+The fallback is intentionally more opaque than the current Phase 2A background so original source text does not strongly show through.
 
 All sampling is local CPU work against the already captured image. No new model, network request, or screenshot persistence is introduced.
 
 ## Data Flow
-
-The revised flow is:
 
 ```text
 CapturedSelection.Image
@@ -224,13 +204,16 @@ CapturedSelection.Image
 OCR raw OcrBlock lines          background sampler
         |
         v
-structure analyzer
+ScreenshotTextRegionAnalyzer
         |
         v
 ScreenshotTextRegion[]
         |
         v
-batch text translation
+adapt to OcrBlock[] for existing batch translator
+        |
+        v
+translation dictionary keyed by Id
         |
         v
 translated ScreenshotTextRegion[]
@@ -251,20 +234,11 @@ fixed OCR-region overlay
 
 ### `OcrBlock`
 
-Remains raw OCR data only. No title/body or rendering metadata is added.
+Raw OCR data only. No title/body or rendering metadata is added.
 
-### Structure analyzer
+### `ScreenshotTextRegionAnalyzer`
 
-Responsible for:
-
-- reading order
-- paragraph grouping
-- conservative title detection
-- region bounds
-- representative source line height
-- role assignment
-
-It must be testable without WPF.
+Responsible for reading order, paragraph grouping, conservative title detection, region bounds, representative source line height, and role assignment. It is pure C# and testable without WPF.
 
 ### `ScreenshotTextRegion`
 
@@ -272,45 +246,27 @@ Carries structure-analysis output through translation and rendering.
 
 ### Screenshot translation coordinator
 
-Orchestrates the same stages as today. It converts filtered OCR output into screenshot regions, translates their text in the existing batch flow, reattaches translations, and passes regions plus the frozen selection to rendering as needed.
+Orchestrates the same stages as today. It converts filtered OCR output into screenshot regions, adapts those regions to the unchanged translator interface, reattaches translations, and passes translated regions to the result view.
 
-### Renderer/window
+### Result view / renderer
 
-Responsible only for visual layout and background sampling. It does not infer semantic title/body roles.
-
-## Interface Impact
-
-`IScreenshotResultView.ShowResults(...)` must no longer depend on plain `OcrBlock` if the renderer needs role and source-line-height metadata.
-
-The preferred interface is conceptually:
+`IScreenshotResultView` changes to the exact interface:
 
 ```csharp
 void ShowResults(
-    CapturedSelection selection,
     IReadOnlyList<ScreenshotTextRegion> regions
 );
 ```
 
-If the existing view already retains the same `CapturedSelection` instance reliably, the implementation may keep selection state internal and pass only regions. The final implementation plan must choose one explicit form and use it consistently.
+The window continues to receive and retain `CapturedSelection` through its constructor / `ApplySelection` path. `ApplySelection` must retain the `BitmapSource` needed by the background sampler, so `ShowResults` does not receive the selection again.
+
+The renderer is responsible for WPF text measurement, normalized font selection, shrink-to-fit, dynamic padding, vertical alignment, background sampling, and clipping. It does not infer semantic title/body roles.
 
 ## Performance Constraints
 
-This work must not add:
+This work must not add another OCR pass, another DeepSeek network request, image-repair inference, local ONNX layout models, or screenshot disk writes.
 
-- another OCR pass
-- another DeepSeek call
-- image-repair inference
-- local ONNX layout models
-- screenshot disk writes
-
-The added work is limited to:
-
-- numeric geometry comparisons
-- median calculations over small collections
-- WPF text measurement already required for fitting
-- at most 25 sampled pixels per rendered text region
-
-These operations should remain small relative to OCR and network translation latency.
+Added work is limited to numeric geometry comparisons, median calculations over small collections, WPF text measurement already required for fitting, and at most 25 sampled pixels per rendered text region.
 
 ## Failure and Fallback Rules
 
@@ -322,7 +278,7 @@ These operations should remain small relative to OCR and network translation lat
 
 ## TDD Strategy
 
-Implementation must proceed with focused RED/GREEN cycles.
+Implementation proceeds with focused RED/GREEN cycles.
 
 Required structure-analysis tests:
 
@@ -333,13 +289,19 @@ Required structure-analysis tests:
 - groups body lines while preserving median source line height
 - splits title and body into independent regions
 
+Required coordinator/translation tests:
+
+- adapts regions to the unchanged batch translator interface
+- performs one batch translation call for all regions
+- reattaches translations by region `Id`
+
 Required font/layout tests:
 
 - similar body regions normalize to one median preferred font
 - an obviously larger title retains a larger preferred font
 - translated text starts at source-scale font and shrinks only when needed
 - single-line translations are vertically centered
-- wrapped translations are top aligned
+- wrapped or explicit-newline translations are top aligned
 - dynamic padding is smaller for small OCR regions
 - fixed OCR bounds and 6 DIP overflow clipping continue to work
 
@@ -367,5 +329,5 @@ This iteration is accepted when manual comparison shows all of the following:
 - flat source backgrounds visually blend better than a universal dark rectangle
 - complex backgrounds still have a deterministic readable fallback
 - translated regions remain fixed to their OCR bounds
-- no new ML model, translation request, or background-repair step is added
+- no new ML model, additional translation request, or background-repair step is added
 - full automated tests and Release build remain green
