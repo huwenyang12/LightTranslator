@@ -67,14 +67,16 @@ public class NotifyIconTrayBackendTests
                     .Single(item => item.Text == "截图翻译")
             );
 
-        Assert.Equal(
-            string.Empty,
-            textTranslationItem.ShortcutKeyDisplayString
+        Assert.True(
+            string.IsNullOrEmpty(
+                textTranslationItem.ShortcutKeyDisplayString
+            )
         );
 
-        Assert.Equal(
-            string.Empty,
-            screenshotTranslationItem.ShortcutKeyDisplayString
+        Assert.True(
+            string.IsNullOrEmpty(
+                screenshotTranslationItem.ShortcutKeyDisplayString
+            )
         );
     }
 
