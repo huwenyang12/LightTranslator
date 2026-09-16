@@ -10,7 +10,7 @@ namespace LightTranslator.Tests;
 public sealed class ScreenshotTranslationLayoutRegressionTests
 {
     [Fact]
-    public void ShowResults_SmallSourceBoxAllowsLongTranslationToExpandWithoutEllipsis()
+    public void ShowResults_LongTranslationStaysInsideSourceBoxAndShrinksFont()
     {
         RunOnSta(
             () =>
@@ -33,9 +33,9 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
                                     20,
                                     20,
                                     120,
-                                    14
+                                    30
                                 ),
-                                "供应商风险较低，当前结果不应因为原始文字框较小而被裁剪"
+                                "供应商风险较低，请继续检查订单信息"
                             )
                         }
                     );
@@ -58,20 +58,27 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
                             container.Child
                         );
 
-                    var mappedSourceHeight =
-                        14d * 96d / 120d;
+                    var mappedSourceWidth =
+                        120d * 96d / 120d;
 
-                    Assert.True(
-                        double.IsNaN(
-                            container.Height
-                        ),
-                        "Long translations must be allowed to grow beyond the original OCR box height."
+                    var mappedSourceHeight =
+                        30d * 96d / 120d;
+
+                    Assert.Equal(
+                        mappedSourceWidth,
+                        container.Width,
+                        6
                     );
 
                     Assert.Equal(
                         mappedSourceHeight,
-                        container.MinHeight,
+                        container.Height,
                         6
+                    );
+
+                    Assert.Equal(
+                        TextWrapping.Wrap,
+                        translatedText.TextWrapping
                     );
 
                     Assert.Equal(
@@ -81,8 +88,8 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
 
                     Assert.InRange(
                         translatedText.FontSize,
-                        9d,
-                        mappedSourceHeight
+                        6d,
+                        17.999d
                     );
                 }
                 finally
