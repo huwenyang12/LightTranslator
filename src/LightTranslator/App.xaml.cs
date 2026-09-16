@@ -530,7 +530,8 @@ public partial class App
         var window =
             new FirstRunSettingsWindow(
                 viewModel,
-                isFirstRun: false
+                isFirstRun: false,
+                hotkeyService: _hotkeyService
             );
 
         var hotkeyService =
