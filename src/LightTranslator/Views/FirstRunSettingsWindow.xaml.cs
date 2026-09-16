@@ -44,6 +44,11 @@ public partial class FirstRunSettingsWindow
                 _viewModel.ScreenshotTranslationHotkey
             );
 
+        ScreenshotSourceLanguageComboBox.SelectionChanged +=
+            OnScreenshotSourceLanguageSelectionChanged;
+
+        UpdateScreenshotLanguageSwapButtonState();
+
         SaveButton.IsEnabled =
             !_isFirstRun ||
             _viewModel.CanSave;
@@ -156,6 +161,58 @@ public partial class FirstRunSettingsWindow
         _viewModel.SetScreenshotTranslationHotkey(hotkey);
         ScreenshotTranslationHotkeyBox.Text = FormatHotkey(hotkey);
         e.Handled = true;
+    }
+
+    private void OnScreenshotSourceLanguageSelectionChanged(
+        object? sender,
+        System.Windows.Controls.SelectionChangedEventArgs e
+    )
+    {
+        UpdateScreenshotLanguageSwapButtonState();
+    }
+
+    private void UpdateScreenshotLanguageSwapButtonState()
+    {
+        var sourceLanguage =
+            ScreenshotSourceLanguageComboBox.SelectedValue as string
+            ?? _viewModel.ScreenshotSourceLanguage;
+
+        ScreenshotLanguageSwapButton.IsEnabled =
+            !string.Equals(
+                sourceLanguage,
+                "auto",
+                StringComparison.OrdinalIgnoreCase
+            );
+    }
+
+    private void OnScreenshotLanguageSwapClick(
+        object sender,
+        System.Windows.RoutedEventArgs e
+    )
+    {
+        if (ScreenshotSourceLanguageComboBox.SelectedValue is string sourceLanguage)
+        {
+            _viewModel.ScreenshotSourceLanguage = sourceLanguage;
+        }
+
+        if (ScreenshotTargetLanguageComboBox.SelectedValue is string targetLanguage)
+        {
+            _viewModel.ScreenshotTargetLanguage = targetLanguage;
+        }
+
+        if (!_viewModel.SwapScreenshotLanguages())
+        {
+            UpdateScreenshotLanguageSwapButtonState();
+            return;
+        }
+
+        ScreenshotSourceLanguageComboBox.SelectedValue =
+            _viewModel.ScreenshotSourceLanguage;
+
+        ScreenshotTargetLanguageComboBox.SelectedValue =
+            _viewModel.ScreenshotTargetLanguage;
+
+        UpdateScreenshotLanguageSwapButtonState();
     }
 
     private void OnApiKeyPasswordChanged(

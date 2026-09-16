@@ -50,6 +50,25 @@ public sealed class FirstRunSettingsViewModel
         ScreenshotTranslationHotkey = hotkey;
     }
 
+    public bool SwapScreenshotLanguages()
+    {
+        if (string.Equals(
+                ScreenshotSourceLanguage,
+                "auto",
+                StringComparison.OrdinalIgnoreCase
+            ))
+        {
+            return false;
+        }
+
+        var previousSource = ScreenshotSourceLanguage;
+
+        ScreenshotSourceLanguage = ScreenshotTargetLanguage;
+        ScreenshotTargetLanguage = previousSource;
+
+        return true;
+    }
+
     public async Task<bool> SaveTextTranslationHotkeyAsync(
         CancellationToken cancellationToken = default
     )
