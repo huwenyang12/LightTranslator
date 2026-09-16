@@ -5,17 +5,42 @@
         Width="600"
         Height="400"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize">
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False">
 
-    <Grid>
+    <Grid Background="#FF111827">
 
-        <TextBlock
-            x:Name="PhaseNoticeTextBlock"
-            Text="截图翻译将在下一阶段启用"
-            FontSize="22"
-            Foreground="#444444"
+        <Image
+            x:Name="FrozenSelectionImage"
+            Stretch="Fill"/>
+
+        <Canvas
+            x:Name="TranslationCanvas"
+            Background="Transparent"/>
+
+        <Border
+            x:Name="StatusBorder"
+            Padding="18,12"
+            CornerRadius="8"
+            Background="#CC111827"
             HorizontalAlignment="Center"
-            VerticalAlignment="Center"/>
+            VerticalAlignment="Center">
+
+            <TextBlock
+                x:Name="StatusTextBlock"
+                Text="截图翻译正在准备…"
+                FontSize="18"
+                FontWeight="SemiBold"
+                Foreground="White"
+                TextAlignment="Center"
+                TextWrapping="Wrap"
+                Visibility="Visible"/>
+
+        </Border>
 
     </Grid>
 
