@@ -84,7 +84,7 @@ public sealed class OcrImagePreprocessorTests
     }
 
     [Fact]
-    public void PrepareRecognizer_CapsVeryWideCropAt320()
+    public void PrepareRecognizer_PreservesWideLineAspectRatioBeyond320Pixels()
     {
         var image = CreateSolidBitmap(
             width: 800,
@@ -106,10 +106,10 @@ public sealed class OcrImagePreprocessorTests
                     )
                 );
 
-        Assert.Equal(320, actual.ResizedWidth);
+        Assert.Equal(768, actual.ResizedWidth);
         Assert.Equal(48, actual.ResizedHeight);
         Assert.Equal(
-            new[] { 1, 3, 48, 320 },
+            new[] { 1, 3, 48, 768 },
             actual.Tensor.Dimensions.ToArray()
         );
     }
