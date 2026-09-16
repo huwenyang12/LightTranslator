@@ -36,20 +36,12 @@ public sealed class NotifyIconTrayBackend
         _textTranslationItem =
             new System.Windows.Forms.ToolStripMenuItem(
                 "文本翻译"
-            )
-            {
-                ShortcutKeyDisplayString =
-                    "Alt + T"
-            };
+            );
 
         _screenshotTranslationItem =
             new System.Windows.Forms.ToolStripMenuItem(
                 "截图翻译"
-            )
-            {
-                ShortcutKeyDisplayString =
-                    "Alt + Q"
-            };
+            );
 
         _settingsItem =
             new System.Windows.Forms.ToolStripMenuItem(
