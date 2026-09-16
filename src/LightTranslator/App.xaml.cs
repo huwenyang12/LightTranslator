@@ -533,14 +533,29 @@ public partial class App
                 isFirstRun: false
             );
 
+        var hotkeyService =
+            _hotkeyService;
+
+        hotkeyService.SuspendRequests();
+
         window.Closed +=
             (_, _) =>
             {
                 _startWithWindows =
                     viewModel.StartWithWindows;
+
+                hotkeyService.ResumeRequests();
             };
 
-        window.Show();
+        try
+        {
+            window.Show();
+        }
+        catch
+        {
+            hotkeyService.ResumeRequests();
+            throw;
+        }
     }
 
     public void ShowScreenshotTranslation()

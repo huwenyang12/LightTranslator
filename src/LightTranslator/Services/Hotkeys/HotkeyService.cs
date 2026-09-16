@@ -10,6 +10,7 @@ public sealed class HotkeyService
     private const uint ModWindows = 0x0008;
 
     private readonly IHotkeyBackend _backend;
+    private bool _requestsSuspended;
 
     public const int TextTranslationHotkeyId = 1;
     public const int ScreenshotTranslationHotkeyId = 2;
@@ -23,6 +24,16 @@ public sealed class HotkeyService
     {
         _backend = backend;
         _backend.HotkeyPressed += OnHotkeyPressed;
+    }
+
+    public void SuspendRequests()
+    {
+        _requestsSuspended = true;
+    }
+
+    public void ResumeRequests()
+    {
+        _requestsSuspended = false;
     }
 
     public bool ReplaceTextTranslation(
@@ -127,6 +138,11 @@ public sealed class HotkeyService
         int id
     )
     {
+        if (_requestsSuspended)
+        {
+            return;
+        }
+
         if (id == TextTranslationHotkeyId)
         {
             TextTranslationRequested?.Invoke();
