@@ -18,7 +18,8 @@ internal sealed class OcrImagePreprocessor
 {
     private const int DetectorMaximumSide = 960;
     private const int RecognitionHeight = 48;
-    private const int RecognitionWidth = 320;
+    private const int RecognitionBaseWidth = 320;
+    private const int RecognitionMaximumWidth = 3200;
 
     private static readonly float[] DetectorMean =
     {
@@ -140,7 +141,13 @@ internal sealed class OcrImagePreprocessor
                     MidpointRounding.AwayFromZero
                 ),
                 1,
-                RecognitionWidth
+                RecognitionMaximumWidth
+            );
+
+        var tensorWidth =
+            Math.Max(
+                RecognitionBaseWidth,
+                resizedWidth
             );
 
         var tensor =
@@ -150,7 +157,7 @@ internal sealed class OcrImagePreprocessor
                     1,
                     3,
                     RecognitionHeight,
-                    RecognitionWidth
+                    tensorWidth
                 }
             );
 
@@ -255,7 +262,7 @@ internal sealed class OcrImagePreprocessor
                     ) *
                     sourceWidth /
                     destinationWidth -
-                    0.5d;
+                0.5d;
 
                 writePixel(
                     0,

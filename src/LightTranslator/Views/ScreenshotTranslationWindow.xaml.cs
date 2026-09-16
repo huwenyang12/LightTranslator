@@ -12,6 +12,9 @@ public partial class ScreenshotTranslationWindow
     : Window,
       IScreenshotResultView
 {
+    private const double MinimumTranslationFontSize = 9d;
+    private const double MaximumTranslationFontSize = 18d;
+
     private readonly ICommand _closeRequestCommand;
     private bool _closeRequestRaised;
     private double _dpiX = 96d;
@@ -155,11 +158,13 @@ public partial class ScreenshotTranslationWindow
                 Foreground =
                     System.Windows.Media.Brushes.White,
                 FontSize =
-                    14,
+                    CalculateTranslationFontSize(
+                        bounds.Height
+                    ),
                 TextWrapping =
                     TextWrapping.Wrap,
                 TextTrimming =
-                    TextTrimming.CharacterEllipsis,
+                    TextTrimming.None,
                 VerticalAlignment =
                     VerticalAlignment.Center
             };
@@ -169,7 +174,7 @@ public partial class ScreenshotTranslationWindow
             {
                 Width =
                     bounds.Width,
-                Height =
+                MinHeight =
                     bounds.Height,
                 Padding =
                     new Thickness(
@@ -208,6 +213,25 @@ public partial class ScreenshotTranslationWindow
         TranslationCanvas.Children.Add(
             container
         );
+    }
+
+    private static double CalculateTranslationFontSize(
+        double sourceHeight
+    )
+    {
+        var preferred =
+            sourceHeight *
+            0.80d;
+
+        return
+            Math.Min(
+                sourceHeight,
+                Math.Clamp(
+                    preferred,
+                    MinimumTranslationFontSize,
+                    MaximumTranslationFontSize
+                )
+            );
     }
 
     private void ShowStatus(

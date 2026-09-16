@@ -223,9 +223,15 @@ public sealed class ScreenshotTranslationWindowTests
                         6
                     );
 
+                    Assert.True(
+                        double.IsNaN(
+                            translatedBlock.Height
+                        )
+                    );
+
                     Assert.Equal(
                         32,
-                        translatedBlock.Height,
+                        translatedBlock.MinHeight,
                         6
                     );
 
@@ -237,6 +243,11 @@ public sealed class ScreenshotTranslationWindowTests
                     Assert.Equal(
                         "译文",
                         translatedText.Text
+                    );
+
+                    Assert.Equal(
+                        TextTrimming.None,
+                        translatedText.TextTrimming
                     );
 
                     Assert.DoesNotContain(
