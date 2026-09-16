@@ -78,16 +78,11 @@ public sealed class FirstRunSettingsViewModel
             return true;
         }
 
-        if (TextTranslationHotkey is null)
-        {
-            return false;
-        }
-
         if (_hotkeyChangeService is not null)
         {
             var saved = await _hotkeyChangeService.ApplyAsync(
                 _currentTextTranslationHotkey!,
-                TextTranslationHotkey,
+                TextTranslationHotkey!,
                 cancellationToken
             );
 
@@ -109,7 +104,7 @@ public sealed class FirstRunSettingsViewModel
         }
 
         return await _hotkeyPersistence.SaveAsync(
-            TextTranslationHotkey,
+            TextTranslationHotkey!,
             cancellationToken
         );
     }
@@ -123,16 +118,11 @@ public sealed class FirstRunSettingsViewModel
             return true;
         }
 
-        if (ScreenshotTranslationHotkey is null)
-        {
-            return false;
-        }
-
         if (_screenshotHotkeyChangeService is not null)
         {
             var saved = await _screenshotHotkeyChangeService.ApplyAsync(
                 _currentScreenshotTranslationHotkey,
-                ScreenshotTranslationHotkey,
+                ScreenshotTranslationHotkey!,
                 cancellationToken
             );
 
@@ -154,7 +144,7 @@ public sealed class FirstRunSettingsViewModel
         }
 
         return await _screenshotHotkeyPersistence.SaveAsync(
-            ScreenshotTranslationHotkey,
+            ScreenshotTranslationHotkey!,
             cancellationToken
         );
     }

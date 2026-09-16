@@ -113,6 +113,17 @@ public partial class FirstRunSettingsWindow
             return;
         }
 
+        if (
+            e.Key == System.Windows.Input.Key.Delete ||
+            e.Key == System.Windows.Input.Key.Back
+        )
+        {
+            _viewModel.TextTranslationHotkey = null;
+            TextTranslationHotkeyBox.Text = string.Empty;
+            e.Handled = true;
+            return;
+        }
+
         var captured = HotkeyCaptureParser.TryCapture(
             e.Key,
             e.SystemKey,
@@ -142,6 +153,17 @@ public partial class FirstRunSettingsWindow
                     _viewModel.ScreenshotTranslationHotkey
                 );
 
+            e.Handled = true;
+            return;
+        }
+
+        if (
+            e.Key == System.Windows.Input.Key.Delete ||
+            e.Key == System.Windows.Input.Key.Back
+        )
+        {
+            _viewModel.ScreenshotTranslationHotkey = null;
+            ScreenshotTranslationHotkeyBox.Text = string.Empty;
             e.Handled = true;
             return;
         }
