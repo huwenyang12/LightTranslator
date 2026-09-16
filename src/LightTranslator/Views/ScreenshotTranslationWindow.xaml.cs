@@ -206,6 +206,8 @@ public partial class ScreenshotTranslationWindow
                     bounds.Height,
                 Padding =
                     TranslationPadding,
+                ClipToBounds =
+                    true,
                 Background =
                     new SolidColorBrush(
                         System.Windows.Media.Color.FromArgb(
