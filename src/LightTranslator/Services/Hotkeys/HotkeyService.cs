@@ -11,6 +11,11 @@ public sealed class HotkeyService
 
     private readonly IHotkeyBackend _backend;
     private bool _requestsSuspended;
+    private bool _textTranslationCaptureActive;
+    private bool _screenshotTranslationCaptureActive;
+
+    private HotkeyDefinition? _textTranslationHotkey;
+    private HotkeyDefinition? _screenshotTranslationHotkey;
 
     public const int TextTranslationHotkeyId = 1;
     public const int ScreenshotTranslationHotkeyId = 2;
@@ -36,16 +41,87 @@ public sealed class HotkeyService
         _requestsSuspended = false;
     }
 
+    public void BeginTextTranslationCapture()
+    {
+        if (_textTranslationCaptureActive)
+        {
+            return;
+        }
+
+        _textTranslationCaptureActive = true;
+
+        if (_textTranslationHotkey is not null)
+        {
+            _backend.Unregister(
+                TextTranslationHotkeyId
+            );
+        }
+    }
+
+    public void EndTextTranslationCapture()
+    {
+        if (!_textTranslationCaptureActive)
+        {
+            return;
+        }
+
+        _textTranslationCaptureActive = false;
+
+        RegisterHotkey(
+            TextTranslationHotkeyId,
+            _textTranslationHotkey
+        );
+    }
+
+    public void BeginScreenshotTranslationCapture()
+    {
+        if (_screenshotTranslationCaptureActive)
+        {
+            return;
+        }
+
+        _screenshotTranslationCaptureActive = true;
+
+        if (_screenshotTranslationHotkey is not null)
+        {
+            _backend.Unregister(
+                ScreenshotTranslationHotkeyId
+            );
+        }
+    }
+
+    public void EndScreenshotTranslationCapture()
+    {
+        if (!_screenshotTranslationCaptureActive)
+        {
+            return;
+        }
+
+        _screenshotTranslationCaptureActive = false;
+
+        RegisterHotkey(
+            ScreenshotTranslationHotkeyId,
+            _screenshotTranslationHotkey
+        );
+    }
+
     public bool ReplaceTextTranslation(
         HotkeyDefinition? oldHotkey,
         HotkeyDefinition? newHotkey
     )
     {
-        return ReplaceHotkey(
+        var replaced = ReplaceHotkey(
             TextTranslationHotkeyId,
             oldHotkey,
             newHotkey
         );
+
+        if (replaced)
+        {
+            _textTranslationHotkey = newHotkey;
+        }
+
+        return replaced;
     }
 
     public bool ReplaceScreenshotTranslation(
@@ -53,31 +129,52 @@ public sealed class HotkeyService
         HotkeyDefinition? newHotkey
     )
     {
-        return ReplaceHotkey(
+        var replaced = ReplaceHotkey(
             ScreenshotTranslationHotkeyId,
             oldHotkey,
             newHotkey
         );
+
+        if (replaced)
+        {
+            _screenshotTranslationHotkey = newHotkey;
+        }
+
+        return replaced;
     }
 
     public bool RegisterTextTranslation(
         HotkeyDefinition? hotkey
     )
     {
-        return RegisterHotkey(
+        var registered = RegisterHotkey(
             TextTranslationHotkeyId,
             hotkey
         );
+
+        if (registered)
+        {
+            _textTranslationHotkey = hotkey;
+        }
+
+        return registered;
     }
 
     public bool RegisterScreenshotTranslation(
         HotkeyDefinition? hotkey
     )
     {
-        return RegisterHotkey(
+        var registered = RegisterHotkey(
             ScreenshotTranslationHotkeyId,
             hotkey
         );
+
+        if (registered)
+        {
+            _screenshotTranslationHotkey = hotkey;
+        }
+
+        return registered;
     }
 
     private bool RegisterHotkey(
