@@ -7,6 +7,6 @@ public class SmokeTests
     {
         var assembly = typeof(App).Assembly;
 
-        Assert.Equal("LightTranslator", assembly.GetName().Name);
+        Assert.Equal("Bridgo", assembly.GetName().Name);
     }
 }

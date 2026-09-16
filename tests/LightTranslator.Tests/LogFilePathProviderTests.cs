@@ -12,7 +12,7 @@ public class LogFilePathProviderTests
                 Environment.GetFolderPath(
                     Environment.SpecialFolder.LocalApplicationData
                 ),
-                "LightTranslator",
+                "Bridgo",
                 "logs",
                 "app.log"
             );
