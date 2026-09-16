@@ -45,6 +45,40 @@ public class NotifyIconTrayBackendTests
     }
 
     [Fact]
+    public void TranslationMenuItems_DoNotShowShortcutDisplayText()
+    {
+        using var backend =
+            new NotifyIconTrayBackend();
+
+        var contextMenu =
+            GetContextMenu(backend);
+
+        var textTranslationItem =
+            Assert.IsType<ToolStripMenuItem>(
+                contextMenu.Items
+                    .Cast<ToolStripItem>()
+                    .Single(item => item.Text == "文本翻译")
+            );
+
+        var screenshotTranslationItem =
+            Assert.IsType<ToolStripMenuItem>(
+                contextMenu.Items
+                    .Cast<ToolStripItem>()
+                    .Single(item => item.Text == "截图翻译")
+            );
+
+        Assert.Equal(
+            string.Empty,
+            textTranslationItem.ShortcutKeyDisplayString
+        );
+
+        Assert.Equal(
+            string.Empty,
+            screenshotTranslationItem.ShortcutKeyDisplayString
+        );
+    }
+
+    [Fact]
     public void TranslationMenuItems_Click_RaiseCorrespondingEvents()
     {
         using var backend =
