@@ -8,6 +8,10 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
 
+    <AssemblyName>Bridgo</AssemblyName>
+    <RootNamespace>LightTranslator</RootNamespace>
+    <AssemblyTitle>语桥</AssemblyTitle>
+    <Product>语桥 Bridgo</Product>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
 

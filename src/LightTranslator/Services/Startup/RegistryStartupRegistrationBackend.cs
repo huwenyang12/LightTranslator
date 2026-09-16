@@ -9,7 +9,7 @@ public sealed class RegistryStartupRegistrationBackend
         @"Software\Microsoft\Windows\CurrentVersion\Run";
 
     private const string ValueName =
-        "LightTranslator";
+        "Bridgo";
 
     public void Enable(
         string executablePath

@@ -109,7 +109,7 @@ public sealed class NotifyIconTrayBackend
             new System.Windows.Forms.NotifyIcon
             {
                 Text =
-                    "LightTranslator",
+                    "语桥",
 
                 Icon =
                     _icon,

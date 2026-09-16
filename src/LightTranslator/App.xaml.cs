@@ -326,7 +326,7 @@ public partial class App
         {
             System.Windows.MessageBox.Show(
                 "全局快捷键注册失败，可能已被其他程序占用。",
-                "LightTranslator"
+                "语桥"
             );
 
             Shutdown();
@@ -342,7 +342,7 @@ public partial class App
         {
             System.Windows.MessageBox.Show(
                 "截图翻译快捷键注册失败，可能已被其他程序占用。",
-                "LightTranslator"
+                "语桥"
             );
 
             Shutdown();
@@ -484,7 +484,7 @@ public partial class App
         {
             System.Windows.MessageBox.Show(
                 "读取设置失败。",
-                "LightTranslator"
+                "语桥"
             );
 
             return;

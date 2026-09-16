@@ -15,7 +15,7 @@ public sealed class DpapiSecretStorage : ISecretStorage
                 Environment.GetFolderPath(
                     Environment.SpecialFolder.LocalApplicationData
                 ),
-                "LightTranslator",
+                "Bridgo",
                 "secrets"
             );
     }

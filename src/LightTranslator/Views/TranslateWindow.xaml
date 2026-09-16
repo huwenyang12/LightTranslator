@@ -1,7 +1,7 @@
 <Window x:Class="LightTranslator.Views.TranslateWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="LightTranslator"
+        Title="语桥"
         Width="520"
         Height="320"
         WindowStyle="None"

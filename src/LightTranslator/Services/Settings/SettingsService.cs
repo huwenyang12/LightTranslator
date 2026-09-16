@@ -21,7 +21,7 @@ public sealed class SettingsService : ISettingsService
                 Environment.GetFolderPath(
                     Environment.SpecialFolder.LocalApplicationData
                 ),
-                "LightTranslator"
+                "Bridgo"
             );
 
         _settingsFilePath = Path.Combine(
