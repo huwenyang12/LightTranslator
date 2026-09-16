@@ -155,13 +155,10 @@ private static double CalculateTranslationFontSize(
 )
 {
     var preferred =
-        Math.Min(
-            sourceHeight,
-            Math.Clamp(
-                sourceHeight * 0.80d,
-                MinimumTranslationFontSize,
-                MaximumTranslationFontSize
-            )
+        Math.Clamp(
+            sourceHeight * 0.80d,
+            MinimumTranslationFontSize,
+            MaximumTranslationFontSize
         );
 
     if (availableWidth <= 0d ||
@@ -200,6 +197,8 @@ private static double CalculateTranslationFontSize(
     return MinimumTranslationFontSize;
 }
 ```
+
+This intentionally keeps the 6 DIP minimum even when an unusually tiny OCR rectangle is shorter than 6 DIP; Task 2 handles the corresponding visual overflow by clipping to the fixed OCR bounds.
 
 Do not add clipping in this task; Task 2 defines that behavior with its own RED test first.
 
