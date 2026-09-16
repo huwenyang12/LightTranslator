@@ -272,6 +272,11 @@ public sealed class ScreenshotTranslationCoordinator
                 return;
             }
 
+            var paragraphs =
+                OcrParagraphGrouper.Group(
+                    blocks
+                );
+
             stage =
                 WorkflowStage.Translation;
 
@@ -292,7 +297,7 @@ public sealed class ScreenshotTranslationCoordinator
 
             var translations =
                 await _textTranslator.TranslateAsync(
-                    blocks,
+                    paragraphs,
                     settings.ScreenshotSourceLanguage,
                     settings.ScreenshotTargetLanguage,
                     cancellationToken
@@ -307,23 +312,23 @@ public sealed class ScreenshotTranslationCoordinator
             }
 
             var translatedBlocks =
-                blocks
+                paragraphs
                     .Select(
-                        block =>
+                        paragraph =>
                         {
                             if (!translations.TryGetValue(
-                                    block.Id,
+                                    paragraph.Id,
                                     out var translatedText
                                 ) ||
                                 string.IsNullOrWhiteSpace(
                                     translatedText
                                 ))
                             {
-                                return block;
+                                return paragraph;
                             }
 
                             return
-                                block with
+                                paragraph with
                                 {
                                     TranslatedText =
                                         translatedText
@@ -331,9 +336,9 @@ public sealed class ScreenshotTranslationCoordinator
                         }
                     )
                     .Where(
-                        block =>
+                        paragraph =>
                             !string.IsNullOrWhiteSpace(
-                                block.TranslatedText
+                                paragraph.TranslatedText
                             )
                     )
                     .ToArray();
