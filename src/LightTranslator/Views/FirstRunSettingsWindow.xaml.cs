@@ -10,6 +10,10 @@ public partial class FirstRunSettingsWindow
     private readonly FirstRunSettingsViewModel _viewModel;
     private readonly bool _isFirstRun;
     private readonly bool _isDialogMode;
+    private readonly HotkeyService? _hotkeyService;
+
+    private bool _textTranslationHotkeyCaptureActive;
+    private bool _screenshotTranslationHotkeyCaptureActive;
 
     private readonly Func<System.Windows.Input.ModifierKeys>
         _modifierKeysProvider;
@@ -18,7 +22,8 @@ public partial class FirstRunSettingsWindow
         FirstRunSettingsViewModel viewModel,
         bool isFirstRun = true,
         bool isDialogMode = false,
-        Func<System.Windows.Input.ModifierKeys>? modifierKeysProvider = null
+        Func<System.Windows.Input.ModifierKeys>? modifierKeysProvider = null,
+        HotkeyService? hotkeyService = null
     )
     {
         InitializeComponent();
@@ -26,6 +31,7 @@ public partial class FirstRunSettingsWindow
         _viewModel = viewModel;
         _isFirstRun = isFirstRun;
         _isDialogMode = isDialogMode;
+        _hotkeyService = hotkeyService;
 
         DataContext = viewModel;
 
@@ -43,6 +49,15 @@ public partial class FirstRunSettingsWindow
             FormatHotkey(
                 _viewModel.ScreenshotTranslationHotkey
             );
+
+        TextTranslationHotkeyBox.LostFocus +=
+            OnTextTranslationHotkeyBoxLostFocus;
+
+        ScreenshotTranslationHotkeyBox.LostFocus +=
+            OnScreenshotTranslationHotkeyBoxLostFocus;
+
+        Closed +=
+            OnWindowClosed;
 
         ScreenshotSourceLanguageComboBox.SelectionChanged +=
             OnScreenshotSourceLanguageSelectionChanged;
@@ -283,7 +298,16 @@ public partial class FirstRunSettingsWindow
         System.Windows.RoutedEventArgs e
     )
     {
+        BeginTextTranslationHotkeyCapture();
         TextTranslationHotkeyBox.Text = "请按快捷键";
+    }
+
+    private void OnTextTranslationHotkeyBoxLostFocus(
+        object sender,
+        System.Windows.RoutedEventArgs e
+    )
+    {
+        EndTextTranslationHotkeyCapture();
     }
 
     private void OnScreenshotTranslationHotkeyBoxGotFocus(
@@ -291,7 +315,75 @@ public partial class FirstRunSettingsWindow
         System.Windows.RoutedEventArgs e
     )
     {
+        BeginScreenshotTranslationHotkeyCapture();
         ScreenshotTranslationHotkeyBox.Text = "请按快捷键";
+    }
+
+    private void OnScreenshotTranslationHotkeyBoxLostFocus(
+        object sender,
+        System.Windows.RoutedEventArgs e
+    )
+    {
+        EndScreenshotTranslationHotkeyCapture();
+    }
+
+    private void BeginTextTranslationHotkeyCapture()
+    {
+        if (
+            _hotkeyService is null ||
+            _textTranslationHotkeyCaptureActive
+        )
+        {
+            return;
+        }
+
+        _hotkeyService.BeginTextTranslationCapture();
+        _textTranslationHotkeyCaptureActive = true;
+    }
+
+    private void EndTextTranslationHotkeyCapture()
+    {
+        if (!_textTranslationHotkeyCaptureActive)
+        {
+            return;
+        }
+
+        _textTranslationHotkeyCaptureActive = false;
+        _hotkeyService?.EndTextTranslationCapture();
+    }
+
+    private void BeginScreenshotTranslationHotkeyCapture()
+    {
+        if (
+            _hotkeyService is null ||
+            _screenshotTranslationHotkeyCaptureActive
+        )
+        {
+            return;
+        }
+
+        _hotkeyService.BeginScreenshotTranslationCapture();
+        _screenshotTranslationHotkeyCaptureActive = true;
+    }
+
+    private void EndScreenshotTranslationHotkeyCapture()
+    {
+        if (!_screenshotTranslationHotkeyCaptureActive)
+        {
+            return;
+        }
+
+        _screenshotTranslationHotkeyCaptureActive = false;
+        _hotkeyService?.EndScreenshotTranslationCapture();
+    }
+
+    private void OnWindowClosed(
+        object? sender,
+        EventArgs e
+    )
+    {
+        EndTextTranslationHotkeyCapture();
+        EndScreenshotTranslationHotkeyCapture();
     }
 
     private async void OnSaveClick(
@@ -299,6 +391,9 @@ public partial class FirstRunSettingsWindow
         System.Windows.RoutedEventArgs e
     )
     {
+        EndTextTranslationHotkeyCapture();
+        EndScreenshotTranslationHotkeyCapture();
+
         var hotkeySaved =
             await _viewModel.SaveTextTranslationHotkeyAsync();
 
