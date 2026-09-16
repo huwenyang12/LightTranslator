@@ -223,15 +223,9 @@ public sealed class ScreenshotTranslationWindowTests
                         6
                     );
 
-                    Assert.True(
-                        double.IsNaN(
-                            translatedBlock.Height
-                        )
-                    );
-
                     Assert.Equal(
                         32,
-                        translatedBlock.MinHeight,
+                        translatedBlock.Height,
                         6
                     );
 

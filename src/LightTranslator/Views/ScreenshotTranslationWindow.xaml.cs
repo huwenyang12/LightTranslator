@@ -12,8 +12,16 @@ public partial class ScreenshotTranslationWindow
     : Window,
       IScreenshotResultView
 {
-    private const double MinimumTranslationFontSize = 9d;
+    private const double MinimumTranslationFontSize = 6d;
     private const double MaximumTranslationFontSize = 18d;
+
+    private static readonly Thickness TranslationPadding =
+        new(
+            4,
+            2,
+            4,
+            2
+        );
 
     private readonly ICommand _closeRequestCommand;
     private bool _closeRequestRaised;
@@ -157,10 +165,6 @@ public partial class ScreenshotTranslationWindow
                     block.TranslatedText,
                 Foreground =
                     System.Windows.Media.Brushes.White,
-                FontSize =
-                    CalculateTranslationFontSize(
-                        bounds.Height
-                    ),
                 TextWrapping =
                     TextWrapping.Wrap,
                 TextTrimming =
@@ -169,20 +173,39 @@ public partial class ScreenshotTranslationWindow
                     VerticalAlignment.Center
             };
 
+        var availableWidth =
+            Math.Max(
+                0d,
+                bounds.Width -
+                TranslationPadding.Left -
+                TranslationPadding.Right
+            );
+
+        var availableHeight =
+            Math.Max(
+                0d,
+                bounds.Height -
+                TranslationPadding.Top -
+                TranslationPadding.Bottom
+            );
+
+        text.FontSize =
+            CalculateTranslationFontSize(
+                text,
+                bounds.Height,
+                availableWidth,
+                availableHeight
+            );
+
         var container =
             new Border
             {
                 Width =
                     bounds.Width,
-                MinHeight =
+                Height =
                     bounds.Height,
                 Padding =
-                    new Thickness(
-                        4,
-                        2,
-                        4,
-                        2
-                    ),
+                    TranslationPadding,
                 Background =
                     new SolidColorBrush(
                         System.Windows.Media.Color.FromArgb(
@@ -216,22 +239,53 @@ public partial class ScreenshotTranslationWindow
     }
 
     private static double CalculateTranslationFontSize(
-        double sourceHeight
+        TextBlock text,
+        double sourceHeight,
+        double availableWidth,
+        double availableHeight
     )
     {
         var preferred =
-            sourceHeight *
-            0.80d;
+            Math.Clamp(
+                sourceHeight * 0.80d,
+                MinimumTranslationFontSize,
+                MaximumTranslationFontSize
+            );
 
-        return
-            Math.Min(
-                sourceHeight,
-                Math.Clamp(
-                    preferred,
-                    MinimumTranslationFontSize,
-                    MaximumTranslationFontSize
+        if (availableWidth <= 0d ||
+            availableHeight <= 0d)
+        {
+            return MinimumTranslationFontSize;
+        }
+
+        var candidate =
+            preferred;
+
+        while (candidate > MinimumTranslationFontSize)
+        {
+            text.FontSize =
+                candidate;
+
+            text.Measure(
+                new Size(
+                    availableWidth,
+                    double.PositiveInfinity
                 )
             );
+
+            if (text.DesiredSize.Height <= availableHeight)
+            {
+                return candidate;
+            }
+
+            candidate =
+                Math.Max(
+                    MinimumTranslationFontSize,
+                    candidate - 1d
+                );
+        }
+
+        return MinimumTranslationFontSize;
     }
 
     private void ShowStatus(
