@@ -280,7 +280,16 @@ public sealed class ScreenshotParagraphTranslationCoordinatorTests
     private sealed class RecordingResultView
         : IScreenshotResultView
     {
-        public event EventHandler? CloseRequested;
+        public event EventHandler? CloseRequested
+        {
+            add
+            {
+            }
+
+            remove
+            {
+            }
+        }
 
         public TaskCompletionSource ResultsShown
         {
