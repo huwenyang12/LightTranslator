@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using LightTranslator.Models;
+using LightTranslator.Services.Logging;
 using LightTranslator.Services.Ocr;
 using LightTranslator.Services.ScreenCapture;
 using LightTranslator.Services.Settings;
@@ -12,6 +14,9 @@ public sealed class ScreenshotTranslationCoordinator
     private const double MinimumOcrConfidence =
         0.50;
 
+    private const string OcrModelId =
+        "ppocrv5-mobile-universal";
+
     private readonly object _stateLock =
         new();
 
@@ -21,6 +26,7 @@ public sealed class ScreenshotTranslationCoordinator
     private readonly IScreenshotTextTranslator _textTranslator;
     private readonly IScreenshotResultViewFactory _resultViewFactory;
     private readonly ISettingsService _settingsService;
+    private readonly AppLogger? _logger;
 
     private CancellationTokenSource? _activeCancellation;
     private IScreenshotResultView? _activeResultView;
@@ -34,56 +40,48 @@ public sealed class ScreenshotTranslationCoordinator
         IOcrService ocrService,
         IScreenshotTextTranslator textTranslator,
         IScreenshotResultViewFactory resultViewFactory,
-        ISettingsService settingsService
+        ISettingsService settingsService,
+        AppLogger? logger = null
     )
     {
         _displayCaptureService =
             displayCaptureService ??
             throw new ArgumentNullException(
-                nameof(
-                    displayCaptureService
-                )
+                nameof(displayCaptureService)
             );
 
         _captureView =
             captureView ??
             throw new ArgumentNullException(
-                nameof(
-                    captureView
-                )
+                nameof(captureView)
             );
 
         _ocrService =
             ocrService ??
             throw new ArgumentNullException(
-                nameof(
-                    ocrService
-                )
+                nameof(ocrService)
             );
 
         _textTranslator =
             textTranslator ??
             throw new ArgumentNullException(
-                nameof(
-                    textTranslator
-                )
+                nameof(textTranslator)
             );
 
         _resultViewFactory =
             resultViewFactory ??
             throw new ArgumentNullException(
-                nameof(
-                    resultViewFactory
-                )
+                nameof(resultViewFactory)
             );
 
         _settingsService =
             settingsService ??
             throw new ArgumentNullException(
-                nameof(
-                    settingsService
-                )
+                nameof(settingsService)
             );
+
+        _logger =
+            logger;
     }
 
     public void Toggle()
@@ -165,6 +163,9 @@ public sealed class ScreenshotTranslationCoordinator
         var stage =
             WorkflowStage.Capture;
 
+        var stageTimer =
+            Stopwatch.StartNew();
+
         try
         {
             var frame =
@@ -186,6 +187,12 @@ public sealed class ScreenshotTranslationCoordinator
 
             if (selectedBounds is null)
             {
+                LogStageCompleted(
+                    WorkflowStage.Capture,
+                    stageTimer.ElapsedMilliseconds,
+                    0
+                );
+
                 CompleteWithoutView(
                     generation
                 );
@@ -198,6 +205,12 @@ public sealed class ScreenshotTranslationCoordinator
                     frame,
                     selectedBounds.Value
                 );
+
+            LogStageCompleted(
+                WorkflowStage.Capture,
+                stageTimer.ElapsedMilliseconds,
+                0
+            );
 
             resultView =
                 _resultViewFactory.Create(
@@ -222,6 +235,8 @@ public sealed class ScreenshotTranslationCoordinator
             stage =
                 WorkflowStage.Ocr;
 
+            stageTimer.Restart();
+
             var recognized =
                 await _ocrService.RecognizeAsync(
                     selection.Image,
@@ -242,6 +257,12 @@ public sealed class ScreenshotTranslationCoordinator
                     MinimumOcrConfidence
                 );
 
+            LogStageCompleted(
+                WorkflowStage.Ocr,
+                stageTimer.ElapsedMilliseconds,
+                blocks.Count
+            );
+
             if (blocks.Count == 0)
             {
                 resultView.ShowMessage(
@@ -252,7 +273,9 @@ public sealed class ScreenshotTranslationCoordinator
             }
 
             stage =
-                WorkflowStage.Settings;
+                WorkflowStage.Translation;
+
+            stageTimer.Restart();
 
             var settings =
                 await _settingsService.LoadAsync(
@@ -266,9 +289,6 @@ public sealed class ScreenshotTranslationCoordinator
             {
                 return;
             }
-
-            stage =
-                WorkflowStage.Translation;
 
             var translations =
                 await _textTranslator.TranslateAsync(
@@ -318,16 +338,38 @@ public sealed class ScreenshotTranslationCoordinator
                     )
                     .ToArray();
 
+            LogStageCompleted(
+                WorkflowStage.Translation,
+                stageTimer.ElapsedMilliseconds,
+                translatedBlocks.Length
+            );
+
+            stage =
+                WorkflowStage.Render;
+
+            stageTimer.Restart();
+
             resultView.ShowResults(
                 translatedBlocks
+            );
+
+            LogStageCompleted(
+                WorkflowStage.Render,
+                stageTimer.ElapsedMilliseconds,
+                translatedBlocks.Length
             );
         }
         catch (OperationCanceledException)
             when (cancellationToken.IsCancellationRequested)
         {
         }
-        catch (OcrModelException)
+        catch (OcrModelException exception)
         {
+            LogStageFailed(
+                WorkflowStage.Ocr,
+                exception
+            );
+
             ShowMessageIfCurrent(
                 generation,
                 resultView,
@@ -336,6 +378,11 @@ public sealed class ScreenshotTranslationCoordinator
         }
         catch (TranslationException exception)
         {
+            LogStageFailed(
+                WorkflowStage.Translation,
+                exception
+            );
+
             ShowMessageIfCurrent(
                 generation,
                 resultView,
@@ -344,8 +391,13 @@ public sealed class ScreenshotTranslationCoordinator
                 )
             );
         }
-        catch
+        catch (Exception exception)
         {
+            LogStageFailed(
+                stage,
+                exception
+            );
+
             var message =
                 stage == WorkflowStage.Ocr
                     ? "文字识别失败，请重试"
@@ -362,6 +414,59 @@ public sealed class ScreenshotTranslationCoordinator
                 );
             }
         }
+    }
+
+    private void LogStageCompleted(
+        WorkflowStage stage,
+        long elapsedMilliseconds,
+        int blockCount
+    )
+    {
+        _logger?.ScreenshotStageCompleted(
+            GetStageName(stage),
+            elapsedMilliseconds,
+            blockCount,
+            OcrModelId
+        );
+    }
+
+    private void LogStageFailed(
+        WorkflowStage stage,
+        Exception exception
+    )
+    {
+        _logger?.ScreenshotStageFailed(
+            GetStageName(stage),
+            exception.GetType().Name
+        );
+    }
+
+    private static string GetStageName(
+        WorkflowStage stage
+    )
+    {
+        return
+            stage switch
+            {
+                WorkflowStage.Capture =>
+                    "capture",
+
+                WorkflowStage.Ocr =>
+                    "ocr",
+
+                WorkflowStage.Translation =>
+                    "translation",
+
+                WorkflowStage.Render =>
+                    "render",
+
+                _ =>
+                    throw new ArgumentOutOfRangeException(
+                        nameof(stage),
+                        stage,
+                        null
+                    )
+            };
     }
 
     private bool AttachResultView(
@@ -403,11 +508,13 @@ public sealed class ScreenshotTranslationCoordinator
         string message
     )
     {
-        if (resultView is null ||
+        if (
+            resultView is null ||
             !IsCurrent(
                 generation,
                 CancellationToken.None
-            ))
+            )
+        )
         {
             return false;
         }
@@ -457,10 +564,12 @@ public sealed class ScreenshotTranslationCoordinator
 
         lock (_stateLock)
         {
-            if (!IsCurrentLocked(
+            if (
+                !IsCurrentLocked(
                     generation
                 ) ||
-                _activeResultView is not null)
+                _activeResultView is not null
+            )
             {
                 return;
             }
@@ -487,11 +596,13 @@ public sealed class ScreenshotTranslationCoordinator
 
         lock (_stateLock)
         {
-            if (_activeCancellation is null ||
+            if (
+                _activeCancellation is null ||
                 (
                     expectedGeneration.HasValue &&
                     _generation != expectedGeneration.Value
-                ))
+                )
+            )
             {
                 return;
             }
@@ -517,8 +628,10 @@ public sealed class ScreenshotTranslationCoordinator
             _generation++;
         }
 
-        if (resultView is not null &&
-            closeHandler is not null)
+        if (
+            resultView is not null &&
+            closeHandler is not null
+        )
         {
             resultView.CloseRequested -=
                 closeHandler;
@@ -559,7 +672,7 @@ public sealed class ScreenshotTranslationCoordinator
     {
         Capture,
         Ocr,
-        Settings,
-        Translation
+        Translation,
+        Render
     }
 }

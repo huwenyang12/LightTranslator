@@ -1,17 +1,19 @@
-﻿using LightTranslator.Services.Logging;
-using System.Net.Http;
-
+﻿using System.Net.Http;
 using LightTranslator.Controllers;
 using LightTranslator.Infrastructure.Security;
+using LightTranslator.Models;
 using LightTranslator.Services.Hotkeys;
+using LightTranslator.Services.Logging;
+using LightTranslator.Services.Ocr;
+using LightTranslator.Services.ScreenCapture;
+using LightTranslator.Services.Screenshot;
 using LightTranslator.Services.Settings;
+using LightTranslator.Services.Startup;
 using LightTranslator.Services.Translation;
 using LightTranslator.Services.Tray;
 using LightTranslator.Services.Windows;
 using LightTranslator.ViewModels;
 using LightTranslator.Views;
-using LightTranslator.Services.Startup;
-using LightTranslator.Models;
 
 namespace LightTranslator;
 
@@ -26,16 +28,13 @@ public partial class App
 
     private IFirstRunSettingsPersistence? _firstRunSettingsPersistence;
     private IStartWithWindowsSettingsPersistence? _startWithWindowsSettingsPersistence;
+    private IScreenshotLanguageSettingsPersistence? _screenshotLanguageSettingsPersistence;
     private bool _startWithWindows;
 
     private HotkeyMessageWindow? _hotkeyMessageWindow;
-
     private Win32HotkeyBackend? _hotkeyBackend;
-
     private HotkeyService? _hotkeyService;
-
     private WindowManager? _windowManager;
-
     private TrayService? _trayService;
     private AppController? _appController;
 
@@ -47,13 +46,22 @@ public partial class App
     private HotkeyDefinition?
         _startupTextTranslationHotkey;
 
+    private string _startupScreenshotSourceLanguage =
+        AppSettings.CreateDefault()
+            .ScreenshotSourceLanguage;
+
+    private string _startupScreenshotTargetLanguage =
+        AppSettings.CreateDefault()
+            .ScreenshotTargetLanguage;
+
+    private ScreenshotTranslationCoordinator?
+        _screenshotTranslationCoordinator;
 
     protected override async void OnStartup(
         System.Windows.StartupEventArgs e
     )
     {
         base.OnStartup(e);
-
 
         // 设置服务
         var settingsService =
@@ -67,11 +75,14 @@ public partial class App
                 settingsService
             );
 
+        _screenshotLanguageSettingsPersistence =
+            new ScreenshotLanguageSettingsPersistence(
+                settingsService
+            );
 
         // API Key 安全存储
         _secretStorage =
             new DpapiSecretStorage();
-
 
         // 首次设置持久化
         _firstRunSettingsPersistence =
@@ -80,12 +91,18 @@ public partial class App
                 settingsService
             );
 
-
         // 读取应用设置
         var settings =
             await settingsService.LoadAsync();
+
         _startupTextTranslationHotkey =
             settings.TextTranslationHotkey;
+
+        _startupScreenshotSourceLanguage =
+            settings.ScreenshotSourceLanguage;
+
+        _startupScreenshotTargetLanguage =
+            settings.ScreenshotTargetLanguage;
 
         var startupBackend =
             new RegistryStartupRegistrationBackend();
@@ -117,13 +134,11 @@ public partial class App
         _httpClient =
             new HttpClient();
 
-
         // API Key 验证
         _apiKeyValidator =
             new DeepSeekApiKeyValidator(
                 _httpClient
             );
-
 
         // 首次启动判断
         _appController =
@@ -143,17 +158,21 @@ public partial class App
             return;
         }
 
-        // 首次设置窗口可能修改了配置，
-        // 继续启动前重新读取最新设置。
+        // 首次设置窗口可能修改了配置，继续启动前重新读取最新设置。
         settings =
             await settingsService.LoadAsync();
 
         _startupTextTranslationHotkey =
             settings.TextTranslationHotkey;
 
+        _startupScreenshotSourceLanguage =
+            settings.ScreenshotSourceLanguage;
+
+        _startupScreenshotTargetLanguage =
+            settings.ScreenshotTargetLanguage;
+
         _startWithWindows =
             settings.StartWithWindows;
-
 
         // 翻译服务
         var deepSeekTranslationService =
@@ -181,6 +200,43 @@ public partial class App
                 appLogger
             );
 
+        // Phase 2A 截图翻译服务
+        var displayCaptureService =
+            new DisplayCaptureService();
+
+        var screenshotCaptureView =
+            new ScreenshotCaptureView();
+
+        var ocrModelProvider =
+            new OcrModelProvider();
+
+        var ocrService =
+            new PaddleOcrService(
+                ocrModelProvider
+            );
+
+        var screenshotTextTranslator =
+            new DeepSeekScreenshotTextTranslator(
+                _httpClient,
+                () =>
+                    _secretStorage.Load(
+                        "deepseek-api-key"
+                    )
+            );
+
+        var screenshotResultViewFactory =
+            new ScreenshotResultViewFactory();
+
+        _screenshotTranslationCoordinator =
+            new ScreenshotTranslationCoordinator(
+                displayCaptureService,
+                screenshotCaptureView,
+                ocrService,
+                screenshotTextTranslator,
+                screenshotResultViewFactory,
+                settingsService,
+                appLogger
+            );
 
         // 翻译窗口管理
         var textLanguagePersistence =
@@ -228,11 +284,9 @@ public partial class App
                 }
             );
 
-
         // 热键消息路由
         var router =
             new HotkeyMessageRouter();
-
 
         // 隐藏消息窗口
         _hotkeyMessageWindow =
@@ -240,11 +294,9 @@ public partial class App
                 router
             );
 
-
         // Windows 热键 API
         var nativeApi =
             new User32HotkeyNativeApi();
-
 
         // Win32 热键后端
         _hotkeyBackend =
@@ -254,17 +306,16 @@ public partial class App
                 router
             );
 
-
         // 热键服务
         _hotkeyService =
             new HotkeyService(
                 _hotkeyBackend
             );
 
-
-        // Alt + T
+        // Alt + T / Alt + Q
         _hotkeyService.TextTranslationRequested +=
             _windowManager.ToggleTranslateWindow;
+
         _hotkeyService.ScreenshotTranslationRequested +=
             _appController.OpenScreenshotTranslation;
 
@@ -272,7 +323,6 @@ public partial class App
             _hotkeyService.RegisterTextTranslation(
                 settings.TextTranslationHotkey
             );
-
 
         if (!registered)
         {
@@ -282,7 +332,6 @@ public partial class App
             );
 
             Shutdown();
-
             return;
         }
 
@@ -302,11 +351,9 @@ public partial class App
             return;
         }
 
-
         // 托盘
         var trayBackend =
             new NotifyIconTrayBackend();
-
 
         _trayService =
             new TrayService(
@@ -319,20 +366,20 @@ public partial class App
         _trayService.SettingsRequested +=
             OnTraySettingsRequested;
 
-
         _trayService.ExitRequested +=
             OnTrayExitRequested;
 
         _trayService.ScreenshotTranslationRequested +=
             OnTrayScreenshotTranslationRequested;
 
-
         _trayService.Start();
     }
+
     private void OnTrayTextTranslationRequested()
     {
         _windowManager?.ToggleTranslateWindow();
     }
+
     private void OnTrayScreenshotTranslationRequested()
     {
         _appController?.OpenScreenshotTranslation();
@@ -343,12 +390,10 @@ public partial class App
         _appController?.OpenSettings();
     }
 
-
     private void OnTrayExitRequested()
     {
         Shutdown();
     }
-
 
     public bool ShowFirstRunSettings()
     {
@@ -357,6 +402,7 @@ public partial class App
             _startWithWindowsSettingsPersistence is null ||
             _apiKeyValidator is null ||
             _textTranslationHotkeyPersistence is null ||
+            _screenshotLanguageSettingsPersistence is null ||
             _startupTextTranslationHotkey is null
         )
         {
@@ -371,7 +417,13 @@ public partial class App
                 hotkeyPersistence:
                     _textTranslationHotkeyPersistence,
                 currentTextTranslationHotkey:
-                    _startupTextTranslationHotkey
+                    _startupTextTranslationHotkey,
+                screenshotLanguagePersistence:
+                    _screenshotLanguageSettingsPersistence,
+                currentScreenshotSourceLanguage:
+                    _startupScreenshotSourceLanguage,
+                currentScreenshotTargetLanguage:
+                    _startupScreenshotTargetLanguage
             )
             {
                 StartWithWindows =
@@ -390,6 +442,12 @@ public partial class App
             {
                 _startWithWindows =
                     viewModel.StartWithWindows;
+
+                _startupScreenshotSourceLanguage =
+                    viewModel.ScreenshotSourceLanguage;
+
+                _startupScreenshotTargetLanguage =
+                    viewModel.ScreenshotTargetLanguage;
             };
 
         return window.ShowDialog() == true;
@@ -403,6 +461,7 @@ public partial class App
             _apiKeyValidator is null ||
             _settingsService is null ||
             _textTranslationHotkeyPersistence is null ||
+            _screenshotLanguageSettingsPersistence is null ||
             _hotkeyService is null
         )
         {
@@ -440,7 +499,13 @@ public partial class App
                 hotkeyChangeService:
                     hotkeyChangeService,
                 currentTextTranslationHotkey:
-                    currentSettings.TextTranslationHotkey
+                    currentSettings.TextTranslationHotkey,
+                screenshotLanguagePersistence:
+                    _screenshotLanguageSettingsPersistence,
+                currentScreenshotSourceLanguage:
+                    currentSettings.ScreenshotSourceLanguage,
+                currentScreenshotTargetLanguage:
+                    currentSettings.ScreenshotTargetLanguage
             )
             {
                 StartWithWindows =
@@ -465,17 +530,16 @@ public partial class App
 
     public void ShowScreenshotTranslation()
     {
-        var window =
-            new ScreenshotTranslationWindow();
-
-        window.Show();
+        _screenshotTranslationCoordinator?
+            .Toggle();
     }
-
 
     protected override void OnExit(
         System.Windows.ExitEventArgs e
     )
     {
+        _screenshotTranslationCoordinator?.Dispose();
+
         // 解绑热键事件
         if (
             _hotkeyService is not null &&
@@ -499,14 +563,13 @@ public partial class App
         _hotkeyBackend?.Unregister(
             HotkeyService.TextTranslationHotkeyId
         );
+
         _hotkeyBackend?.Unregister(
             HotkeyService.ScreenshotTranslationHotkeyId
         );
 
-
         // 释放热键消息窗口
         _hotkeyMessageWindow?.Dispose();
-
 
         // 释放托盘
         if (_trayService is not null)
@@ -526,10 +589,8 @@ public partial class App
             _trayService.Dispose();
         }
 
-
         // 释放 HttpClient
         _httpClient?.Dispose();
-
 
         base.OnExit(e);
     }
