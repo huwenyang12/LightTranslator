@@ -14,6 +14,8 @@ public partial class ScreenshotTranslationWindow
 {
     private readonly ICommand _closeRequestCommand;
     private bool _closeRequestRaised;
+    private double _dpiX = 96d;
+    private double _dpiY = 96d;
 
     public ScreenshotTranslationWindow()
     {
@@ -105,6 +107,12 @@ public partial class ScreenshotTranslationWindow
         FrozenSelectionImage.Source =
             selection.Image;
 
+        _dpiX =
+            selection.DpiX;
+
+        _dpiY =
+            selection.DpiY;
+
         var screenBounds =
             DpiCoordinateMapper.PixelsToDips(
                 selection.ScreenBounds,
@@ -132,19 +140,11 @@ public partial class ScreenshotTranslationWindow
         OcrBlock block
     )
     {
-        var dpiX =
-            FrozenSelectionImage.Source?.DpiX ??
-            96d;
-
-        var dpiY =
-            FrozenSelectionImage.Source?.DpiY ??
-            96d;
-
         var bounds =
             DpiCoordinateMapper.PixelsToDips(
                 block.Bounds,
-                dpiX,
-                dpiY
+                _dpiX,
+                _dpiY
             );
 
         var text =
@@ -153,7 +153,7 @@ public partial class ScreenshotTranslationWindow
                 Text =
                     block.TranslatedText,
                 Foreground =
-                    Brushes.White,
+                    System.Windows.Media.Brushes.White,
                 FontSize =
                     14,
                 TextWrapping =
@@ -180,7 +180,7 @@ public partial class ScreenshotTranslationWindow
                     ),
                 Background =
                     new SolidColorBrush(
-                        Color.FromArgb(
+                        System.Windows.Media.Color.FromArgb(
                             199,
                             17,
                             24,
