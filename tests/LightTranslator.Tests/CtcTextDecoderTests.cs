@@ -62,6 +62,47 @@ public sealed class CtcTextDecoderTests
         Assert.InRange(result.Confidence, 0.99, 1.0);
     }
 
+    [Fact]
+    public void Decode_WhenScoresAreProbabilities_UsesMaximumScoreDirectly()
+    {
+        var decoder =
+            new CtcTextDecoder(
+                new[]
+                {
+                    "",
+                    "a",
+                    "b"
+                }
+            );
+
+        var probabilities =
+            new float[1, 3, 3];
+
+        probabilities[0, 0, 0] = 0.98f;
+        probabilities[0, 0, 1] = 0.01f;
+        probabilities[0, 0, 2] = 0.01f;
+
+        probabilities[0, 1, 0] = 0.01f;
+        probabilities[0, 1, 1] = 0.98f;
+        probabilities[0, 1, 2] = 0.01f;
+
+        probabilities[0, 2, 0] = 0.01f;
+        probabilities[0, 2, 1] = 0.02f;
+        probabilities[0, 2, 2] = 0.97f;
+
+        var result =
+            decoder.Decode(
+                probabilities
+            );
+
+        Assert.Equal("ab", result.Text);
+        Assert.InRange(
+            result.Confidence,
+            0.974,
+            0.976
+        );
+    }
+
     private static float[,,] CreateLogits(
         int classCount,
         params int[] indexes
