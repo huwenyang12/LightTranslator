@@ -1,0 +1,4 @@
+.gitattributes text eol=lf
+src/LightTranslator/Assets/Ocr/*.onnx binary
+src/LightTranslator/Assets/Ocr/ppocrv5_dict.txt -text
+src/LightTranslator/Assets/Ocr/THIRD-PARTY-NOTICES.md text eol=lf
