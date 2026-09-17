@@ -116,6 +116,34 @@ public sealed class ScreenshotTranslationCoordinatorStructureTests
             "Learning is rewarding. Practice every day.",
             translator.LastBlocks[1].Text
         );
+
+        Assert.Equal(2, resultView.LastResults.Count);
+        Assert.Equal(
+            ScreenshotTextRole.Title,
+            resultView.LastResults[0].Role
+        );
+        Assert.Equal(
+            40d,
+            resultView.LastResults[0].SourceLineHeight,
+            6
+        );
+        Assert.Equal(
+            "第1段",
+            resultView.LastResults[0].TranslatedText
+        );
+        Assert.Equal(
+            ScreenshotTextRole.Body,
+            resultView.LastResults[1].Role
+        );
+        Assert.Equal(
+            24d,
+            resultView.LastResults[1].SourceLineHeight,
+            6
+        );
+        Assert.Equal(
+            "学习很有收获。每天练习。",
+            resultView.LastResults[1].TranslatedText
+        );
     }
 
     private static BitmapSource CreateBitmap(
@@ -264,6 +292,9 @@ public sealed class ScreenshotTranslationCoordinatorStructureTests
     {
         public event EventHandler? CloseRequested;
 
+        public IReadOnlyList<ScreenshotTextRegion> LastResults { get; private set; } =
+            Array.Empty<ScreenshotTextRegion>();
+
         public TaskCompletionSource ResultsShown { get; } =
             new(
                 TaskCreationOptions.RunContinuationsAsynchronously
@@ -277,9 +308,10 @@ public sealed class ScreenshotTranslationCoordinatorStructureTests
         }
 
         public void ShowResults(
-            IReadOnlyList<OcrBlock> blocks
+            IReadOnlyList<ScreenshotTextRegion> regions
         )
         {
+            LastResults = regions;
             ResultsShown.TrySetResult();
         }
 
