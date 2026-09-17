@@ -272,10 +272,23 @@ public sealed class ScreenshotTranslationCoordinator
                 return;
             }
 
-            var paragraphs =
-                OcrParagraphGrouper.Group(
+            var regions =
+                ScreenshotTextRegionAnalyzer.Analyze(
                     blocks
                 );
+
+            var translationBlocks =
+                regions
+                    .Select(
+                        region =>
+                            new OcrBlock(
+                                region.Id,
+                                region.Text,
+                                region.Confidence,
+                                region.Bounds
+                            )
+                    )
+                    .ToArray();
 
             stage =
                 WorkflowStage.Translation;
@@ -297,7 +310,7 @@ public sealed class ScreenshotTranslationCoordinator
 
             var translations =
                 await _textTranslator.TranslateAsync(
-                    paragraphs,
+                    translationBlocks,
                     settings.ScreenshotSourceLanguage,
                     settings.ScreenshotTargetLanguage,
                     cancellationToken
@@ -311,24 +324,24 @@ public sealed class ScreenshotTranslationCoordinator
                 return;
             }
 
-            var translatedBlocks =
-                paragraphs
+            var translatedRegions =
+                regions
                     .Select(
-                        paragraph =>
+                        region =>
                         {
                             if (!translations.TryGetValue(
-                                    paragraph.Id,
+                                    region.Id,
                                     out var translatedText
                                 ) ||
                                 string.IsNullOrWhiteSpace(
                                     translatedText
                                 ))
                             {
-                                return paragraph;
+                                return region;
                             }
 
                             return
-                                paragraph with
+                                region with
                                 {
                                     TranslatedText =
                                         translatedText
@@ -336,9 +349,23 @@ public sealed class ScreenshotTranslationCoordinator
                         }
                     )
                     .Where(
-                        paragraph =>
+                        region =>
                             !string.IsNullOrWhiteSpace(
-                                paragraph.TranslatedText
+                                region.TranslatedText
+                            )
+                    )
+                    .ToArray();
+
+            var translatedBlocks =
+                translatedRegions
+                    .Select(
+                        region =>
+                            new OcrBlock(
+                                region.Id,
+                                region.Text,
+                                region.Confidence,
+                                region.Bounds,
+                                region.TranslatedText
                             )
                     )
                     .ToArray();
