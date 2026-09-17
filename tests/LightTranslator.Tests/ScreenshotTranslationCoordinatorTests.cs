@@ -40,7 +40,7 @@ public sealed class ScreenshotTranslationCoordinatorTests
 
         fixture.Translator.Result = new Dictionary<string, string>
         {
-            ["paragraph-0001"] = "第一 第二",
+            ["region-0001"] = "第一 第二",
             ["unknown"] = "忽略"
         };
 
@@ -57,7 +57,7 @@ public sealed class ScreenshotTranslationCoordinatorTests
         Assert.Equal("正在识别…", fixture.ResultView.LastLoadingMessage);
 
         var paragraph = Assert.Single(fixture.Translator.LastBlocks);
-        Assert.Equal("paragraph-0001", paragraph.Id);
+        Assert.Equal("region-0001", paragraph.Id);
         Assert.Equal("first second", paragraph.Text);
         Assert.Equal(new PixelRect(10, 10, 210, 80), paragraph.Bounds);
 
@@ -65,7 +65,7 @@ public sealed class ScreenshotTranslationCoordinatorTests
         Assert.Equal("zh", fixture.Translator.LastTargetLanguage);
 
         var rendered = Assert.Single(fixture.ResultView.LastResults);
-        Assert.Equal("paragraph-0001", rendered.Id);
+        Assert.Equal("region-0001", rendered.Id);
         Assert.Equal("第一 第二", rendered.TranslatedText);
     }
 
@@ -118,7 +118,7 @@ public sealed class ScreenshotTranslationCoordinatorTests
         lateTranslation.SetResult(
             new Dictionary<string, string>
             {
-                ["paragraph-0001"] = "迟到"
+                ["region-0001"] = "迟到"
             }
         );
 
@@ -274,7 +274,7 @@ public sealed class ScreenshotTranslationCoordinatorTests
             {
                 Result = new Dictionary<string, string>
                 {
-                    ["paragraph-0001"] = "译文"
+                    ["region-0001"] = "译文"
                 }
             };
             ResultView = new FakeScreenshotResultView();
