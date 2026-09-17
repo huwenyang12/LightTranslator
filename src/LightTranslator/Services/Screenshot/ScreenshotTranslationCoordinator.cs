@@ -356,24 +356,10 @@ public sealed class ScreenshotTranslationCoordinator
                     )
                     .ToArray();
 
-            var translatedBlocks =
-                translatedRegions
-                    .Select(
-                        region =>
-                            new OcrBlock(
-                                region.Id,
-                                region.Text,
-                                region.Confidence,
-                                region.Bounds,
-                                region.TranslatedText
-                            )
-                    )
-                    .ToArray();
-
             LogStageCompleted(
                 WorkflowStage.Translation,
                 stageTimer.ElapsedMilliseconds,
-                translatedBlocks.Length
+                translatedRegions.Length
             );
 
             stage =
@@ -382,13 +368,13 @@ public sealed class ScreenshotTranslationCoordinator
             stageTimer.Restart();
 
             resultView.ShowResults(
-                translatedBlocks
+                translatedRegions
             );
 
             LogStageCompleted(
                 WorkflowStage.Render,
                 stageTimer.ElapsedMilliseconds,
-                translatedBlocks.Length
+                translatedRegions.Length
             );
         }
         catch (OperationCanceledException)
