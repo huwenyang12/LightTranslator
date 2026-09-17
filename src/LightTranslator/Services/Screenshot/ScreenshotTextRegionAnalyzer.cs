@@ -92,17 +92,143 @@ public static class ScreenshotTextRegionAnalyzer
             current
         );
 
-        return
-            clusters
-                .Select(
-                    (cluster, index) =>
-                        CreateRegion(
-                            cluster,
-                            index + 1,
-                            ScreenshotTextRole.Body
-                        )
+        var regions =
+            new List<ScreenshotTextRegion>();
+
+        foreach (var cluster in clusters)
+        {
+            if (
+                cluster.Count >= 3 &&
+                IsTitleCandidate(
+                    cluster[0],
+                    cluster.Skip(1).ToArray()
                 )
-                .ToArray();
+            )
+            {
+                regions.Add(
+                    CreateRegion(
+                        new[]
+                        {
+                            cluster[0]
+                        },
+                        regions.Count + 1,
+                        ScreenshotTextRole.Title
+                    )
+                );
+
+                regions.Add(
+                    CreateRegion(
+                        cluster.Skip(1).ToArray(),
+                        regions.Count + 1,
+                        ScreenshotTextRole.Body
+                    )
+                );
+
+                continue;
+            }
+
+            regions.Add(
+                CreateRegion(
+                    cluster,
+                    regions.Count + 1,
+                    ScreenshotTextRole.Body
+                )
+            );
+        }
+
+        return regions;
+    }
+
+    private static bool IsTitleCandidate(
+        OcrBlock candidate,
+        IReadOnlyList<OcrBlock> following
+    )
+    {
+        if (
+            following.Count < 2 ||
+            candidate.Text.Trim().Length > 60
+        )
+        {
+            return false;
+        }
+
+        var bodyMedianHeight =
+            Median(
+                following.Select(
+                    line =>
+                        (double)line.Bounds.Height
+                )
+            );
+
+        if (
+            bodyMedianHeight <= 0d ||
+            candidate.Bounds.Height <
+            bodyMedianHeight * 1.30d
+        )
+        {
+            return false;
+        }
+
+        if (
+            following.Any(
+                line =>
+                    Math.Abs(
+                        line.Bounds.Height -
+                        bodyMedianHeight
+                    ) /
+                    bodyMedianHeight >
+                    0.20d
+            )
+        )
+        {
+            return false;
+        }
+
+        var bodyLeft =
+            following.Min(
+                line => line.Bounds.X
+            );
+
+        var bodyRight =
+            following.Max(
+                line =>
+                    line.Bounds.X +
+                    line.Bounds.Width
+            );
+
+        var bodyWidth =
+            bodyRight - bodyLeft;
+
+        var alignmentTolerance =
+            Math.Max(
+                12d,
+                bodyWidth * 0.08d
+            );
+
+        if (
+            Math.Abs(
+                candidate.Bounds.X -
+                bodyLeft
+            ) >
+            alignmentTolerance
+        )
+        {
+            return false;
+        }
+
+        var gap =
+            Math.Max(
+                0,
+                following[0].Bounds.Y -
+                (
+                    candidate.Bounds.Y +
+                    candidate.Bounds.Height
+                )
+            );
+
+        return
+            gap <=
+            bodyMedianHeight * 1.5d;
     }
 
     private static ScreenshotTextRegion CreateRegion(
