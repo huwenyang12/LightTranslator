@@ -69,6 +69,34 @@ public partial class ScreenshotTranslationWindow
     }
 
     public void ShowResults(
+        IReadOnlyList<ScreenshotTextRegion> regions
+    )
+    {
+        ArgumentNullException.ThrowIfNull(
+            regions
+        );
+
+        TranslationCanvas.Children.Clear();
+
+        HideStatus();
+
+        foreach (var region in regions)
+        {
+            if (string.IsNullOrWhiteSpace(
+                    region.TranslatedText
+                ) ||
+                region.Bounds.IsEmpty)
+            {
+                continue;
+            }
+
+            AddTranslationBlock(
+                region
+            );
+        }
+    }
+
+    public void ShowResults(
         IReadOnlyList<OcrBlock> blocks
     )
     {
@@ -76,24 +104,22 @@ public partial class ScreenshotTranslationWindow
             blocks
         );
 
-        TranslationCanvas.Children.Clear();
-
-        HideStatus();
-
-        foreach (var block in blocks)
-        {
-            if (string.IsNullOrWhiteSpace(
-                    block.TranslatedText
-                ) ||
-                block.Bounds.IsEmpty)
-            {
-                continue;
-            }
-
-            AddTranslationBlock(
-                block
-            );
-        }
+        ShowResults(
+            blocks
+                .Select(
+                    block =>
+                        new ScreenshotTextRegion(
+                            block.Id,
+                            block.Text,
+                            block.Confidence,
+                            block.Bounds,
+                            block.Bounds.Height,
+                            ScreenshotTextRole.Body,
+                            block.TranslatedText
+                        )
+                )
+                .ToArray()
+        );
     }
 
     public void ShowMessage(
@@ -148,12 +174,12 @@ public partial class ScreenshotTranslationWindow
     }
 
     private void AddTranslationBlock(
-        OcrBlock block
+        ScreenshotTextRegion region
     )
     {
         var bounds =
             DpiCoordinateMapper.PixelsToDips(
-                block.Bounds,
+                region.Bounds,
                 _dpiX,
                 _dpiY
             );
@@ -162,7 +188,7 @@ public partial class ScreenshotTranslationWindow
             new TextBlock
             {
                 Text =
-                    block.TranslatedText,
+                    region.TranslatedText,
                 Foreground =
                     System.Windows.Media.Brushes.White,
                 TextWrapping =
