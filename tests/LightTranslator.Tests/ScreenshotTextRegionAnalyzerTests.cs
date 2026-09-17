@@ -90,4 +90,165 @@ public sealed class ScreenshotTextRegionAnalyzerTests
             6
         );
     }
+
+    [Fact]
+    public void Analyze_SeparatesLargerShortTitleFromFollowingBodyLines()
+    {
+        var regions =
+            ScreenshotTextRegionAnalyzer.Analyze(
+                new[]
+                {
+                    new OcrBlock(
+                        "title",
+                        "Paragraph 1",
+                        0.98,
+                        new PixelRect(
+                            20,
+                            10,
+                            150,
+                            40
+                        )
+                    ),
+                    new OcrBlock(
+                        "body-1",
+                        "Learning a new language is rewarding.",
+                        0.96,
+                        new PixelRect(
+                            20,
+                            56,
+                            420,
+                            24
+                        )
+                    ),
+                    new OcrBlock(
+                        "body-2",
+                        "It opens doors to new cultures.",
+                        0.95,
+                        new PixelRect(
+                            20,
+                            86,
+                            440,
+                            24
+                        )
+                    )
+                }
+            );
+
+        Assert.Equal(
+            2,
+            regions.Count
+        );
+
+        Assert.Equal(
+            ScreenshotTextRole.Title,
+            regions[0].Role
+        );
+
+        Assert.Equal(
+            "Paragraph 1",
+            regions[0].Text
+        );
+
+        Assert.Equal(
+            40d,
+            regions[0].SourceLineHeight,
+            6
+        );
+
+        Assert.Equal(
+            ScreenshotTextRole.Body,
+            regions[1].Role
+        );
+
+        Assert.Equal(
+            "Learning a new language is rewarding. It opens doors to new cultures.",
+            regions[1].Text
+        );
+
+        Assert.Equal(
+            24d,
+            regions[1].SourceLineHeight,
+            6
+        );
+    }
+
+    [Fact]
+    public void Analyze_DoesNotClassifyIsolatedLargeLabelAsTitle()
+    {
+        var region =
+            Assert.Single(
+                ScreenshotTextRegionAnalyzer.Analyze(
+                    new[]
+                    {
+                        new OcrBlock(
+                            "label",
+                            "VICTORY",
+                            0.99,
+                            new PixelRect(
+                                20,
+                                10,
+                                200,
+                                42
+                            )
+                        )
+                    }
+                )
+            );
+
+        Assert.Equal(
+            ScreenshotTextRole.Body,
+            region.Role
+        );
+    }
+
+    [Fact]
+    public void Analyze_DoesNotClassifySameHeightShortLineAsTitle()
+    {
+        var region =
+            Assert.Single(
+                ScreenshotTextRegionAnalyzer.Analyze(
+                    new[]
+                    {
+                        new OcrBlock(
+                            "line-1",
+                            "Status",
+                            0.98,
+                            new PixelRect(
+                                20,
+                                10,
+                                100,
+                                24
+                            )
+                        ),
+                        new OcrBlock(
+                            "line-2",
+                            "Connection is stable.",
+                            0.96,
+                            new PixelRect(
+                                20,
+                                40,
+                                300,
+                                24
+                            )
+                        ),
+                        new OcrBlock(
+                            "line-3",
+                            "No action is required.",
+                            0.95,
+                            new PixelRect(
+                                20,
+                                70,
+                                320,
+                                24
+                            )
+                        )
+                    }
+                )
+            );
+
+        Assert.Equal(
+            ScreenshotTextRole.Body,
+            region.Role
+        );
+    }
 }
