@@ -6,14 +6,14 @@
 
     <Style x:Key="Style.Text.Display" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource Font.Family.Primary}"/>
-        <Setter Property="FontSize" Value="24"/>
+        <Setter Property="FontSize" Value="22"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
     </Style>
 
     <Style x:Key="Style.Text.Section" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource Font.Family.Primary}"/>
-        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="FontSize" Value="15"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
     </Style>

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Shell;
 using LightTranslator.Models;
 using LightTranslator.Services.Translation;
 using LightTranslator.ViewModels;
@@ -24,13 +25,22 @@ public sealed class TranslateWindowVisualTests
                     );
 
                 Assert.Equal(
-                    560d,
+                    540d,
                     window.Width
                 );
                 Assert.Equal(
-                    360d,
+                    300d,
                     window.Height
                 );
+                Assert.Equal(440d, window.MinWidth);
+                Assert.Equal(260d, window.MinHeight);
+                Assert.Equal(ResizeMode.CanResize, window.ResizeMode);
+
+                var chrome = WindowChrome.GetWindowChrome(window);
+
+                Assert.NotNull(chrome);
+                Assert.Equal(new Thickness(6), chrome.ResizeBorderThickness);
+                Assert.Equal(0d, chrome.CaptionHeight);
 
                 var surface =
                     Assert.IsType<Border>(
@@ -41,7 +51,7 @@ public sealed class TranslateWindowVisualTests
 
                 Assert.Equal(
                     new CornerRadius(
-                        18
+                        0
                     ),
                     surface.CornerRadius
                 );

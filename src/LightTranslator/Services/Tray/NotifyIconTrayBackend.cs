@@ -66,7 +66,25 @@ public sealed class NotifyIconTrayBackend
             OnExitClick;
 
         _contextMenu =
-            new System.Windows.Forms.ContextMenuStrip();
+            new System.Windows.Forms.ContextMenuStrip
+            {
+                ShowImageMargin = false,
+                Font = System.Drawing.SystemFonts.MenuFont,
+                BackColor = System.Drawing.Color.White,
+                ForeColor = System.Drawing.Color.FromArgb(
+                    29,
+                    29,
+                    31
+                ),
+                Renderer = new System.Windows.Forms.ToolStripProfessionalRenderer(
+                    new BridgoMenuColorTable()
+                )
+            };
+
+        ConfigureMenuItem(_textTranslationItem);
+        ConfigureMenuItem(_screenshotTranslationItem);
+        ConfigureMenuItem(_settingsItem);
+        ConfigureMenuItem(_exitItem);
 
         _contextMenu.Items.Add(
             _textTranslationItem
@@ -120,6 +138,19 @@ public sealed class NotifyIconTrayBackend
                 Visible =
                     false
             };
+    }
+
+    private static void ConfigureMenuItem(
+        System.Windows.Forms.ToolStripMenuItem item
+    )
+    {
+        item.AutoSize = true;
+        item.Padding = new System.Windows.Forms.Padding(
+            10,
+            5,
+            10,
+            5
+        );
     }
 
     public void Show()
@@ -213,5 +244,33 @@ public sealed class NotifyIconTrayBackend
                 nameof(NotifyIconTrayBackend)
             );
         }
+    }
+
+    private sealed class BridgoMenuColorTable
+        : System.Windows.Forms.ProfessionalColorTable
+    {
+        public override System.Drawing.Color ToolStripDropDownBackground =>
+            System.Drawing.Color.White;
+
+        public override System.Drawing.Color MenuItemSelected =>
+            System.Drawing.Color.FromArgb(232, 240, 254);
+
+        public override System.Drawing.Color MenuItemBorder =>
+            System.Drawing.Color.Transparent;
+
+        public override System.Drawing.Color SeparatorDark =>
+            System.Drawing.Color.FromArgb(226, 226, 230);
+
+        public override System.Drawing.Color SeparatorLight =>
+            System.Drawing.Color.White;
+
+        public override System.Drawing.Color ImageMarginGradientBegin =>
+            System.Drawing.Color.White;
+
+        public override System.Drawing.Color ImageMarginGradientMiddle =>
+            System.Drawing.Color.White;
+
+        public override System.Drawing.Color ImageMarginGradientEnd =>
+            System.Drawing.Color.White;
     }
 }

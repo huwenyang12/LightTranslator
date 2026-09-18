@@ -1,12 +1,15 @@
 <Window x:Class="LightTranslator.Views.TranslateWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
         Title="语桥"
-        Width="560"
-        Height="360"
+        Width="540"
+        Height="300"
+        MinWidth="440"
+        MinHeight="260"
         WindowStyle="None"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource Brush.Window.Base}"
         AllowsTransparency="False"
@@ -15,13 +18,22 @@
         FontFamily="{DynamicResource Font.Family.Primary}"
         Foreground="{DynamicResource Brush.Text.Primary}">
 
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome
+            CaptionHeight="0"
+            ResizeBorderThickness="6"
+            CornerRadius="0"
+            GlassFrameThickness="0"
+            UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+
     <Border
         x:Name="TranslationSurface"
-        Padding="20"
+        Padding="18"
         Background="{DynamicResource Brush.Surface.Card}"
-        BorderBrush="{DynamicResource Brush.Border.Subtle}"
-        BorderThickness="1"
-        CornerRadius="18">
+        BorderThickness="0"
+        CornerRadius="0"
+        MouseLeftButtonDown="OnTranslationSurfaceMouseLeftButtonDown">
 
         <Grid KeyboardNavigation.TabNavigation="Continue">
             <Grid.RowDefinitions>

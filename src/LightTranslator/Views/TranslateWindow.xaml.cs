@@ -119,6 +119,25 @@ public partial class TranslateWindow
         );
     }
 
+    private void OnTranslationSurfaceMouseLeftButtonDown(
+        object sender,
+        MouseButtonEventArgs e
+    )
+    {
+        if (
+            e.ChangedButton != MouseButton.Left ||
+            e.ButtonState != MouseButtonState.Pressed ||
+            e.OriginalSource is not DependencyObject source ||
+            !WindowDragHitTest.CanStartDrag(source)
+        )
+        {
+            return;
+        }
+
+        DragMove();
+        e.Handled = true;
+    }
+
     private void OnSourceTextBoxPreviewKeyDown(
         object sender,
         System.Windows.Input.KeyEventArgs e

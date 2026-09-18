@@ -10,7 +10,10 @@
             BorderBrush="{TemplateBinding BorderBrush}"
             BorderThickness="{TemplateBinding BorderThickness}"
             CornerRadius="{StaticResource Radius.10}">
-            <ScrollViewer x:Name="PART_ContentHost"/>
+            <ScrollViewer
+                x:Name="PART_ContentHost"
+                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
         </Border>
         <ControlTemplate.Triggers>
             <Trigger Property="IsKeyboardFocused" Value="True">
@@ -26,6 +29,8 @@
     <Style x:Key="Style.Input.TextBox" TargetType="TextBox">
         <Setter Property="Height" Value="{StaticResource Height.Control}"/>
         <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="FontFamily" Value="{StaticResource Font.Family.Primary}"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
@@ -39,6 +44,8 @@
     <Style x:Key="Style.Input.PasswordBox" TargetType="PasswordBox">
         <Setter Property="Height" Value="{StaticResource Height.Control}"/>
         <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="FontFamily" Value="{StaticResource Font.Family.Primary}"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
@@ -55,7 +62,10 @@
                         BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="{StaticResource Radius.10}">
-                        <ScrollViewer x:Name="PART_ContentHost"/>
+                        <ScrollViewer
+                            x:Name="PART_ContentHost"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsKeyboardFocused" Value="True">
@@ -74,6 +84,8 @@
     <Style x:Key="Style.Input.ComboBox" TargetType="ComboBox">
         <Setter Property="Height" Value="{StaticResource Height.Control}"/>
         <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="ItemContainerStyle" Value="{DynamicResource Style.Input.ComboBoxItem}"/>
         <Setter Property="FontFamily" Value="{StaticResource Font.Family.Primary}"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
@@ -96,10 +108,12 @@
                                 <ColumnDefinition Width="18"/>
                             </Grid.ColumnDefinitions>
                             <ContentPresenter
+                                x:Name="SelectionPresenter"
                                 VerticalAlignment="Center"
                                 Content="{TemplateBinding SelectionBoxItem}"
                                 ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
-                                ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
+                                ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
                             <Path
                                 Grid.Column="1"
                                 Width="8"
@@ -155,43 +169,92 @@
         </Setter>
     </Style>
 
+    <Style x:Key="Style.Input.ComboBoxItem" TargetType="ComboBoxItem">
+        <Setter Property="Padding" Value="10,7"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border
+                        x:Name="ItemSurface"
+                        Padding="{TemplateBinding Padding}"
+                        Background="Transparent"
+                        CornerRadius="6">
+                        <ContentPresenter
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            ContentStringFormat="{TemplateBinding ContentStringFormat}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource Brush.Accent.Hover}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnAccent}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource Brush.Accent.Hover}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnAccent}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="Style.Input.CheckBox" TargetType="CheckBox">
         <Setter Property="FontFamily" Value="{StaticResource Font.Family.Primary}"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
-                    <StackPanel Orientation="Horizontal">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
                         <Border
-                            x:Name="CheckBorder"
-                            Width="18"
-                            Height="18"
-                            Margin="0,0,8,0"
-                            Background="{DynamicResource Brush.Surface.Elevated}"
-                            BorderBrush="{DynamicResource Brush.Border.Subtle}"
-                            BorderThickness="1"
-                            CornerRadius="5">
-                            <Path
-                                x:Name="CheckMark"
-                                Width="10"
-                                Height="7"
-                                Data="M 0 3 L 3 6 L 9 0"
-                                Stroke="{DynamicResource Brush.Text.OnAccent}"
-                                StrokeThickness="2"
-                                Visibility="Collapsed"/>
+                            x:Name="SwitchFocusRing"
+                            Width="44"
+                            Height="28"
+                            BorderBrush="Transparent"
+                            BorderThickness="2"
+                            CornerRadius="14">
+                            <Border
+                                x:Name="SwitchTrack"
+                                Width="40"
+                                Height="24"
+                                Padding="2"
+                                Background="{DynamicResource Brush.Border.Subtle}"
+                                BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                                BorderThickness="1"
+                                CornerRadius="12">
+                                <Ellipse
+                                    x:Name="SwitchThumb"
+                                    Width="18"
+                                    Height="18"
+                                    HorizontalAlignment="Left"
+                                    Fill="{DynamicResource Brush.Text.OnAccent}"/>
+                            </Border>
                         </Border>
-                        <ContentPresenter VerticalAlignment="Center"/>
-                    </StackPanel>
+                        <ContentPresenter
+                            Grid.Column="1"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center"/>
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="CheckBorder" Property="Background" Value="{DynamicResource Brush.Accent}"/>
-                            <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/>
-                            <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="SwitchTrack" Property="Background" Value="{DynamicResource Brush.Accent}"/>
+                            <Setter TargetName="SwitchTrack" Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/>
+                            <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{DynamicResource Brush.Focus}"/>
-                            <Setter TargetName="CheckBorder" Property="BorderThickness" Value="2"/>
+                            <Setter TargetName="SwitchFocusRing" Property="BorderBrush" Value="{DynamicResource Brush.Focus}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.45"/>

@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Drawing;
 using System.Windows.Forms;
 using LightTranslator.Services.Tray;
 
@@ -78,6 +79,46 @@ public class NotifyIconTrayBackendTests
                 screenshotTranslationItem.ShortcutKeyDisplayString
             )
         );
+    }
+
+    [Fact]
+    public void ContextMenu_UsesCompactNativeStyling()
+    {
+        using var backend =
+            new NotifyIconTrayBackend();
+
+        var contextMenu =
+            GetContextMenu(backend);
+        var systemMenuFont =
+            Assert.IsType<Font>(SystemFonts.MenuFont);
+
+        Assert.False(contextMenu.ShowImageMargin);
+        Assert.Equal(systemMenuFont.Name, contextMenu.Font.Name);
+        Assert.Equal(systemMenuFont.Size, contextMenu.Font.Size);
+        Assert.Equal(Color.White, contextMenu.BackColor);
+
+        var renderer =
+            Assert.IsType<ToolStripProfessionalRenderer>(
+                contextMenu.Renderer
+            );
+
+        Assert.Equal(
+            Color.FromArgb(232, 240, 254),
+            renderer.ColorTable.MenuItemSelected
+        );
+
+        foreach (
+            var item in contextMenu.Items
+                .Cast<ToolStripItem>()
+                .Where(item => item is ToolStripMenuItem)
+        )
+        {
+            Assert.Equal(new Padding(10, 5, 10, 5), item.Padding);
+            Assert.True(item.AutoSize);
+            Assert.True(
+                item.GetPreferredSize(Size.Empty).Height >= 30
+            );
+        }
     }
 
     [Fact]

@@ -4,16 +4,22 @@
         xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
         Title=""
         Icon="/Bridgo;component/Assets/AppIcon.ico"
-        Width="560"
-        Height="720"
-        MinWidth="560"
-        MinHeight="640"
+        Width="540"
+        Height="680"
+        MinWidth="540"
+        MinHeight="600"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ShowInTaskbar="True"
         Background="{DynamicResource Brush.Window.Base}"
         FontFamily="{DynamicResource Font.Family.Primary}"
         Foreground="{DynamicResource Brush.Text.Primary}">
+
+    <Window.Resources>
+        <DataTemplate x:Key="LanguageOptionTemplate">
+            <TextBlock Text="{Binding DisplayName}"/>
+        </DataTemplate>
+    </Window.Resources>
 
     <Grid KeyboardNavigation.TabNavigation="Continue">
         <Grid.RowDefinitions>
@@ -22,25 +28,31 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Grid Margin="28,24,28,20">
+        <Grid Margin="24,20,24,16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="52"/>
-                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="46"/>
+                <ColumnDefinition Width="14"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <Border
-                Width="52"
-                Height="52"
+                Width="46"
+                Height="46"
                 Background="{DynamicResource Brush.Surface.Elevated}"
                 BorderBrush="{DynamicResource Brush.Border.Subtle}"
                 BorderThickness="1"
                 CornerRadius="14">
                 <Image
-                    Width="38"
-                    Height="38"
-                    Source="/Bridgo;component/Assets/AppIcon.png"
-                    Stretch="Uniform"/>
+                    x:Name="SettingsAppIcon"
+                    Width="34"
+                    Height="34"
+                    Stretch="Uniform">
+                    <Image.Source>
+                        <BitmapImage
+                            UriSource="/Bridgo;component/Assets/AppIcon.png"
+                            CacheOption="OnLoad"/>
+                    </Image.Source>
+                </Image>
             </Border>
 
             <StackPanel Grid.Column="2" VerticalAlignment="Center">
@@ -63,11 +75,12 @@
             Grid.Row="1"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="28,0,28,24">
+            <StackPanel Margin="24,0,24,20">
 
                 <Border
                     x:Name="AccountSettingsCard"
-                    Margin="0,0,0,16"
+                    Margin="0,0,0,12"
+                    Padding="16"
                     Style="{DynamicResource Style.Surface.Card}">
                     <StackPanel>
                         <TextBlock
@@ -119,7 +132,8 @@
 
                 <Border
                     x:Name="TextTranslationSettingsCard"
-                    Margin="0,0,0,16"
+                    Margin="0,0,0,12"
+                    Padding="16"
                     Style="{DynamicResource Style.Surface.Card}">
                     <StackPanel>
                         <TextBlock
@@ -153,7 +167,8 @@
 
                 <Border
                     x:Name="ScreenshotTranslationSettingsCard"
-                    Margin="0,0,0,16"
+                    Margin="0,0,0,12"
+                    Padding="16"
                     Style="{DynamicResource Style.Surface.Card}">
                     <StackPanel>
                         <TextBlock
@@ -198,8 +213,8 @@
                                 <ComboBox
                                     x:Name="ScreenshotSourceLanguageComboBox"
                                     Style="{DynamicResource Style.Input.ComboBox}"
+                                    ItemTemplate="{StaticResource LanguageOptionTemplate}"
                                     ItemsSource="{Binding ScreenshotSourceLanguages}"
-                                    DisplayMemberPath="DisplayName"
                                     SelectedValuePath="Code"
                                     automation:AutomationProperties.Name="截图翻译源语言"
                                     SelectedValue="{Binding ScreenshotSourceLanguage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
@@ -227,8 +242,8 @@
                                 <ComboBox
                                     x:Name="ScreenshotTargetLanguageComboBox"
                                     Style="{DynamicResource Style.Input.ComboBox}"
+                                    ItemTemplate="{StaticResource LanguageOptionTemplate}"
                                     ItemsSource="{Binding ScreenshotTargetLanguages}"
-                                    DisplayMemberPath="DisplayName"
                                     SelectedValuePath="Code"
                                     automation:AutomationProperties.Name="截图翻译目标语言"
                                     SelectedValue="{Binding ScreenshotTargetLanguage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
@@ -239,6 +254,7 @@
 
                 <Border
                     x:Name="StartupSettingsCard"
+                    Padding="16"
                     Style="{DynamicResource Style.Surface.Card}">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -261,7 +277,6 @@
                             Grid.Column="1"
                             VerticalAlignment="Center"
                             Style="{DynamicResource Style.Input.CheckBox}"
-                            Content="开机启动"
                             automation:AutomationProperties.Name="登录 Windows 后启动语桥"
                             IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/>
                     </Grid>
@@ -271,7 +286,7 @@
 
         <Border
             Grid.Row="2"
-            Padding="28,14"
+            Padding="24,12"
             Background="{DynamicResource Brush.Surface.Card}"
             BorderBrush="{DynamicResource Brush.Border.Subtle}"
             BorderThickness="0,1,0,0">

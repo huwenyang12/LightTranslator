@@ -173,6 +173,134 @@ public sealed class UiResourceTests
     }
 
     [Fact]
+    public void InputStyles_ProvideCenteredTextCleanFocusAndSwitchVisuals()
+    {
+        var document =
+            XDocument.Load(
+                Path.Combine(
+                    FindRepositoryRoot(),
+                    "src",
+                    "LightTranslator",
+                    "Resources",
+                    "Styles",
+                    "Inputs.xaml"
+                )
+            );
+
+        XElement FindStyle(string key) =>
+            document
+                .Descendants(PresentationNamespace + "Style")
+                .Single(
+                    element =>
+                        (string?)element.Attribute(
+                            XamlNamespace + "Key"
+                        ) == key
+                );
+
+        static bool HasSetter(
+            XElement style,
+            string property,
+            string value
+        ) =>
+            style
+                .Elements(PresentationNamespace + "Setter")
+                .Any(
+                    setter =>
+                        (string?)setter.Attribute("Property") == property &&
+                        (string?)setter.Attribute("Value") == value
+                );
+
+        var textBoxStyle = FindStyle("Style.Input.TextBox");
+        var comboBoxStyle = FindStyle("Style.Input.ComboBox");
+        var checkBoxStyle = FindStyle("Style.Input.CheckBox");
+
+        Assert.True(
+            HasSetter(
+                textBoxStyle,
+                "VerticalContentAlignment",
+                "Center"
+            )
+        );
+        Assert.True(
+            HasSetter(
+                textBoxStyle,
+                "FocusVisualStyle",
+                "{x:Null}"
+            )
+        );
+        Assert.True(
+            HasSetter(
+                comboBoxStyle,
+                "FocusVisualStyle",
+                "{x:Null}"
+            )
+        );
+
+        var textContentHost =
+            document
+                .Descendants(PresentationNamespace + "ControlTemplate")
+                .Single(
+                    template =>
+                        (string?)template.Attribute(
+                            XamlNamespace + "Key"
+                        ) == "Template.Input.TextBox"
+                )
+                .Descendants(PresentationNamespace + "ScrollViewer")
+                .Single(
+                    scrollViewer =>
+                        (string?)scrollViewer.Attribute(
+                            XamlNamespace + "Name"
+                        ) == "PART_ContentHost"
+                );
+
+        Assert.Equal(
+            "{TemplateBinding VerticalContentAlignment}",
+            (string?)textContentHost.Attribute(
+                "VerticalContentAlignment"
+            )
+        );
+
+        var templateNames =
+            checkBoxStyle
+                .Descendants()
+                .Select(
+                    element =>
+                        (string?)element.Attribute(
+                            XamlNamespace + "Name"
+                        )
+                )
+                .Where(name => name is not null)
+                .ToHashSet(StringComparer.Ordinal);
+
+        Assert.Contains("SwitchTrack", templateNames);
+        Assert.Contains("SwitchThumb", templateNames);
+        Assert.Contains("SwitchFocusRing", templateNames);
+
+        var keyboardFocusTrigger =
+            checkBoxStyle
+                .Descendants(PresentationNamespace + "Trigger")
+                .Single(
+                    trigger =>
+                        (string?)trigger.Attribute("Property") ==
+                            "IsKeyboardFocused" &&
+                        (string?)trigger.Attribute("Value") == "True"
+                );
+
+        Assert.Contains(
+            keyboardFocusTrigger.Elements(
+                PresentationNamespace + "Setter"
+            ),
+            setter =>
+                (string?)setter.Attribute("TargetName") ==
+                    "SwitchFocusRing" &&
+                (string?)setter.Attribute("Property") ==
+                    "BorderBrush" &&
+                (string?)setter.Attribute("Value") ==
+                    "{DynamicResource Brush.Focus}"
+        );
+    }
+
+    [Fact]
     public void UserFacingWindows_UseOnlySemanticColors()
     {
         var allowedColors =
