@@ -62,6 +62,18 @@ public sealed class UiResourceTests
             "/Bridgo;component/Resources/Theme/Metrics.xaml",
             mergedSources
         );
+        Assert.Contains(
+            "/Bridgo;component/Resources/Styles/Buttons.xaml",
+            mergedSources
+        );
+        Assert.Contains(
+            "/Bridgo;component/Resources/Styles/Inputs.xaml",
+            mergedSources
+        );
+        Assert.Contains(
+            "/Bridgo;component/Resources/Styles/Cards.xaml",
+            mergedSources
+        );
 
         var requiredKeys =
             new[]
@@ -93,7 +105,19 @@ public sealed class UiResourceTests
                 "Radius.14",
                 "Radius.18",
                 "Height.Control",
-                "Height.Button"
+                "Height.Button",
+                "Style.Button.Primary",
+                "Style.Button.Secondary",
+                "Style.Button.Quiet",
+                "Style.Button.IconCircle",
+                "Style.Input.TextBox",
+                "Style.Input.PasswordBox",
+                "Style.Input.ComboBox",
+                "Style.Input.CheckBox",
+                "Style.Surface.Card",
+                "Style.Surface.Status",
+                "Style.Surface.KeyCap",
+                "Style.Text.Validation"
             };
 
         var actualKeys =
@@ -116,6 +140,35 @@ public sealed class UiResourceTests
                 actualKeys
             );
         }
+    }
+
+    [Theory]
+    [InlineData("Buttons.xaml")]
+    [InlineData("Inputs.xaml")]
+    [InlineData("Cards.xaml")]
+    public void SharedStyleDictionary_UsesSemanticBrushes(
+        string fileName
+    )
+    {
+        var path =
+            Path.Combine(
+                FindRepositoryRoot(),
+                "src",
+                "LightTranslator",
+                "Resources",
+                "Styles",
+                fileName
+            );
+
+        var text =
+            File.ReadAllText(
+                path
+            );
+
+        Assert.DoesNotMatch(
+            "#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?",
+            text
+        );
     }
 
     [Fact]

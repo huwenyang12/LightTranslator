@@ -8,6 +8,9 @@
                 <ResourceDictionary Source="/Bridgo;component/Resources/Theme/Palette.Light.xaml"/>
                 <ResourceDictionary Source="/Bridgo;component/Resources/Theme/Typography.xaml"/>
                 <ResourceDictionary Source="/Bridgo;component/Resources/Theme/Metrics.xaml"/>
+                <ResourceDictionary Source="/Bridgo;component/Resources/Styles/Buttons.xaml"/>
+                <ResourceDictionary Source="/Bridgo;component/Resources/Styles/Inputs.xaml"/>
+                <ResourceDictionary Source="/Bridgo;component/Resources/Styles/Cards.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
