@@ -273,6 +273,246 @@ public sealed class ScreenshotTranslationWindowTests
     }
 
     [Fact]
+    public void ShowResults_UsesDynamicPaddingForSmallAndLargeRegions()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new ScreenshotTranslationWindow(
+                        CreateSelection()
+                    );
+
+                try
+                {
+                    window.ShowResults(
+                        new[]
+                        {
+                            new ScreenshotTextRegion(
+                                "small",
+                                "Small",
+                                0.95,
+                                new PixelRect(
+                                    20,
+                                    20,
+                                    120,
+                                    15
+                                ),
+                                15,
+                                ScreenshotTextRole.Body,
+                                "小"
+                            ),
+                            new ScreenshotTextRegion(
+                                "large",
+                                "Large",
+                                0.95,
+                                new PixelRect(
+                                    20,
+                                    60,
+                                    240,
+                                    50
+                                ),
+                                50,
+                                ScreenshotTextRole.Body,
+                                "大区域"
+                            )
+                        }
+                    );
+
+                    var canvas =
+                        Assert.IsType<Canvas>(
+                            window.FindName(
+                                "TranslationCanvas"
+                            )
+                        );
+
+                    var containers =
+                        canvas.Children
+                            .OfType<Border>()
+                            .ToArray();
+
+                    Assert.Equal(
+                        2,
+                        containers.Length
+                    );
+
+                    Assert.Equal(
+                        new Thickness(
+                            1.44,
+                            0.72,
+                            1.44,
+                            0.72
+                        ),
+                        containers[0].Padding
+                    );
+
+                    Assert.Equal(
+                        new Thickness(
+                            4,
+                            2,
+                            4,
+                            2
+                        ),
+                        containers[1].Padding
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
+    [Fact]
+    public void ShowResults_TopAlignsExplicitMultilineTranslation()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new ScreenshotTranslationWindow(
+                        CreateSelection()
+                    );
+
+                try
+                {
+                    window.ShowResults(
+                        new[]
+                        {
+                            new ScreenshotTextRegion(
+                                "single",
+                                "Single",
+                                0.95,
+                                new PixelRect(
+                                    20,
+                                    20,
+                                    300,
+                                    50
+                                ),
+                                24,
+                                ScreenshotTextRole.Body,
+                                "Single line"
+                            ),
+                            new ScreenshotTextRegion(
+                                "multiline",
+                                "Multiline",
+                                0.95,
+                                new PixelRect(
+                                    20,
+                                    80,
+                                    300,
+                                    60
+                                ),
+                                24,
+                                ScreenshotTextRole.Body,
+                                "First line\nSecond line"
+                            )
+                        }
+                    );
+
+                    var canvas =
+                        Assert.IsType<Canvas>(
+                            window.FindName(
+                                "TranslationCanvas"
+                            )
+                        );
+
+                    var texts =
+                        canvas.Children
+                            .OfType<Border>()
+                            .Select(
+                                container =>
+                                    Assert.IsType<TextBlock>(
+                                        container.Child
+                                    )
+                            )
+                            .ToArray();
+
+                    Assert.Equal(
+                        VerticalAlignment.Center,
+                        texts[0].VerticalAlignment
+                    );
+
+                    Assert.Equal(
+                        VerticalAlignment.Top,
+                        texts[1].VerticalAlignment
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
+    [Fact]
+    public void ShowResults_KeepsLargeTitleAboveEighteenDip()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new ScreenshotTranslationWindow(
+                        CreateSelection()
+                    );
+
+                try
+                {
+                    window.ShowResults(
+                        new[]
+                        {
+                            new ScreenshotTextRegion(
+                                "title",
+                                "Title",
+                                0.98,
+                                new PixelRect(
+                                    20,
+                                    20,
+                                    500,
+                                    100
+                                ),
+                                50,
+                                ScreenshotTextRole.Title,
+                                "Title"
+                            )
+                        }
+                    );
+
+                    var canvas =
+                        Assert.IsType<Canvas>(
+                            window.FindName(
+                                "TranslationCanvas"
+                            )
+                        );
+
+                    var container =
+                        Assert.Single(
+                            canvas.Children
+                                .OfType<Border>()
+                        );
+
+                    var title =
+                        Assert.IsType<TextBlock>(
+                            container.Child
+                        );
+
+                    Assert.Equal(
+                        32d,
+                        title.FontSize,
+                        6
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
+    [Fact]
     public void ShowMessage_ReplacesLoadingStatusAndClearsTranslations()
     {
         RunOnSta(
