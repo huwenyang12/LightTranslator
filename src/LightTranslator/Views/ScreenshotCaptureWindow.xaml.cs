@@ -80,6 +80,13 @@ public partial class ScreenshotCaptureWindow
             );
     }
 
+    internal static string FormatSelectionDimensions(
+        PixelRect selection
+    )
+    {
+        return $"{selection.Width} × {selection.Height}";
+    }
+
     private void OnMouseLeftButtonDown(
         object sender,
         MouseButtonEventArgs e
@@ -93,6 +100,9 @@ public partial class ScreenshotCaptureWindow
         CaptureCanvas.CaptureMouse();
 
         SelectionRectangle.Visibility =
+            Visibility.Visible;
+
+        SelectionDimensionPill.Visibility =
             Visibility.Visible;
 
         Canvas.SetLeft(
@@ -166,8 +176,7 @@ public partial class ScreenshotCaptureWindow
 
         if (selection.IsEmpty)
         {
-            SelectionRectangle.Visibility =
-                Visibility.Collapsed;
+            ResetSelectionFeedback();
 
             return;
         }
@@ -209,6 +218,85 @@ public partial class ScreenshotCaptureWindow
 
         SelectionRectangle.Height =
             bounds.Height;
+
+        UpdateSelectionDimensionPill(
+            bounds
+        );
+    }
+
+    private void UpdateSelectionDimensionPill(
+        Rect selectionBounds
+    )
+    {
+        var selection =
+            ConvertSelectionToPixels(
+                selectionBounds
+            );
+
+        SelectionDimensionTextBlock.Text =
+            FormatSelectionDimensions(
+                selection
+            );
+
+        SelectionDimensionPill.Measure(
+            new System.Windows.Size(
+                double.PositiveInfinity,
+                double.PositiveInfinity
+            )
+        );
+
+        var pillSize =
+            SelectionDimensionPill.DesiredSize;
+
+        var left =
+            Math.Max(
+                0d,
+                selectionBounds.X +
+                (selectionBounds.Width - pillSize.Width) / 2d
+            );
+
+        left =
+            Math.Min(
+                left,
+                Math.Max(
+                    0d,
+                    CaptureCanvas.ActualWidth - pillSize.Width
+                )
+            );
+
+        var belowTop =
+            selectionBounds.Bottom +
+            8d;
+
+        var top =
+            belowTop + pillSize.Height <=
+            CaptureCanvas.ActualHeight
+                ? belowTop
+                : Math.Max(
+                    0d,
+                    selectionBounds.Top -
+                    pillSize.Height -
+                    8d
+                );
+
+        Canvas.SetLeft(
+            SelectionDimensionPill,
+            left
+        );
+
+        Canvas.SetTop(
+            SelectionDimensionPill,
+            top
+        );
+    }
+
+    internal void ResetSelectionFeedback()
+    {
+        SelectionRectangle.Visibility =
+            Visibility.Collapsed;
+
+        SelectionDimensionPill.Visibility =
+            Visibility.Collapsed;
     }
 
     private static Rect CreateSelectionBounds(
@@ -249,6 +337,8 @@ public partial class ScreenshotCaptureWindow
 
         Selection =
             null;
+
+        ResetSelectionFeedback();
 
         DialogResult =
             false;

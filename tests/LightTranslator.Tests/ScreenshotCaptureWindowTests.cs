@@ -10,6 +10,161 @@ namespace LightTranslator.Tests;
 public class ScreenshotCaptureWindowTests
 {
     [Fact]
+    public void FormatSelectionDimensions_UsesPixelDimensions()
+    {
+        Assert.Equal(
+            "640 × 360",
+            ScreenshotCaptureWindow.FormatSelectionDimensions(
+                new PixelRect(
+                    10,
+                    20,
+                    640,
+                    360
+                )
+            )
+        );
+    }
+
+    [Fact]
+    public void Window_ExposesInstructionAndSelectionFeedback()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new ScreenshotCaptureWindow(
+                        new ScreenCaptureFrame(
+                            CreateBitmap(
+                                1280,
+                                720,
+                                96
+                            ),
+                            new PixelRect(
+                                0,
+                                0,
+                                1280,
+                                720
+                            ),
+                            96,
+                            96
+                        )
+                    );
+
+                try
+                {
+                    Assert.IsType<Border>(
+                        window.FindName(
+                            "CaptureInstructionPill"
+                        )
+                    );
+
+                    var selectionBorder =
+                        Assert.IsType<Border>(
+                            window.FindName(
+                                "SelectionRectangle"
+                            )
+                        );
+
+                    Assert.Equal(
+                        new CornerRadius(
+                            8
+                        ),
+                        selectionBorder.CornerRadius
+                    );
+
+                    var dimensionPill =
+                        Assert.IsType<Border>(
+                            window.FindName(
+                                "SelectionDimensionPill"
+                            )
+                        );
+
+                    Assert.Equal(
+                        Visibility.Collapsed,
+                        dimensionPill.Visibility
+                    );
+
+                    Assert.IsType<TextBlock>(
+                        window.FindName(
+                            "SelectionDimensionTextBlock"
+                        )
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
+    [Fact]
+    public void ResetSelectionFeedback_HidesSelectionAndDimensions()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new ScreenshotCaptureWindow(
+                        new ScreenCaptureFrame(
+                            CreateBitmap(
+                                1280,
+                                720,
+                                96
+                            ),
+                            new PixelRect(
+                                0,
+                                0,
+                                1280,
+                                720
+                            ),
+                            96,
+                            96
+                        )
+                    );
+
+                try
+                {
+                    var selectionBorder =
+                        Assert.IsType<Border>(
+                            window.FindName(
+                                "SelectionRectangle"
+                            )
+                        );
+
+                    var dimensionPill =
+                        Assert.IsType<Border>(
+                            window.FindName(
+                                "SelectionDimensionPill"
+                            )
+                        );
+
+                    selectionBorder.Visibility =
+                        Visibility.Visible;
+
+                    dimensionPill.Visibility =
+                        Visibility.Visible;
+
+                    window.ResetSelectionFeedback();
+
+                    Assert.Equal(
+                        Visibility.Collapsed,
+                        selectionBorder.Visibility
+                    );
+                    Assert.Equal(
+                        Visibility.Collapsed,
+                        dimensionPill.Visibility
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
+    [Fact]
     public void Window_UsesFrozenMonitorImageAndDpiAdjustedBounds()
     {
         RunOnSta(
