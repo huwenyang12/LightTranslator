@@ -513,6 +513,193 @@ public sealed class ScreenshotTranslationWindowTests
     }
 
     [Fact]
+    public void ShowResults_UsesSampledLightBackgroundAndDarkText()
+    {
+        RunOnSta(
+            () =>
+            {
+                var selection =
+                    CreateSelection(
+                        CreateSolidBitmap(
+                            100,
+                            60,
+                            245,
+                            245,
+                            245
+                        )
+                    );
+
+                var window =
+                    new ScreenshotTranslationWindow(
+                        selection
+                    );
+
+                try
+                {
+                    window.ShowResults(
+                        new[]
+                        {
+                            new ScreenshotTextRegion(
+                                "light",
+                                "Source",
+                                0.95,
+                                new PixelRect(
+                                    10,
+                                    10,
+                                    60,
+                                    30
+                                ),
+                                20,
+                                ScreenshotTextRole.Body,
+                                "译文"
+                            )
+                        }
+                    );
+
+                    var canvas =
+                        Assert.IsType<Canvas>(
+                            window.FindName(
+                                "TranslationCanvas"
+                            )
+                        );
+
+                    var container =
+                        Assert.Single(
+                            canvas.Children
+                                .OfType<Border>()
+                        );
+
+                    var text =
+                        Assert.IsType<TextBlock>(
+                            container.Child
+                        );
+
+                    var background =
+                        Assert.IsType<SolidColorBrush>(
+                            container.Background
+                        );
+
+                    var foreground =
+                        Assert.IsType<SolidColorBrush>(
+                            text.Foreground
+                        );
+
+                    Assert.Equal(
+                        Color.FromArgb(
+                            255,
+                            245,
+                            245,
+                            245
+                        ),
+                        background.Color
+                    );
+
+                    Assert.Equal(
+                        Colors.Black,
+                        foreground.Color
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
+    [Fact]
+    public void ShowResults_UsesFallbackStyleForComplexBackground()
+    {
+        RunOnSta(
+            () =>
+            {
+                var selection =
+                    CreateSelection(
+                        CreateCheckerboardBitmap(
+                            100,
+                            60
+                        )
+                    );
+
+                var window =
+                    new ScreenshotTranslationWindow(
+                        selection
+                    );
+
+                try
+                {
+                    window.ShowResults(
+                        new[]
+                        {
+                            new ScreenshotTextRegion(
+                                "complex",
+                                "Source",
+                                0.95,
+                                new PixelRect(
+                                    10,
+                                    10,
+                                    60,
+                                    30
+                                ),
+                                20,
+                                ScreenshotTextRole.Body,
+                                "译文"
+                            )
+                        }
+                    );
+
+                    var canvas =
+                        Assert.IsType<Canvas>(
+                            window.FindName(
+                                "TranslationCanvas"
+                            )
+                        );
+
+                    var container =
+                        Assert.Single(
+                            canvas.Children
+                                .OfType<Border>()
+                        );
+
+                    var text =
+                        Assert.IsType<TextBlock>(
+                            container.Child
+                        );
+
+                    var background =
+                        Assert.IsType<SolidColorBrush>(
+                            container.Background
+                        );
+
+                    var foreground =
+                        Assert.IsType<SolidColorBrush>(
+                            text.Foreground
+                        );
+
+                    Assert.Equal(
+                        Color.FromArgb(
+                            235,
+                            17,
+                            24,
+                            39
+                        ),
+                        background.Color
+                    );
+
+                    Assert.Equal(
+                        Colors.White,
+                        foreground.Color
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
+    [Fact]
     public void ShowMessage_ReplacesLoadingStatusAndClearsTranslations()
     {
         RunOnSta(
@@ -689,6 +876,143 @@ public sealed class ScreenshotTranslationWindowTests
                         )
                     )
             };
+    }
+
+    private static CapturedSelection CreateSelection(
+        BitmapSource image
+    )
+    {
+        return
+            new CapturedSelection(
+                image,
+                new PixelRect(
+                    0,
+                    0,
+                    image.PixelWidth,
+                    image.PixelHeight
+                ),
+                new PixelRect(
+                    0,
+                    0,
+                    image.PixelWidth,
+                    image.PixelHeight
+                ),
+                96,
+                96
+            );
+    }
+
+    private static BitmapSource CreateSolidBitmap(
+        int width,
+        int height,
+        byte red,
+        byte green,
+        byte blue
+    )
+    {
+        var pixels =
+            new byte[
+                width *
+                height *
+                4
+            ];
+
+        for (
+            var index = 0;
+            index < pixels.Length;
+            index += 4
+        )
+        {
+            pixels[index] =
+                blue;
+
+            pixels[index + 1] =
+                green;
+
+            pixels[index + 2] =
+                red;
+
+            pixels[index + 3] =
+                255;
+        }
+
+        var bitmap =
+            BitmapSource.Create(
+                width,
+                height,
+                96,
+                96,
+                PixelFormats.Bgra32,
+                null,
+                pixels,
+                width * 4
+            );
+
+        bitmap.Freeze();
+
+        return bitmap;
+    }
+
+    private static BitmapSource CreateCheckerboardBitmap(
+        int width,
+        int height
+    )
+    {
+        var pixels =
+            new byte[
+                width *
+                height *
+                4
+            ];
+
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var value =
+                    (
+                        (x / 5) +
+                        (y / 5)
+                    ) % 2 == 0
+                        ? (byte)0
+                        : (byte)255;
+
+                var index =
+                    (
+                        y *
+                        width +
+                        x
+                    ) * 4;
+
+                pixels[index] =
+                    value;
+
+                pixels[index + 1] =
+                    value;
+
+                pixels[index + 2] =
+                    value;
+
+                pixels[index + 3] =
+                    255;
+            }
+        }
+
+        var bitmap =
+            BitmapSource.Create(
+                width,
+                height,
+                96,
+                96,
+                PixelFormats.Bgra32,
+                null,
+                pixels,
+                width * 4
+            );
+
+        bitmap.Freeze();
+
+        return bitmap;
     }
 
     private static CapturedSelection CreateSelection()
