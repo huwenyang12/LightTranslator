@@ -31,6 +31,9 @@ public partial class TranslateWindow
         Loaded +=
             OnLoaded;
 
+        SourceInitialized +=
+            OnSourceInitialized;
+
         PreviewKeyDown +=
             OnPreviewKeyDown;
 
@@ -39,6 +42,17 @@ public partial class TranslateWindow
 
         Closed +=
             OnClosed;
+    }
+
+    private void OnSourceInitialized(
+        object? sender,
+        EventArgs e
+    )
+    {
+        WindowBackdropService.TryApply(
+            this,
+            WindowBackdropKind.TransientAcrylic
+        );
     }
 
     private async void OnClosed(
