@@ -72,7 +72,9 @@
         </Grid>
 
         <ScrollViewer
+            x:Name="SettingsScrollViewer"
             Grid.Row="1"
+            Focusable="False"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="24,0,24,20">

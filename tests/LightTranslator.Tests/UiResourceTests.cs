@@ -224,6 +224,13 @@ public sealed class UiResourceTests
         Assert.True(
             HasSetter(
                 textBoxStyle,
+                "Padding",
+                "12,0"
+            )
+        );
+        Assert.True(
+            HasSetter(
+                textBoxStyle,
                 "FocusVisualStyle",
                 "{x:Null}"
             )
@@ -254,8 +261,11 @@ public sealed class UiResourceTests
                 );
 
         Assert.Equal(
-            "{TemplateBinding VerticalContentAlignment}",
-            (string?)textContentHost.Attribute(
+            "False",
+            (string?)textContentHost.Attribute("Focusable")
+        );
+        Assert.Null(
+            textContentHost.Attribute(
                 "VerticalContentAlignment"
             )
         );

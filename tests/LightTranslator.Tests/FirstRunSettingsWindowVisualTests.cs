@@ -90,6 +90,15 @@ public sealed class FirstRunSettingsWindowVisualTests
                     )
                 );
 
+                var settingsScrollViewer =
+                    Assert.IsType<ScrollViewer>(
+                        window.FindName(
+                            "SettingsScrollViewer"
+                        )
+                    );
+
+                Assert.False(settingsScrollViewer.Focusable);
+
                 var sourceLanguage =
                     Assert.IsType<ComboBox>(
                         window.FindName(
