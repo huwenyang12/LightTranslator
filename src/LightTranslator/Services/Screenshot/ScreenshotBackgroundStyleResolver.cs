@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Color = System.Windows.Media.Color;
 using LightTranslator.Models;
 
 namespace LightTranslator.Services.Screenshot;
