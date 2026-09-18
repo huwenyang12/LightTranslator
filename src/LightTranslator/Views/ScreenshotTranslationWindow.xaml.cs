@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using LightTranslator.Models;
 using LightTranslator.Services.ScreenCapture;
 using LightTranslator.Services.Screenshot;
@@ -18,6 +19,7 @@ public partial class ScreenshotTranslationWindow
     private bool _closeRequestRaised;
     private double _dpiX = 96d;
     private double _dpiY = 96d;
+    private BitmapSource? _selectionImage;
 
     public ScreenshotTranslationWindow()
     {
@@ -139,6 +141,9 @@ public partial class ScreenshotTranslationWindow
             selection
         );
 
+        _selectionImage =
+            selection.Image;
+
         FrozenSelectionImage.Source =
             selection.Image;
 
@@ -208,13 +213,23 @@ public partial class ScreenshotTranslationWindow
         var translatedText =
             region.TranslatedText!;
 
+        var style =
+            _selectionImage is null
+                ? ScreenshotBackgroundStyleResolver.Fallback
+                : ScreenshotBackgroundStyleResolver.Resolve(
+                    _selectionImage,
+                    region.Bounds
+                );
+
         var text =
             new TextBlock
             {
                 Text =
                     translatedText,
                 Foreground =
-                    System.Windows.Media.Brushes.White,
+                    new SolidColorBrush(
+                        style.Foreground
+                    ),
                 TextWrapping =
                     TextWrapping.Wrap,
                 TextTrimming =
@@ -283,12 +298,7 @@ public partial class ScreenshotTranslationWindow
                     true,
                 Background =
                     new SolidColorBrush(
-                        System.Windows.Media.Color.FromArgb(
-                            199,
-                            17,
-                            24,
-                            39
-                        )
+                        style.Background
                     ),
                 CornerRadius =
                     new CornerRadius(
