@@ -3,172 +3,277 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title=""
         Icon="/Bridgo;component/Assets/AppIcon.ico"
-        Width="460"
-        Height="640"
+        Width="560"
+        Height="720"
+        MinWidth="560"
+        MinHeight="640"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        ShowInTaskbar="True">
+        ShowInTaskbar="True"
+        Background="{DynamicResource Brush.Window.Base}"
+        FontFamily="{DynamicResource Font.Family.Primary}"
+        Foreground="{DynamicResource Brush.Text.Primary}">
 
-    <Grid Margin="32">
+    <Grid KeyboardNavigation.TabNavigation="Continue">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="24"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="20"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="20"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock x:Name="TitleTextBlock"
-                   Grid.Row="0"
-                   Text="首次设置"
-                   FontSize="24"
-                   FontWeight="SemiBold"/>
-
-        <TextBlock Grid.Row="1"
-                   Margin="0,8,0,0"
-                   Text="配置 DeepSeek API Key，完成后应用将在后台运行。"
-                   Foreground="#666666"
-                   TextWrapping="Wrap"/>
-
-        <TextBlock Grid.Row="3"
-                   Text="DeepSeek API Key"
-                   FontWeight="SemiBold"/>
-
-        <Grid Grid.Row="4"
-              Margin="0,8,0,0">
-
+        <Grid Margin="28,24,28,20">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="52"/>
+                <ColumnDefinition Width="16"/>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="12"/>
-                <ColumnDefinition Width="90"/>
             </Grid.ColumnDefinitions>
 
-            <PasswordBox x:Name="ApiKeyPasswordBox"
-                         Grid.Column="0"
-                         Height="36"
-                         Padding="8,5"
-                         PasswordChanged="OnApiKeyPasswordChanged"/>
+            <Border
+                Width="52"
+                Height="52"
+                Background="{DynamicResource Brush.Surface.Elevated}"
+                BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                BorderThickness="1"
+                CornerRadius="14">
+                <Image
+                    Width="38"
+                    Height="38"
+                    Source="/Bridgo;component/Assets/AppIcon.png"
+                    Stretch="Uniform"/>
+            </Border>
 
-            <Button x:Name="TestApiKeyButton"
-                    Grid.Column="2"
-                    Height="36"
-                    Content="测试连接"
-                    IsEnabled="False"
-                    Click="OnTestApiKeyClick"/>
-
+            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                <TextBlock
+                    Text="语桥 Bridgo"
+                    Style="{DynamicResource Style.Text.Caption}"/>
+                <TextBlock
+                    x:Name="TitleTextBlock"
+                    Margin="0,2,0,0"
+                    Text="首次设置"
+                    Style="{DynamicResource Style.Text.Display}"/>
+                <TextBlock
+                    Margin="0,4,0,0"
+                    Text="设置翻译服务、快捷键和常用偏好。"
+                    Style="{DynamicResource Style.Text.Caption}"/>
+            </StackPanel>
         </Grid>
 
-        <TextBlock x:Name="ApiKeyTestMessageTextBlock"
-                   Grid.Row="5"
-                   Margin="0,6,0,0"
-                   FontSize="12"
-                   Foreground="#666666"
-                   Text=""/>
+        <ScrollViewer
+            Grid.Row="1"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="28,0,28,24">
 
-        <StackPanel Grid.Row="6">
+                <Border
+                    x:Name="AccountSettingsCard"
+                    Margin="0,0,0,16"
+                    Style="{DynamicResource Style.Surface.Card}">
+                    <StackPanel>
+                        <TextBlock
+                            Text="账户与 API"
+                            Style="{DynamicResource Style.Text.Section}"/>
+                        <TextBlock
+                            Margin="0,4,0,14"
+                            Text="API Key 仅加密保存在当前 Windows 用户下。"
+                            Style="{DynamicResource Style.Text.Caption}"
+                            TextWrapping="Wrap"/>
 
-            <TextBlock Text="文本翻译快捷键"
-                       Margin="0,0,0,6"/>
+                        <TextBlock
+                            Margin="0,0,0,6"
+                            Text="DeepSeek API Key"
+                            Style="{DynamicResource Style.Text.Body}"/>
 
-            <TextBox x:Name="TextTranslationHotkeyBox"
-                     Height="36"
-                     Padding="8,5"
-                     Margin="0,0,0,6"
-                     IsReadOnly="True"
-                     GotFocus="OnTextTranslationHotkeyBoxGotFocus"
-                     PreviewKeyDown="OnTextTranslationHotkeyBoxPreviewKeyDown"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="96"/>
+                            </Grid.ColumnDefinitions>
 
-            <TextBlock x:Name="TextTranslationHotkeyErrorTextBlock"
-                       Margin="0,0,0,6"
-                       FontSize="12"
-                       Foreground="#D32F2F"
-                       Text=""/>
+                            <PasswordBox
+                                x:Name="ApiKeyPasswordBox"
+                                Grid.Column="0"
+                                Style="{DynamicResource Style.Input.PasswordBox}"
+                                PasswordChanged="OnApiKeyPasswordChanged"/>
 
-            <CheckBox x:Name="StartWithWindowsCheckBox"
-                      Content="开机自动启动"
-                      IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/>
+                            <Button
+                                x:Name="TestApiKeyButton"
+                                Grid.Column="2"
+                                Style="{DynamicResource Style.Button.Secondary}"
+                                Content="测试连接"
+                                IsEnabled="False"
+                                Click="OnTestApiKeyClick"/>
+                        </Grid>
 
-        </StackPanel>
+                        <TextBlock
+                            x:Name="ApiKeyTestMessageTextBlock"
+                            Margin="0,8,0,0"
+                            Text=""
+                            Style="{DynamicResource Style.Text.Caption}"
+                            TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
 
-        <StackPanel Grid.Row="8">
-            <TextBlock Text="截图翻译"
-                       FontWeight="SemiBold"
-                       Margin="0,0,0,8"/>
+                <Border
+                    x:Name="TextTranslationSettingsCard"
+                    Margin="0,0,0,16"
+                    Style="{DynamicResource Style.Surface.Card}">
+                    <StackPanel>
+                        <TextBlock
+                            Text="文本翻译"
+                            Style="{DynamicResource Style.Text.Section}"/>
+                        <TextBlock
+                            Margin="0,4,0,14"
+                            Text="唤起轻量翻译窗口的全局快捷键。"
+                            Style="{DynamicResource Style.Text.Caption}"/>
 
-            <TextBlock Text="截图翻译快捷键"
-                       Margin="0,0,0,6"/>
+                        <TextBlock
+                            Margin="0,0,0,6"
+                            Text="快捷键"
+                            Style="{DynamicResource Style.Text.Body}"/>
 
-            <TextBox x:Name="ScreenshotTranslationHotkeyBox"
-                     Height="36"
-                     Padding="8,5"
-                     Margin="0,0,0,6"
-                     IsReadOnly="True"
-                     GotFocus="OnScreenshotTranslationHotkeyBoxGotFocus"
-                     PreviewKeyDown="OnScreenshotTranslationHotkeyBoxPreviewKeyDown"/>
+                        <TextBox
+                            x:Name="TextTranslationHotkeyBox"
+                            Style="{DynamicResource Style.Input.TextBox}"
+                            IsReadOnly="True"
+                            GotFocus="OnTextTranslationHotkeyBoxGotFocus"
+                            PreviewKeyDown="OnTextTranslationHotkeyBoxPreviewKeyDown"/>
 
-            <TextBlock x:Name="ScreenshotTranslationHotkeyErrorTextBlock"
-                       Margin="0,0,0,10"
-                       FontSize="12"
-                       Foreground="#D32F2F"
-                       Text=""/>
+                        <TextBlock
+                            x:Name="TextTranslationHotkeyErrorTextBlock"
+                            Margin="0,8,0,0"
+                            Text=""
+                            Style="{DynamicResource Style.Text.Validation}"/>
+                    </StackPanel>
+                </Border>
 
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="52"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+                <Border
+                    x:Name="ScreenshotTranslationSettingsCard"
+                    Margin="0,0,0,16"
+                    Style="{DynamicResource Style.Surface.Card}">
+                    <StackPanel>
+                        <TextBlock
+                            Text="截图翻译"
+                            Style="{DynamicResource Style.Text.Section}"/>
+                        <TextBlock
+                            Margin="0,4,0,14"
+                            Text="设置框选快捷键和默认翻译方向。"
+                            Style="{DynamicResource Style.Text.Caption}"/>
 
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="源语言"
-                               Margin="0,0,0,6"/>
+                        <TextBlock
+                            Margin="0,0,0,6"
+                            Text="快捷键"
+                            Style="{DynamicResource Style.Text.Body}"/>
 
-                    <ComboBox x:Name="ScreenshotSourceLanguageComboBox"
-                              Height="36"
-                              ItemsSource="{Binding ScreenshotSourceLanguages}"
-                              DisplayMemberPath="DisplayName"
-                              SelectedValuePath="Code"
-                              SelectedValue="{Binding ScreenshotSourceLanguage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                </StackPanel>
+                        <TextBox
+                            x:Name="ScreenshotTranslationHotkeyBox"
+                            Style="{DynamicResource Style.Input.TextBox}"
+                            IsReadOnly="True"
+                            GotFocus="OnScreenshotTranslationHotkeyBoxGotFocus"
+                            PreviewKeyDown="OnScreenshotTranslationHotkeyBoxPreviewKeyDown"/>
 
-                <Button x:Name="ScreenshotLanguageSwapButton"
-                        Grid.Column="1"
-                        Width="36"
-                        Height="36"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Bottom"
-                        Content="⇄"
-                        FontSize="18"
-                        ToolTip="交换源语言和目标语言"
-                        Click="OnScreenshotLanguageSwapClick"/>
+                        <TextBlock
+                            x:Name="ScreenshotTranslationHotkeyErrorTextBlock"
+                            Margin="0,8,0,12"
+                            Text=""
+                            Style="{DynamicResource Style.Text.Validation}"/>
 
-                <StackPanel Grid.Column="2">
-                    <TextBlock Text="目标语言"
-                               Margin="0,0,0,6"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="56"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                    <ComboBox x:Name="ScreenshotTargetLanguageComboBox"
-                              Height="36"
-                              ItemsSource="{Binding ScreenshotTargetLanguages}"
-                              DisplayMemberPath="DisplayName"
-                              SelectedValuePath="Code"
-                              SelectedValue="{Binding ScreenshotTargetLanguage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                </StackPanel>
-            </Grid>
-        </StackPanel>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock
+                                    Margin="0,0,0,6"
+                                    Text="源语言"
+                                    Style="{DynamicResource Style.Text.Body}"/>
+                                <ComboBox
+                                    x:Name="ScreenshotSourceLanguageComboBox"
+                                    Style="{DynamicResource Style.Input.ComboBox}"
+                                    ItemsSource="{Binding ScreenshotSourceLanguages}"
+                                    DisplayMemberPath="DisplayName"
+                                    SelectedValuePath="Code"
+                                    SelectedValue="{Binding ScreenshotSourceLanguage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
 
-        <Button x:Name="SaveButton"
-                Grid.Row="10"
-                Width="70"
-                Height="36"
+                            <Button
+                                x:Name="ScreenshotLanguageSwapButton"
+                                Grid.Column="1"
+                                Width="32"
+                                Height="32"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom"
+                                Style="{DynamicResource Style.Button.IconCircle}"
+                                Content="⇄"
+                                FontSize="15"
+                                ToolTip="交换源语言和目标语言"
+                                Click="OnScreenshotLanguageSwapClick"/>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock
+                                    Margin="0,0,0,6"
+                                    Text="目标语言"
+                                    Style="{DynamicResource Style.Text.Body}"/>
+                                <ComboBox
+                                    x:Name="ScreenshotTargetLanguageComboBox"
+                                    Style="{DynamicResource Style.Input.ComboBox}"
+                                    ItemsSource="{Binding ScreenshotTargetLanguages}"
+                                    DisplayMemberPath="DisplayName"
+                                    SelectedValuePath="Code"
+                                    SelectedValue="{Binding ScreenshotTargetLanguage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border
+                    x:Name="StartupSettingsCard"
+                    Style="{DynamicResource Style.Surface.Card}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock
+                                Text="系统启动"
+                                Style="{DynamicResource Style.Text.Section}"/>
+                            <TextBlock
+                                Margin="0,4,16,0"
+                                Text="登录 Windows 后在后台启动语桥。"
+                                Style="{DynamicResource Style.Text.Caption}"/>
+                        </StackPanel>
+
+                        <CheckBox
+                            x:Name="StartWithWindowsCheckBox"
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Style="{DynamicResource Style.Input.CheckBox}"
+                            Content="开机启动"
+                            IsChecked="{Binding StartWithWindows, Mode=TwoWay}"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border
+            Grid.Row="2"
+            Padding="28,14"
+            Background="{DynamicResource Brush.Surface.Card}"
+            BorderBrush="{DynamicResource Brush.Border.Subtle}"
+            BorderThickness="0,1,0,0">
+            <Button
+                x:Name="SaveButton"
+                Width="88"
                 HorizontalAlignment="Right"
+                Style="{DynamicResource Style.Button.Primary}"
                 Content="保存"
                 IsEnabled="False"
                 Click="OnSaveClick"/>
+        </Border>
     </Grid>
 </Window>

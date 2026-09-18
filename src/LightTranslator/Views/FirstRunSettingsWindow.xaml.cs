@@ -1,6 +1,7 @@
 using LightTranslator.ViewModels;
 using System.Collections.Generic;
 using LightTranslator.Services.Hotkeys;
+using LightTranslator.Services.Windows;
 
 namespace LightTranslator.Views;
 
@@ -27,6 +28,9 @@ public partial class FirstRunSettingsWindow
     )
     {
         InitializeComponent();
+
+        SourceInitialized +=
+            OnSourceInitialized;
 
         _viewModel = viewModel;
         _isFirstRun = isFirstRun;
@@ -71,6 +75,17 @@ public partial class FirstRunSettingsWindow
         _modifierKeysProvider =
             modifierKeysProvider
             ?? (() => System.Windows.Input.Keyboard.Modifiers);
+    }
+
+    private void OnSourceInitialized(
+        object? sender,
+        EventArgs e
+    )
+    {
+        WindowBackdropService.TryApply(
+            this,
+            WindowBackdropKind.Mica
+        );
     }
 
     private static string FormatHotkey(
