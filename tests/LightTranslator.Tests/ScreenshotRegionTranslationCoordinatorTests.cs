@@ -9,10 +9,10 @@ using LightTranslator.Services.Translation;
 
 namespace LightTranslator.Tests;
 
-public sealed class ScreenshotParagraphTranslationCoordinatorTests
+public sealed class ScreenshotRegionTranslationCoordinatorTests
 {
     [Fact]
-    public async Task Toggle_TranslatesAndRendersParagraphsInsteadOfIndividualOcrLines()
+    public async Task Toggle_TranslatesAndRendersRegionsInsteadOfIndividualOcrLines()
     {
         var frame =
             new ScreenCaptureFrame(
@@ -92,8 +92,8 @@ public sealed class ScreenshotParagraphTranslationCoordinatorTests
         Assert.Equal(
             new[]
             {
-                "paragraph-0001",
-                "paragraph-0002"
+                "region-0001",
+                "region-0002"
             },
             translator.LastBlocks
                 .Select(block => block.Id)
@@ -117,8 +117,8 @@ public sealed class ScreenshotParagraphTranslationCoordinatorTests
         Assert.Equal(
             new[]
             {
-                "paragraph-0001",
-                "paragraph-0002"
+                "region-0001",
+                "region-0002"
             },
             resultView.LastResults
                 .Select(block => block.Id)
