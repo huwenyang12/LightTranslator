@@ -123,6 +123,13 @@ public sealed class ScreenshotTranslationWindowTests
                             )
                         );
 
+                    var progress =
+                        Assert.IsType<ProgressBar>(
+                            window.FindName(
+                                "StatusProgressBar"
+                            )
+                        );
+
                     Assert.Same(
                         selection.Image,
                         image.Source
@@ -136,6 +143,11 @@ public sealed class ScreenshotTranslationWindowTests
                     Assert.Equal(
                         Visibility.Visible,
                         status.Visibility
+                    );
+
+                    Assert.Equal(
+                        Visibility.Visible,
+                        progress.Visibility
                     );
                 }
                 finally
@@ -748,6 +760,13 @@ public sealed class ScreenshotTranslationWindowTests
                             )
                         );
 
+                    var progress =
+                        Assert.IsType<ProgressBar>(
+                            window.FindName(
+                                "StatusProgressBar"
+                            )
+                        );
+
                     Assert.Empty(
                         canvas.Children
                     );
@@ -760,6 +779,11 @@ public sealed class ScreenshotTranslationWindowTests
                     Assert.Equal(
                         Visibility.Visible,
                         status.Visibility
+                    );
+
+                    Assert.Equal(
+                        Visibility.Collapsed,
+                        progress.Visibility
                     );
                 }
                 finally

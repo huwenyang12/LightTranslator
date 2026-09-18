@@ -57,7 +57,8 @@ public partial class ScreenshotTranslationWindow
         TranslationCanvas.Children.Clear();
 
         ShowStatus(
-            message
+            message,
+            showProgress: true
         );
     }
 
@@ -129,7 +130,8 @@ public partial class ScreenshotTranslationWindow
         TranslationCanvas.Children.Clear();
 
         ShowStatus(
-            message
+            message,
+            showProgress: false
         );
     }
 
@@ -370,7 +372,8 @@ public partial class ScreenshotTranslationWindow
     }
 
     private void ShowStatus(
-        string message
+        string message,
+        bool showProgress
     )
     {
         StatusTextBlock.Text =
@@ -379,6 +382,11 @@ public partial class ScreenshotTranslationWindow
         StatusTextBlock.Visibility =
             Visibility.Visible;
 
+        StatusProgressBar.Visibility =
+            showProgress
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
         StatusBorder.Visibility =
             Visibility.Visible;
     }
@@ -386,6 +394,9 @@ public partial class ScreenshotTranslationWindow
     private void HideStatus()
     {
         StatusTextBlock.Visibility =
+            Visibility.Collapsed;
+
+        StatusProgressBar.Visibility =
             Visibility.Collapsed;
 
         StatusBorder.Visibility =
