@@ -205,11 +205,14 @@ public partial class ScreenshotTranslationWindow
                 verticalPadding
             );
 
+        var translatedText =
+            region.TranslatedText!;
+
         var text =
             new TextBlock
             {
                 Text =
-                    region.TranslatedText,
+                    translatedText,
                 Foreground =
                     System.Windows.Media.Brushes.White,
                 TextWrapping =
@@ -250,10 +253,10 @@ public partial class ScreenshotTranslationWindow
         );
 
         var hasExplicitLineBreak =
-            region.TranslatedText.Contains(
+            translatedText.Contains(
                 '\n'
             ) ||
-            region.TranslatedText.Contains(
+            translatedText.Contains(
                 '\r'
             );
 
