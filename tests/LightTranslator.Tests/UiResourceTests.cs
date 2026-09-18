@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using System.Text.RegularExpressions;
 
 namespace LightTranslator.Tests;
 
@@ -172,6 +173,129 @@ public sealed class UiResourceTests
     }
 
     [Fact]
+    public void UserFacingWindows_UseOnlySemanticColors()
+    {
+        var allowedColors =
+            new HashSet<string>(
+                new[]
+                {
+                    "#66000000"
+                },
+                StringComparer.OrdinalIgnoreCase
+            );
+
+        foreach (var path in GetUserFacingXamlPaths())
+        {
+            var text =
+                File.ReadAllText(
+                    path
+                );
+
+            var unexpected =
+                Regex.Matches(
+                        text,
+                        "#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?"
+                    )
+                    .Select(
+                        match =>
+                            match.Value
+                    )
+                    .Where(
+                        color =>
+                            !allowedColors.Contains(
+                                color
+                            )
+                    )
+                    .ToArray();
+
+            Assert.True(
+                unexpected.Length == 0,
+                $"{Path.GetFileName(path)} contains hard-coded colors: {string.Join(", ", unexpected)}"
+            );
+        }
+    }
+
+    [Fact]
+    public void NamedInteractiveControls_HaveAutomationNames()
+    {
+        var missing =
+            new List<string>();
+
+        foreach (var path in GetUserFacingXamlPaths())
+        {
+            var document =
+                XDocument.Load(
+                    path
+                );
+
+            foreach (
+                var element in document
+                    .Descendants()
+                    .Where(
+                        element =>
+                            element.Name.LocalName is
+                                "Button" or
+                                "TextBox" or
+                                "PasswordBox" or
+                                "ComboBox" or
+                                "CheckBox"
+                    )
+            )
+            {
+                var name =
+                    (string?)element.Attribute(
+                        XamlNamespace +
+                        "Name"
+                    );
+
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+
+                var automationName =
+                    element.Attributes()
+                        .FirstOrDefault(
+                            attribute =>
+                                attribute.Name.LocalName ==
+                                "AutomationProperties.Name"
+                        )
+                        ?.Value;
+
+                if (string.IsNullOrWhiteSpace(automationName))
+                {
+                    missing.Add(
+                        $"{Path.GetFileName(path)}:{name}"
+                    );
+                }
+            }
+        }
+
+        Assert.True(
+            missing.Count == 0,
+            $"Missing AutomationProperties.Name: {string.Join(", ", missing)}"
+        );
+    }
+
+    [Fact]
+    public void UserFacingWindows_DoNotDisableTabNavigation()
+    {
+        foreach (var path in GetUserFacingXamlPaths())
+        {
+            var text =
+                File.ReadAllText(
+                    path
+                );
+
+            Assert.DoesNotContain(
+                "KeyboardNavigation.TabNavigation=\"None\"",
+                text,
+                StringComparison.Ordinal
+            );
+        }
+    }
+
+    [Fact]
     public void PaletteDictionaries_ExposeMatchingSemanticKeys()
     {
         var repositoryRoot =
@@ -273,6 +397,37 @@ public sealed class UiResourceTests
             .ToHashSet(
                 StringComparer.Ordinal
             );
+    }
+
+    private static IEnumerable<string> GetUserFacingXamlPaths()
+    {
+        var viewsDirectory =
+            Path.Combine(
+                FindRepositoryRoot(),
+                "src",
+                "LightTranslator",
+                "Views"
+            );
+
+        return new[]
+        {
+            Path.Combine(
+                viewsDirectory,
+                "TranslateWindow.xaml"
+            ),
+            Path.Combine(
+                viewsDirectory,
+                "FirstRunSettingsWindow.xaml"
+            ),
+            Path.Combine(
+                viewsDirectory,
+                "ScreenshotCaptureWindow.xaml"
+            ),
+            Path.Combine(
+                viewsDirectory,
+                "ScreenshotTranslationWindow.xaml"
+            )
+        };
     }
 
     private static string FindRepositoryRoot()
