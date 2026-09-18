@@ -40,6 +40,7 @@ public partial class App
     private AppController? _appController;
 
     private ISettingsService? _settingsService;
+    private ThemeManager? _themeManager;
 
     private ITextTranslationHotkeyPersistence?
         _textTranslationHotkeyPersistence;
@@ -66,6 +67,13 @@ public partial class App
     )
     {
         base.OnStartup(e);
+
+        _themeManager =
+            new ThemeManager();
+
+        _themeManager.Start(
+            this
+        );
 
         var settingsService =
             new SettingsService();
@@ -617,6 +625,8 @@ public partial class App
         }
 
         _httpClient?.Dispose();
+
+        _themeManager?.Dispose();
 
         base.OnExit(e);
     }
