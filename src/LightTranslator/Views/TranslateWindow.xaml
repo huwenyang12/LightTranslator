@@ -19,24 +19,6 @@
         Foreground="{DynamicResource Brush.Text.Primary}">
 
     <Window.Resources>
-        <Storyboard x:Key="Storyboard.CopyFeedback.In">
-            <DoubleAnimation
-                Storyboard.TargetName="CopyTranslationButton"
-                Storyboard.TargetProperty="Opacity"
-                From="0.55"
-                To="1"
-                Duration="0:0:0.14"/>
-        </Storyboard>
-
-        <Storyboard x:Key="Storyboard.CopyFeedback.Out">
-            <DoubleAnimation
-                Storyboard.TargetName="CopyTranslationButton"
-                Storyboard.TargetProperty="Opacity"
-                From="1"
-                To="0.55"
-                Duration="0:0:0.14"/>
-        </Storyboard>
-
         <ControlTemplate
             x:Key="Template.Translate.SourceEditor"
             TargetType="TextBox">
@@ -85,62 +67,6 @@
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
 
-        <Style
-            x:Key="Style.Translate.CopyButton"
-            TargetType="Button">
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="MinWidth" Value="52"/>
-            <Setter Property="Padding" Value="8,0"/>
-            <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Primary}"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="Normal"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border
-                            x:Name="ButtonBorder"
-                            Padding="{TemplateBinding Padding}"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8">
-                            <ContentPresenter
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource Brush.Window.Base}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.68"/>
-                            </Trigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource Brush.Focus}"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.38"/>
-                                <Setter Property="Cursor" Value="Arrow"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding TranslatedText}" Value="">
-                    <Setter Property="IsEnabled" Value="False"/>
-                </DataTrigger>
-                <DataTrigger Binding="{Binding TranslatedText}" Value="{x:Null}">
-                    <Setter Property="IsEnabled" Value="False"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
     </Window.Resources>
 
     <shell:WindowChrome.WindowChrome>
@@ -239,16 +165,6 @@
                         Style="{DynamicResource Style.Text.Caption}"
                         Text="翻译结果"
                         VerticalAlignment="Center"/>
-
-                    <Button
-                        x:Name="CopyTranslationButton"
-                        HorizontalAlignment="Right"
-                        Style="{StaticResource Style.Translate.CopyButton}"
-                        Content="复制"
-                        ToolTip="复制翻译结果"
-                        automation:AutomationProperties.Name="复制翻译结果"
-                        automation:AutomationProperties.LiveSetting="Polite"
-                        Click="OnCopyTranslationClick"/>
                 </Grid>
 
                 <Grid Grid.Row="1" Margin="0,2,0,0">

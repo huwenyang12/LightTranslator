@@ -1,10 +1,8 @@
 using System.Windows;
-using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Windows.Shell;
 using System.Windows.Threading;
 using LightTranslator.Models;
@@ -71,7 +69,7 @@ public sealed class TranslateWindowVisualTests
                     surface.CornerRadius
                 );
 
-                Assert.IsType<Button>(
+                Assert.Null(
                     window.FindName(
                         "CopyTranslationButton"
                     )
@@ -227,205 +225,6 @@ public sealed class TranslateWindowVisualTests
     }
 
     [Fact]
-    public void CopyButton_WhenResultIsEmpty_IsDisabled()
-    {
-        RunOnSta(
-            () =>
-            {
-                var window =
-                    new TranslateWindow(
-                        new TranslateViewModel(
-                            new NoOpTranslationService()
-                        )
-                    );
-
-                var copyButton =
-                    Assert.IsType<Button>(
-                        window.FindName("CopyTranslationButton")
-                    );
-
-                Assert.False(copyButton.IsEnabled);
-
-                window.Close();
-            }
-        );
-    }
-
-    [Fact]
-    public void CopyButton_WhenCopySucceeds_ShowsConfirmationState()
-    {
-        RunOnSta(
-            () =>
-            {
-                var window =
-                    new TranslateWindow(
-                        CreateTranslatedViewModel(),
-                        languagePersistence: null,
-                        new FakeClipboardService(true),
-                        (_, _) => { }
-                    );
-                var copyButton =
-                    Assert.IsType<Button>(
-                        window.FindName("CopyTranslationButton")
-                    );
-
-                copyButton.RaiseEvent(
-                    new RoutedEventArgs(Button.ClickEvent)
-                );
-
-                Assert.Equal("✓ 已复制", copyButton.Content);
-                Assert.Equal(
-                    "已复制翻译结果",
-                    AutomationProperties.GetName(copyButton)
-                );
-
-                window.Close();
-            }
-        );
-    }
-
-    [Fact]
-    public void WhitespaceResult_ShowsPlaceholderAndDisablesCopy()
-    {
-        RunOnSta(
-            () =>
-            {
-                var viewModel =
-                    CreateTranslatedViewModel(
-                        new WhitespaceTranslationService(),
-                        "   "
-                    );
-                var window = new TranslateWindow(viewModel);
-                var copyButton =
-                    Assert.IsType<Button>(
-                        window.FindName("CopyTranslationButton")
-                    );
-
-                Assert.False(copyButton.IsEnabled);
-
-                window.Close();
-            }
-        );
-    }
-
-    [Fact]
-    public void CopyFeedback_WhenTranslationChanges_ResetsImmediately()
-    {
-        RunOnSta(
-            () =>
-            {
-                var viewModel =
-                    CreateTranslatedViewModel(
-                        new EchoTranslationService(),
-                        "你好"
-                    );
-                var window =
-                    new TranslateWindow(
-                        viewModel,
-                        languagePersistence: null,
-                        new FakeClipboardService(true),
-                        (_, _) => { }
-                    );
-                var copyButton =
-                    Assert.IsType<Button>(
-                        window.FindName("CopyTranslationButton")
-                    );
-
-                copyButton.RaiseEvent(
-                    new RoutedEventArgs(Button.ClickEvent)
-                );
-                Assert.Equal("✓ 已复制", copyButton.Content);
-
-                viewModel.SourceText = "第二条";
-
-                Assert.Equal("第二条", viewModel.TranslatedText);
-                Assert.Equal("复制", copyButton.Content);
-                Assert.Equal(
-                    "复制翻译结果",
-                    AutomationProperties.GetName(copyButton)
-                );
-
-                window.Close();
-            }
-        );
-    }
-
-    [Fact]
-    public void CopyFeedback_UsesBriefOneHundredFortyMillisecondAnimation()
-    {
-        RunOnSta(
-            () =>
-            {
-                var window =
-                    new TranslateWindow(
-                        new TranslateViewModel(
-                            new NoOpTranslationService()
-                        )
-                    );
-                var storyboard =
-                    Assert.IsType<Storyboard>(
-                        window.FindResource("Storyboard.CopyFeedback.In")
-                    );
-                var animation =
-                    Assert.IsType<DoubleAnimation>(
-                        Assert.Single(storyboard.Children)
-                    );
-
-                Assert.Equal(
-                    TimeSpan.FromMilliseconds(140),
-                    animation.Duration.TimeSpan
-                );
-
-                window.Close();
-            }
-        );
-    }
-
-    [Fact]
-    public void CopyButton_WhenClipboardStaysBusy_ShowsErrorWithoutThrowing()
-    {
-        RunOnSta(
-            () =>
-            {
-                var viewModel = CreateTranslatedViewModel();
-                var clipboard = new FakeClipboardService(false);
-                string? errorMessage = null;
-                Window? errorOwner = null;
-                var window =
-                    new TranslateWindow(
-                        viewModel,
-                        languagePersistence: null,
-                        clipboard,
-                        (owner, message) =>
-                        {
-                            errorOwner = owner;
-                            errorMessage = message;
-                        }
-                    );
-
-                var copyButton =
-                    Assert.IsType<Button>(
-                        window.FindName("CopyTranslationButton")
-                    );
-
-                var exception =
-                    Record.Exception(
-                        () => copyButton.RaiseEvent(
-                            new RoutedEventArgs(Button.ClickEvent)
-                        )
-                    );
-
-                Assert.Null(exception);
-                Assert.Same(window, errorOwner);
-                Assert.Equal("复制失败，请重试。", errorMessage);
-                Assert.Equal("Hello", clipboard.LastText);
-
-                window.Close();
-            }
-        );
-    }
-
-    [Fact]
     public void Enter_WhenClipboardStaysBusy_KeepsWindowOpenForRetry()
     {
         RunOnSta(
@@ -463,6 +262,44 @@ public sealed class TranslateWindowVisualTests
                 Assert.Equal("复制失败，请重试。", errorMessage);
 
                 window.Close();
+            }
+        );
+    }
+
+    [Fact]
+    public void Enter_WhenResultIsAvailable_CopiesAndClosesWindow()
+    {
+        RunOnSta(
+            () =>
+            {
+                var clipboard = new FakeClipboardService(true);
+                var window =
+                    new TranslateWindow(
+                        CreateTranslatedViewModel(),
+                        languagePersistence: null,
+                        clipboard,
+                        (_, _) => { }
+                    );
+
+                window.Show();
+
+                var source = PresentationSource.FromVisual(window);
+                var keyEvent =
+                    new KeyEventArgs(
+                        Keyboard.PrimaryDevice,
+                        source!,
+                        0,
+                        Key.Enter
+                    )
+                    {
+                        RoutedEvent = Keyboard.PreviewKeyDownEvent
+                    };
+
+                window.SourceTextBox.RaiseEvent(keyEvent);
+
+                Assert.False(window.IsVisible);
+                Assert.True(keyEvent.Handled);
+                Assert.Equal("Hello", clipboard.LastText);
             }
         );
     }
@@ -568,34 +405,6 @@ public sealed class TranslateWindowVisualTests
         {
             return Task.FromResult(
                 new TranslationResult("Hello", null)
-            );
-        }
-    }
-
-    private sealed class WhitespaceTranslationService
-        : ITranslationService
-    {
-        public Task<TranslationResult> TranslateAsync(
-            TranslationRequest request,
-            CancellationToken cancellationToken = default
-        )
-        {
-            return Task.FromResult(
-                new TranslationResult("   ", null)
-            );
-        }
-    }
-
-    private sealed class EchoTranslationService
-        : ITranslationService
-    {
-        public Task<TranslationResult> TranslateAsync(
-            TranslationRequest request,
-            CancellationToken cancellationToken = default
-        )
-        {
-            return Task.FromResult(
-                new TranslationResult(request.Text, null)
             );
         }
     }
