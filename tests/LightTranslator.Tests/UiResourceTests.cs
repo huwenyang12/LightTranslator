@@ -546,6 +546,14 @@ public sealed class UiResourceTests
                 "LightTranslator",
                 "Views"
             );
+        var trayDirectory =
+            Path.Combine(
+                FindRepositoryRoot(),
+                "src",
+                "LightTranslator",
+                "Services",
+                "Tray"
+            );
 
         return new[]
         {
@@ -564,6 +572,10 @@ public sealed class UiResourceTests
             Path.Combine(
                 viewsDirectory,
                 "ScreenshotTranslationWindow.xaml"
+            ),
+            Path.Combine(
+                trayDirectory,
+                "TrayMenuWindow.xaml"
             )
         };
     }

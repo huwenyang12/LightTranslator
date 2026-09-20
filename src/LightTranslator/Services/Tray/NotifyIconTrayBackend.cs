@@ -1,26 +1,17 @@
+using System.Windows.Threading;
+using Forms = System.Windows.Forms;
+
 namespace LightTranslator.Services.Tray;
 
 public sealed class NotifyIconTrayBackend
     : ITrayIconBackend
 {
-    private readonly System.Windows.Forms.NotifyIcon _notifyIcon;
-
+    private readonly Forms.NotifyIcon _notifyIcon;
     private readonly System.Drawing.Icon _icon;
+    private readonly Func<ITrayMenu> _menuFactory;
+    private readonly Dispatcher _dispatcher;
 
-    private readonly System.Windows.Forms.ContextMenuStrip _contextMenu;
-
-    private readonly System.Windows.Forms.ToolStripMenuItem
-        _textTranslationItem;
-
-    private readonly System.Windows.Forms.ToolStripMenuItem
-        _screenshotTranslationItem;
-
-    private readonly System.Windows.Forms.ToolStripMenuItem
-        _settingsItem;
-
-    private readonly System.Windows.Forms.ToolStripMenuItem
-        _exitItem;
-
+    private ITrayMenu? _activeMenu;
     private bool _disposed;
 
     public event Action? SettingsRequested;
@@ -32,83 +23,24 @@ public sealed class NotifyIconTrayBackend
     public event Action? ScreenshotTranslationRequested;
 
     public NotifyIconTrayBackend()
+        : this(
+            () => new TrayMenuWindow(),
+            System.Windows.Application.Current?.Dispatcher
+            ?? Dispatcher.CurrentDispatcher
+        )
     {
-        _textTranslationItem =
-            new System.Windows.Forms.ToolStripMenuItem(
-                "文本翻译"
-            );
+    }
 
-        _screenshotTranslationItem =
-            new System.Windows.Forms.ToolStripMenuItem(
-                "截图翻译"
-            );
+    internal NotifyIconTrayBackend(
+        Func<ITrayMenu> menuFactory,
+        Dispatcher dispatcher
+    )
+    {
+        ArgumentNullException.ThrowIfNull(menuFactory);
+        ArgumentNullException.ThrowIfNull(dispatcher);
 
-        _settingsItem =
-            new System.Windows.Forms.ToolStripMenuItem(
-                "设置"
-            );
-
-        _exitItem =
-            new System.Windows.Forms.ToolStripMenuItem(
-                "退出"
-            );
-
-        _textTranslationItem.Click +=
-            OnTextTranslationClick;
-
-        _screenshotTranslationItem.Click +=
-            OnScreenshotTranslationClick;
-
-        _settingsItem.Click +=
-            OnSettingsClick;
-
-        _exitItem.Click +=
-            OnExitClick;
-
-        _contextMenu =
-            new System.Windows.Forms.ContextMenuStrip
-            {
-                ShowImageMargin = false,
-                Font = System.Drawing.SystemFonts.MenuFont,
-                BackColor = System.Drawing.Color.White,
-                ForeColor = System.Drawing.Color.FromArgb(
-                    29,
-                    29,
-                    31
-                ),
-                Renderer = new System.Windows.Forms.ToolStripProfessionalRenderer(
-                    new BridgoMenuColorTable()
-                )
-            };
-
-        ConfigureMenuItem(_textTranslationItem);
-        ConfigureMenuItem(_screenshotTranslationItem);
-        ConfigureMenuItem(_settingsItem);
-        ConfigureMenuItem(_exitItem);
-
-        _contextMenu.Items.Add(
-            _textTranslationItem
-        );
-
-        _contextMenu.Items.Add(
-            _screenshotTranslationItem
-        );
-
-        _contextMenu.Items.Add(
-            new System.Windows.Forms.ToolStripSeparator()
-        );
-
-        _contextMenu.Items.Add(
-            _settingsItem
-        );
-
-        _contextMenu.Items.Add(
-            new System.Windows.Forms.ToolStripSeparator()
-        );
-
-        _contextMenu.Items.Add(
-            _exitItem
-        );
+        _menuFactory = menuFactory;
+        _dispatcher = dispatcher;
 
         var executablePath =
             Environment.ProcessPath
@@ -124,41 +56,21 @@ public sealed class NotifyIconTrayBackend
                 System.Drawing.SystemIcons.Application.Clone();
 
         _notifyIcon =
-            new System.Windows.Forms.NotifyIcon
+            new Forms.NotifyIcon
             {
-                Text =
-                    "语桥",
-
-                Icon =
-                    _icon,
-
-                ContextMenuStrip =
-                    _contextMenu,
-
-                Visible =
-                    false
+                Text = "语桥",
+                Icon = _icon,
+                ContextMenuStrip = null,
+                Visible = false
             };
-    }
 
-    private static void ConfigureMenuItem(
-        System.Windows.Forms.ToolStripMenuItem item
-    )
-    {
-        item.AutoSize = true;
-        item.Padding = new System.Windows.Forms.Padding(
-            10,
-            5,
-            10,
-            5
-        );
+        _notifyIcon.MouseUp += OnNotifyIconMouseUp;
     }
 
     public void Show()
     {
         ThrowIfDisposed();
-
-        _notifyIcon.Visible =
-            true;
+        _notifyIcon.Visible = true;
     }
 
     public void Hide()
@@ -168,40 +80,123 @@ public sealed class NotifyIconTrayBackend
             return;
         }
 
-        _notifyIcon.Visible =
-            false;
+        CloseActiveMenu();
+        _notifyIcon.Visible = false;
     }
 
-    private void OnTextTranslationClick(
+    private void OnNotifyIconMouseUp(
         object? sender,
-        EventArgs e
+        Forms.MouseEventArgs e
     )
     {
+        if (e.Button != Forms.MouseButtons.Right)
+        {
+            return;
+        }
+
+        _dispatcher.Invoke(ShowTrayMenu);
+    }
+
+    internal void ShowTrayMenu()
+    {
+        ThrowIfDisposed();
+
+        if (_activeMenu?.IsVisible == true)
+        {
+            return;
+        }
+
+        CloseActiveMenu();
+
+        var menu = _menuFactory();
+
+        menu.TextTranslationRequested +=
+            OnTextTranslationRequested;
+        menu.ScreenshotTranslationRequested +=
+            OnScreenshotTranslationRequested;
+        menu.SettingsRequested +=
+            OnSettingsRequested;
+        menu.ExitRequested +=
+            OnExitRequested;
+        menu.Closed += OnMenuClosed;
+
+        _activeMenu = menu;
+        menu.ShowAtCursor();
+    }
+
+    private void OnTextTranslationRequested()
+    {
+        CloseActiveMenu();
         TextTranslationRequested?.Invoke();
     }
 
-    private void OnScreenshotTranslationClick(
-        object? sender,
-        EventArgs e
-    )
+    private void OnScreenshotTranslationRequested()
     {
+        CloseActiveMenu();
         ScreenshotTranslationRequested?.Invoke();
     }
 
-    private void OnSettingsClick(
-        object? sender,
-        EventArgs e
-    )
+    private void OnSettingsRequested()
     {
+        CloseActiveMenu();
         SettingsRequested?.Invoke();
     }
 
-    private void OnExitClick(
+    private void OnExitRequested()
+    {
+        CloseActiveMenu();
+        ExitRequested?.Invoke();
+    }
+
+    private void OnMenuClosed(
         object? sender,
         EventArgs e
     )
     {
-        ExitRequested?.Invoke();
+        if (sender is not ITrayMenu menu)
+        {
+            return;
+        }
+
+        DetachMenu(menu);
+
+        if (ReferenceEquals(_activeMenu, menu))
+        {
+            _activeMenu = null;
+        }
+    }
+
+    private void CloseActiveMenu()
+    {
+        var menu = _activeMenu;
+
+        if (menu is null)
+        {
+            return;
+        }
+
+        _activeMenu = null;
+        DetachMenu(menu);
+
+        if (menu.IsVisible)
+        {
+            menu.Close();
+        }
+    }
+
+    private void DetachMenu(
+        ITrayMenu menu
+    )
+    {
+        menu.TextTranslationRequested -=
+            OnTextTranslationRequested;
+        menu.ScreenshotTranslationRequested -=
+            OnScreenshotTranslationRequested;
+        menu.SettingsRequested -=
+            OnSettingsRequested;
+        menu.ExitRequested -=
+            OnExitRequested;
+        menu.Closed -= OnMenuClosed;
     }
 
     public void Dispose()
@@ -211,28 +206,20 @@ public sealed class NotifyIconTrayBackend
             return;
         }
 
-        _disposed =
-            true;
+        _disposed = true;
+        _notifyIcon.Visible = false;
+        _notifyIcon.MouseUp -= OnNotifyIconMouseUp;
 
-        _notifyIcon.Visible =
-            false;
-
-        _textTranslationItem.Click -=
-            OnTextTranslationClick;
-
-        _screenshotTranslationItem.Click -=
-            OnScreenshotTranslationClick;
-
-        _settingsItem.Click -=
-            OnSettingsClick;
-
-        _exitItem.Click -=
-            OnExitClick;
+        if (_dispatcher.CheckAccess())
+        {
+            CloseActiveMenu();
+        }
+        else
+        {
+            _dispatcher.Invoke(CloseActiveMenu);
+        }
 
         _notifyIcon.Dispose();
-
-        _contextMenu.Dispose();
-
         _icon.Dispose();
     }
 
@@ -244,33 +231,5 @@ public sealed class NotifyIconTrayBackend
                 nameof(NotifyIconTrayBackend)
             );
         }
-    }
-
-    private sealed class BridgoMenuColorTable
-        : System.Windows.Forms.ProfessionalColorTable
-    {
-        public override System.Drawing.Color ToolStripDropDownBackground =>
-            System.Drawing.Color.White;
-
-        public override System.Drawing.Color MenuItemSelected =>
-            System.Drawing.Color.FromArgb(232, 240, 254);
-
-        public override System.Drawing.Color MenuItemBorder =>
-            System.Drawing.Color.Transparent;
-
-        public override System.Drawing.Color SeparatorDark =>
-            System.Drawing.Color.FromArgb(226, 226, 230);
-
-        public override System.Drawing.Color SeparatorLight =>
-            System.Drawing.Color.White;
-
-        public override System.Drawing.Color ImageMarginGradientBegin =>
-            System.Drawing.Color.White;
-
-        public override System.Drawing.Color ImageMarginGradientMiddle =>
-            System.Drawing.Color.White;
-
-        public override System.Drawing.Color ImageMarginGradientEnd =>
-            System.Drawing.Color.White;
     }
 }
