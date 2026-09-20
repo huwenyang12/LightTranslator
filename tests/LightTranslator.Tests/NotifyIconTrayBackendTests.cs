@@ -177,6 +177,58 @@ public sealed class NotifyIconTrayBackendTests
         );
     }
 
+    [Fact]
+    public void ShowTrayMenu_SettingsCommand_ClosesMenuAndForwardsWithoutCrash()
+    {
+        RunOnSta(
+            () =>
+            {
+                var menu = new TrayMenuWindow();
+
+                using var backend =
+                    new NotifyIconTrayBackend(
+                        () => menu,
+                        Dispatcher.CurrentDispatcher
+                    );
+
+                var settingsCount = 0;
+
+                backend.SettingsRequested +=
+                    () => settingsCount++;
+
+                backend.ShowTrayMenu();
+
+                menu.SettingsButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent)
+                );
+
+                Assert.False(menu.IsVisible);
+                Assert.Equal(1, settingsCount);
+            }
+        );
+    }
+
+    [Fact]
+    public void TrayMenu_CloseDuringClosing_DoesNotThrow()
+    {
+        RunOnSta(
+            () =>
+            {
+                var menu = new TrayMenuWindow();
+                var trayMenu = (ITrayMenu)menu;
+
+                menu.Show();
+                menu.Closing +=
+                    (_, _) => trayMenu.Close();
+
+                var exception = Record.Exception(trayMenu.Close);
+
+                Assert.Null(exception);
+                Assert.False(menu.IsVisible);
+            }
+        );
+    }
+
     private static Window CreateTrayMenuWindow()
     {
         var type =

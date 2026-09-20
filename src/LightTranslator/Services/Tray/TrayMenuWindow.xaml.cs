@@ -8,6 +8,8 @@ namespace LightTranslator.Services.Tray;
 public partial class TrayMenuWindow
     : Window, ITrayMenu
 {
+    private bool _closeRequested;
+
     public event Action? TextTranslationRequested;
 
     public event Action? ScreenshotTranslationRequested;
@@ -37,6 +39,33 @@ public partial class TrayMenuWindow
         Opacity = 1;
         Activate();
         TextTranslationButton.Focus();
+    }
+
+    void ITrayMenu.Close()
+    {
+        RequestClose();
+    }
+
+    private void RequestClose()
+    {
+        if (_closeRequested)
+        {
+            return;
+        }
+
+        _closeRequested = true;
+
+        try
+        {
+            base.Close();
+        }
+        finally
+        {
+            if (IsVisible)
+            {
+                _closeRequested = false;
+            }
+        }
     }
 
     private void PositionNearCursor()
@@ -111,7 +140,7 @@ public partial class TrayMenuWindow
         EventArgs e
     )
     {
-        Close();
+        RequestClose();
     }
 
     private void OnPreviewKeyDown(
@@ -125,6 +154,6 @@ public partial class TrayMenuWindow
         }
 
         e.Handled = true;
-        Close();
+        RequestClose();
     }
 }
