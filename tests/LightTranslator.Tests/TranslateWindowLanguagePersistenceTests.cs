@@ -6,6 +6,7 @@ using LightTranslator.Views;
 
 namespace LightTranslator.Tests;
 
+[Collection("Translate window WPF")]
 public class TranslateWindowLanguagePersistenceTests
 {
     [Fact]

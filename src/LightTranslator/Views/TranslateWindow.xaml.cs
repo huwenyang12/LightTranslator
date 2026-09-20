@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using LightTranslator.Services.Clipboard;
 using LightTranslator.ViewModels;
 using LightTranslator.Services.Windows;
 using LightTranslator.Services.Settings;
@@ -11,12 +12,39 @@ public partial class TranslateWindow
 {
     private readonly TranslateViewModel _viewModel;
     private readonly ITextLanguageSettingsPersistence? _languagePersistence;
+    private readonly IClipboardService _clipboardService;
+    private readonly Action<Window, string> _showClipboardError;
 
     public TranslateWindow(
         TranslateViewModel viewModel,
         ITextLanguageSettingsPersistence? languagePersistence = null
+    ) : this(
+        viewModel,
+        languagePersistence,
+        new ClipboardService(),
+        (owner, message) =>
+            System.Windows.MessageBox.Show(
+                owner,
+                message,
+                "语桥",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning
+            )
     )
     {
+    }
+
+    internal TranslateWindow(
+        TranslateViewModel viewModel,
+        ITextLanguageSettingsPersistence? languagePersistence,
+        IClipboardService clipboardService,
+        Action<Window, string> showClipboardError
+    )
+    {
+        ArgumentNullException.ThrowIfNull(viewModel);
+        ArgumentNullException.ThrowIfNull(clipboardService);
+        ArgumentNullException.ThrowIfNull(showClipboardError);
+
         InitializeComponent();
 
         _viewModel =
@@ -24,6 +52,12 @@ public partial class TranslateWindow
 
         _languagePersistence =
             languagePersistence;
+
+        _clipboardService =
+            clipboardService;
+
+        _showClipboardError =
+            showClipboardError;
 
         DataContext =
             viewModel;
@@ -98,25 +132,37 @@ public partial class TranslateWindow
     {
         _viewModel.SwapLanguages();
     }
-    
+
 
     private void OnCopyTranslationClick(
         object sender,
         RoutedEventArgs e
     )
     {
-        if (
-            string.IsNullOrWhiteSpace(
-                _viewModel.TranslatedText
-            )
-        )
+        TryCopyTranslation();
+    }
+
+    private bool TryCopyTranslation()
+    {
+        var translatedText =
+            _viewModel.TranslatedText;
+
+        if (string.IsNullOrWhiteSpace(translatedText))
         {
-            return;
+            return true;
         }
 
-        System.Windows.Clipboard.SetText(
-            _viewModel.TranslatedText
+        if (_clipboardService.TrySetText(translatedText))
+        {
+            return true;
+        }
+
+        _showClipboardError(
+            this,
+            "复制失败，请重试。"
         );
+
+        return false;
     }
 
     private void OnTranslationSurfaceMouseLeftButtonDown(
@@ -191,15 +237,9 @@ public partial class TranslateWindow
 
         e.Handled = true;
 
-        if (
-            !string.IsNullOrWhiteSpace(
-                _viewModel.TranslatedText
-            )
-        )
+        if (!TryCopyTranslation())
         {
-            System.Windows.Clipboard.SetText(
-                _viewModel.TranslatedText
-            );
+            return;
         }
 
         Close();
