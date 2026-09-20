@@ -3,6 +3,7 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shell;
 using System.Windows.Threading;
@@ -105,7 +106,7 @@ public sealed class TranslateWindowVisualTests
     }
 
     [Fact]
-    public void EmptyEditors_ShowSourceAndResultPlaceholders()
+    public void EmptyEditors_DoNotShowPlaceholderText()
     {
         RunOnSta(
             () =>
@@ -117,17 +118,12 @@ public sealed class TranslateWindowVisualTests
                         )
                     );
 
-                var sourcePlaceholder =
-                    Assert.IsType<TextBlock>(
-                        window.FindName("SourcePlaceholderTextBlock")
-                    );
-                var resultPlaceholder =
-                    Assert.IsType<TextBlock>(
-                        window.FindName("ResultPlaceholderTextBlock")
-                    );
-
-                Assert.Equal(Visibility.Visible, sourcePlaceholder.Visibility);
-                Assert.Equal(Visibility.Visible, resultPlaceholder.Visibility);
+                Assert.Null(
+                    window.FindName("SourcePlaceholderTextBlock")
+                );
+                Assert.Null(
+                    window.FindName("ResultPlaceholderTextBlock")
+                );
 
                 window.Close();
             }
@@ -135,7 +131,7 @@ public sealed class TranslateWindowVisualTests
     }
 
     [Fact]
-    public void SourceEditor_WhenFocused_KeepsSinglePixelFocusBorder()
+    public void SourceEditor_WhenFocused_KeepsNeutralSinglePixelBorder()
     {
         RunOnSta(
             () =>
@@ -147,13 +143,19 @@ public sealed class TranslateWindowVisualTests
                         )
                     );
 
+                window.Resources["Brush.Border.Subtle"] =
+                    Brushes.Gray;
+                window.Resources["Brush.Focus"] =
+                    Brushes.Blue;
+
                 window.Show();
                 window.Activate();
-                window.SourceTextBox.Focus();
+                Assert.True(window.SourceTextBox.Focus());
                 window.Dispatcher.Invoke(
                     () => { },
                     DispatcherPriority.Input
                 );
+                Assert.True(window.SourceTextBox.IsKeyboardFocused);
                 window.SourceTextBox.ApplyTemplate();
 
                 var inputBorder =
@@ -165,6 +167,59 @@ public sealed class TranslateWindowVisualTests
                     );
 
                 Assert.Equal(new Thickness(1), inputBorder.BorderThickness);
+                Assert.Equal(
+                    window.SourceTextBox.BorderBrush,
+                    inputBorder.BorderBrush
+                );
+                Assert.Equal(
+                    Colors.Gray,
+                    Assert.IsType<SolidColorBrush>(inputBorder.BorderBrush).Color
+                );
+
+                window.Close();
+            }
+        );
+    }
+
+    [Fact]
+    public void ResultEditor_WhenFocused_RemainsBorderless()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new TranslateWindow(
+                        new TranslateViewModel(
+                            new NoOpTranslationService()
+                        )
+                    );
+                var resultTextBox =
+                    Assert.IsType<TextBox>(
+                        window.FindName("ResultTextBox")
+                    );
+
+                window.Show();
+                window.Activate();
+                Assert.True(resultTextBox.Focus());
+                window.Dispatcher.Invoke(
+                    () => { },
+                    DispatcherPriority.Input
+                );
+                Assert.True(resultTextBox.IsKeyboardFocused);
+                resultTextBox.ApplyTemplate();
+
+                var resultBorder =
+                    Assert.IsType<Border>(
+                        resultTextBox.Template.FindName(
+                            "InputBorder",
+                            resultTextBox
+                        )
+                    );
+
+                Assert.Equal(
+                    new Thickness(0),
+                    resultBorder.BorderThickness
+                );
 
                 window.Close();
             }
@@ -245,13 +300,8 @@ public sealed class TranslateWindowVisualTests
                     Assert.IsType<Button>(
                         window.FindName("CopyTranslationButton")
                     );
-                var resultPlaceholder =
-                    Assert.IsType<TextBlock>(
-                        window.FindName("ResultPlaceholderTextBlock")
-                    );
 
                 Assert.False(copyButton.IsEnabled);
-                Assert.Equal(Visibility.Visible, resultPlaceholder.Visibility);
 
                 window.Close();
             }

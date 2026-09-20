@@ -52,12 +52,6 @@
                     Focusable="False"/>
             </Border>
             <ControlTemplate.Triggers>
-                <Trigger Property="IsKeyboardFocused" Value="True">
-                    <Setter
-                        TargetName="InputBorder"
-                        Property="BorderBrush"
-                        Value="{DynamicResource Brush.Focus}"/>
-                </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter TargetName="InputBorder" Property="Opacity" Value="0.45"/>
                 </Trigger>
@@ -82,14 +76,13 @@
         </Style>
 
         <Style
-            x:Key="Style.Translate.Placeholder"
-            TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Primary}"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Normal"/>
-            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
-            <Setter Property="Opacity" Value="0.72"/>
-            <Setter Property="IsHitTestVisible" Value="False"/>
+            x:Key="Style.Translate.ResultEditor"
+            TargetType="TextBox"
+            BasedOn="{StaticResource Style.Translate.SourceEditor}">
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
         </Style>
 
         <Style
@@ -229,28 +222,6 @@
                     VerticalScrollBarVisibility="Auto"
                     Style="{StaticResource Style.Translate.SourceEditor}"
                     automation:AutomationProperties.Name="待翻译文本"/>
-
-                <TextBlock
-                    x:Name="SourcePlaceholderTextBlock"
-                    Margin="13,10"
-                    VerticalAlignment="Top"
-                    Text="输入或粘贴要翻译的内容…">
-                    <TextBlock.Style>
-                        <Style
-                            TargetType="TextBlock"
-                            BasedOn="{StaticResource Style.Translate.Placeholder}">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SourceText}" Value="">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding SourceText}" Value="{x:Null}">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
             </Grid>
 
             <Border
@@ -282,6 +253,7 @@
 
                 <Grid Grid.Row="1" Margin="0,2,0,0">
                     <TextBox
+                        x:Name="ResultTextBox"
                         Height="Auto"
                         Padding="2"
                         Text="{Binding TranslatedText, Mode=OneWay}"
@@ -293,30 +265,8 @@
                         Background="Transparent"
                         FontSize="15"
                         VerticalContentAlignment="Top"
-                        Style="{DynamicResource Style.Input.TextBox}"
+                        Style="{StaticResource Style.Translate.ResultEditor}"
                         automation:AutomationProperties.Name="翻译结果"/>
-
-                    <TextBlock
-                        x:Name="ResultPlaceholderTextBlock"
-                        Margin="2,2"
-                        VerticalAlignment="Top"
-                        Text="翻译结果将在这里显示">
-                        <TextBlock.Style>
-                            <Style
-                                TargetType="TextBlock"
-                                BasedOn="{StaticResource Style.Translate.Placeholder}">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding TranslatedText}" Value="">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding TranslatedText}" Value="{x:Null}">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
                 </Grid>
             </Grid>
 
