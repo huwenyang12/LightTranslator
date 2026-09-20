@@ -8,6 +8,9 @@ internal sealed class ClipboardService
     private const int ClipboardCannotOpen =
         unchecked((int)0x800401D0);
 
+    private const int DefaultMaxAttempts = 15;
+    private const int DefaultRetryDelayMilliseconds = 100;
+
     private readonly Action<string> _setText;
     private readonly Action<int> _delay;
     private readonly int _maxAttempts;
@@ -16,9 +19,19 @@ internal sealed class ClipboardService
     internal ClipboardService()
         : this(
             System.Windows.Clipboard.SetText,
-            Thread.Sleep,
-            maxAttempts: 5,
-            retryDelayMilliseconds: 50
+            Thread.Sleep
+        )
+    {
+    }
+
+    internal ClipboardService(
+        Action<string> setText,
+        Action<int> delay
+    ) : this(
+            setText,
+            delay,
+            maxAttempts: DefaultMaxAttempts,
+            retryDelayMilliseconds: DefaultRetryDelayMilliseconds
         )
     {
     }

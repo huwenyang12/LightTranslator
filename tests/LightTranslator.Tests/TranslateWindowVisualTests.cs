@@ -461,6 +461,12 @@ public sealed class TranslateWindowVisualTests
                 {
                     try
                     {
+                        SynchronizationContext.SetSynchronizationContext(
+                            new DispatcherSynchronizationContext(
+                                Dispatcher.CurrentDispatcher
+                            )
+                        );
+
                         action();
                     }
                     catch (

@@ -40,6 +40,38 @@ public sealed class ClipboardServiceTests
     }
 
     [Fact]
+    public void TrySetText_WithDefaultPolicy_WhenClipboardIsBusyForHalfSecond_Succeeds()
+    {
+        var attempts = 0;
+        var delays = new List<int>();
+        var service =
+            new ClipboardService(
+                _ =>
+                {
+                    attempts++;
+
+                    if (attempts < 7)
+                    {
+                        throw new COMException(
+                            "Clipboard busy.",
+                            ClipboardCannotOpen
+                        );
+                    }
+                },
+                delay => delays.Add(delay)
+            );
+
+        var copied = service.TrySetText("你好");
+
+        Assert.True(copied);
+        Assert.Equal(7, attempts);
+        Assert.Equal(
+            [100, 100, 100, 100, 100, 100],
+            delays
+        );
+    }
+
+    [Fact]
     public void TrySetText_WhenClipboardStaysBusy_ReturnsFalseAfterRetryLimit()
     {
         var attempts = 0;
