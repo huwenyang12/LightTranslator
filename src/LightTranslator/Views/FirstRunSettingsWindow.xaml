@@ -87,14 +87,16 @@
         </Style>
 
         <Style x:Key="Style.Settings.SaveButton" TargetType="Button">
-            <Setter Property="Width" Value="76"/>
-            <Setter Property="Height" Value="34"/>
-            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Width" Value="68"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="12,0"/>
             <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Primary}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Background" Value="{DynamicResource Brush.Accent}"/>
-            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnAccent}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface.Elevated}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Faint}"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -104,8 +106,9 @@
                             <Border
                                 x:Name="ButtonSurface"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="9"
-                                Opacity="0.90"/>
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="16"/>
                             <ContentPresenter
                                 Margin="{TemplateBinding Padding}"
                                 HorizontalAlignment="Center"
@@ -114,10 +117,16 @@
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="1"/>
+                                <Setter
+                                    TargetName="ButtonSurface"
+                                    Property="Background"
+                                    Value="{DynamicResource Brush.Selection.Hover}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.76"/>
+                                <Setter
+                                    TargetName="ButtonSurface"
+                                    Property="Background"
+                                    Value="{DynamicResource Brush.Selection.Selected}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.38"/>
@@ -130,13 +139,14 @@
         </Style>
 
         <Style x:Key="Style.Settings.ScrollThumb" TargetType="Thumb">
+            <Setter Property="Width" Value="6"/>
+            <Setter Property="Height" Value="52"/>
             <Setter Property="Background" Value="{DynamicResource Brush.Text.Secondary}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
                         <Border
                             x:Name="ThumbSurface"
-                            MinHeight="20"
                             Background="{TemplateBinding Background}"
                             CornerRadius="3"
                             Opacity="0.28"/>
@@ -216,7 +226,7 @@
             VerticalScrollBarVisibility="Auto">
             <ScrollViewer.Resources>
                 <Style TargetType="{x:Type ScrollBar}">
-                    <Setter Property="Width" Value="4"/>
+                    <Setter Property="Width" Value="6"/>
                     <Setter Property="Margin" Value="0,8,6,8"/>
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="Focusable" Value="False"/>
@@ -226,10 +236,11 @@
                                 <Track
                                     x:Name="PART_Track"
                                     IsDirectionReversed="True"
+                                    Orientation="{TemplateBinding Orientation}"
                                     Minimum="{TemplateBinding Minimum}"
                                     Maximum="{TemplateBinding Maximum}"
                                     Value="{TemplateBinding Value}"
-                                    ViewportSize="{TemplateBinding ViewportSize}">
+                                    ViewportSize="NaN">
                                     <Track.DecreaseRepeatButton>
                                         <RepeatButton
                                             Command="{x:Static ScrollBar.PageUpCommand}"

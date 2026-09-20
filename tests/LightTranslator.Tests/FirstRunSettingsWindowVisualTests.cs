@@ -136,17 +136,48 @@ public sealed class FirstRunSettingsWindowVisualTests
                                 setter.Property == FrameworkElement.MarginProperty
                         );
 
-                Assert.Equal(4d, widthSetter.Value);
+                Assert.Equal(6d, widthSetter.Value);
                 Assert.Equal(new Thickness(0, 8, 6, 8), marginSetter.Value);
+
+                var scrollBar =
+                    new System.Windows.Controls.Primitives.ScrollBar
+                    {
+                        Orientation = Orientation.Vertical,
+                        Style = scrollBarStyle
+                    };
+
+                Assert.True(scrollBar.ApplyTemplate());
+
+                var scrollTrack =
+                    Assert.IsType<System.Windows.Controls.Primitives.Track>(
+                        scrollBar.Template.FindName("PART_Track", scrollBar)
+                    );
+
+                Assert.True(double.IsNaN(scrollTrack.ViewportSize));
+                Assert.Equal(52d, scrollTrack.Thumb.Height);
 
                 var saveButton =
                     Assert.IsType<Button>(
                         window.FindName("SaveButton")
                     );
 
-                Assert.Equal(76d, saveButton.Width);
-                Assert.Equal(34d, saveButton.Height);
+                Assert.Equal(68d, saveButton.Width);
+                Assert.Equal(32d, saveButton.Height);
                 Assert.Equal(13d, saveButton.FontSize);
+                Assert.Equal(new Thickness(1), saveButton.BorderThickness);
+                Assert.Same(
+                    window.FindResource("Style.Settings.SaveButton"),
+                    saveButton.Style
+                );
+
+                Assert.True(saveButton.ApplyTemplate());
+
+                var saveButtonSurface =
+                    Assert.IsType<Border>(
+                        saveButton.Template.FindName("ButtonSurface", saveButton)
+                    );
+
+                Assert.Equal(new CornerRadius(16), saveButtonSurface.CornerRadius);
 
                 var footer =
                     Assert.IsType<Border>(
