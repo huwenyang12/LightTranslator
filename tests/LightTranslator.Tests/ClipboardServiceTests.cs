@@ -72,6 +72,34 @@ public sealed class ClipboardServiceTests
     }
 
     [Fact]
+    public void TrySetText_WhenTextIsRegisteredButFlushIsContended_ReturnsTrue()
+    {
+        string? registeredText = null;
+        bool? requestedPersistence = null;
+        var service =
+            new ClipboardService(
+                (text, copy) =>
+                {
+                    registeredText = text;
+                    requestedPersistence = copy;
+                },
+                () => throw new COMException(
+                    "Clipboard listener opened the clipboard.",
+                    ClipboardCannotOpen
+                ),
+                _ => { },
+                maxAttempts: 5,
+                retryDelayMilliseconds: 50
+            );
+
+        var copied = service.TrySetText("你好");
+
+        Assert.True(copied);
+        Assert.Equal("你好", registeredText);
+        Assert.False(requestedPersistence);
+    }
+
+    [Fact]
     public void TrySetText_WhenClipboardStaysBusy_ReturnsFalseAfterRetryLimit()
     {
         var attempts = 0;

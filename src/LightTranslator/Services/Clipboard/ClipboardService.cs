@@ -18,8 +18,11 @@ internal sealed class ClipboardService
 
     internal ClipboardService()
         : this(
-            System.Windows.Clipboard.SetText,
-            Thread.Sleep
+            RegisterClipboardText,
+            System.Windows.Clipboard.Flush,
+            Thread.Sleep,
+            maxAttempts: DefaultMaxAttempts,
+            retryDelayMilliseconds: DefaultRetryDelayMilliseconds
         )
     {
     }
@@ -34,6 +37,27 @@ internal sealed class ClipboardService
             retryDelayMilliseconds: DefaultRetryDelayMilliseconds
         )
     {
+    }
+
+    internal ClipboardService(
+        Action<string, bool> registerText,
+        Action flush,
+        Action<int> delay,
+        int maxAttempts,
+        int retryDelayMilliseconds
+    ) : this(
+            text => SetTextWithBestEffortFlush(
+                text,
+                registerText,
+                flush
+            ),
+            delay,
+            maxAttempts,
+            retryDelayMilliseconds
+        )
+    {
+        ArgumentNullException.ThrowIfNull(registerText);
+        ArgumentNullException.ThrowIfNull(flush);
     }
 
     internal ClipboardService(
@@ -93,5 +117,45 @@ internal sealed class ClipboardService
         }
 
         return false;
+    }
+
+    private static void RegisterClipboardText(
+        string text,
+        bool copy
+    )
+    {
+        var dataObject =
+            new System.Windows.DataObject();
+
+        dataObject.SetText(
+            text,
+            System.Windows.TextDataFormat.UnicodeText
+        );
+
+        System.Windows.Clipboard.SetDataObject(
+            dataObject,
+            copy
+        );
+    }
+
+    private static void SetTextWithBestEffortFlush(
+        string text,
+        Action<string, bool> registerText,
+        Action flush
+    )
+    {
+        registerText(
+            text,
+            false
+        );
+
+        try
+        {
+            flush();
+        }
+        catch (COMException exception)
+            when (exception.ErrorCode == ClipboardCannotOpen)
+        {
+        }
     }
 }
