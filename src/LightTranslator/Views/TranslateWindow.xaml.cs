@@ -180,9 +180,14 @@ public partial class TranslateWindow
         System.Windows.Input.KeyEventArgs e
     )
     {
+        var key =
+            e.Key == Key.ImeProcessed
+                ? e.ImeProcessedKey
+                : e.Key;
+
         if (
-            e.Key != Key.Enter &&
-            e.Key != Key.Return
+            key != Key.Enter &&
+            key != Key.Return
         )
         {
             return;

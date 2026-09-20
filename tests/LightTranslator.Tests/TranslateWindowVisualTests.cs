@@ -304,6 +304,58 @@ public sealed class TranslateWindowVisualTests
         );
     }
 
+    [Fact]
+    public void ImeProcessedEnter_WhenResultIsAvailable_CopiesAndClosesWindow()
+    {
+        RunOnSta(
+            () =>
+            {
+                var clipboard = new FakeClipboardService(true);
+                var window =
+                    new TranslateWindow(
+                        CreateTranslatedViewModel(),
+                        languagePersistence: null,
+                        clipboard,
+                        (_, _) => { }
+                    );
+
+                window.Show();
+
+                var source = PresentationSource.FromVisual(window);
+                var keyEvent =
+                    new KeyEventArgs(
+                        Keyboard.PrimaryDevice,
+                        source!,
+                        0,
+                        Key.Enter
+                    )
+                    {
+                        RoutedEvent = Keyboard.PreviewKeyDownEvent
+                    };
+
+                var markImeProcessed =
+                    typeof(KeyEventArgs)
+                        .GetMethod(
+                            "MarkImeProcessed",
+                            System.Reflection.BindingFlags.Instance |
+                            System.Reflection.BindingFlags.NonPublic
+                        );
+
+                Assert.NotNull(markImeProcessed);
+                markImeProcessed.Invoke(keyEvent, null);
+
+                Assert.Equal(Key.ImeProcessed, keyEvent.Key);
+                Assert.Equal(Key.Enter, keyEvent.ImeProcessedKey);
+
+                window.SourceTextBox.RaiseEvent(keyEvent);
+
+                Assert.False(window.IsVisible);
+                Assert.True(keyEvent.Handled);
+                Assert.Equal("Hello", clipboard.LastText);
+            }
+        );
+    }
+
     private static TranslateViewModel CreateTranslatedViewModel()
     {
         return CreateTranslatedViewModel(
