@@ -4,10 +4,10 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
         Title="语桥"
-        Width="540"
-        Height="300"
-        MinWidth="440"
-        MinHeight="260"
+        Width="520"
+        Height="280"
+        MinWidth="420"
+        MinHeight="240"
         WindowStyle="None"
         ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
@@ -17,6 +17,138 @@
         Topmost="True"
         FontFamily="{DynamicResource Font.Family.Primary}"
         Foreground="{DynamicResource Brush.Text.Primary}">
+
+    <Window.Resources>
+        <Storyboard x:Key="Storyboard.CopyFeedback.In">
+            <DoubleAnimation
+                Storyboard.TargetName="CopyTranslationButton"
+                Storyboard.TargetProperty="Opacity"
+                From="0.55"
+                To="1"
+                Duration="0:0:0.14"/>
+        </Storyboard>
+
+        <Storyboard x:Key="Storyboard.CopyFeedback.Out">
+            <DoubleAnimation
+                Storyboard.TargetName="CopyTranslationButton"
+                Storyboard.TargetProperty="Opacity"
+                From="1"
+                To="0.55"
+                Duration="0:0:0.14"/>
+        </Storyboard>
+
+        <ControlTemplate
+            x:Key="Template.Translate.SourceEditor"
+            TargetType="TextBox">
+            <Border
+                x:Name="InputBorder"
+                Padding="{TemplateBinding Padding}"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="10">
+                <ScrollViewer
+                    x:Name="PART_ContentHost"
+                    Focusable="False"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsKeyboardFocused" Value="True">
+                    <Setter
+                        TargetName="InputBorder"
+                        Property="BorderBrush"
+                        Value="{DynamicResource Brush.Focus}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter TargetName="InputBorder" Property="Opacity" Value="0.45"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <Style
+            x:Key="Style.Translate.SourceEditor"
+            TargetType="TextBox">
+            <Setter Property="Height" Value="Auto"/>
+            <Setter Property="Padding" Value="12,9"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Primary}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Window.Base}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Brush.Accent}"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="VerticalContentAlignment" Value="Top"/>
+            <Setter Property="Template" Value="{StaticResource Template.Translate.SourceEditor}"/>
+        </Style>
+
+        <Style
+            x:Key="Style.Translate.Placeholder"
+            TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Primary}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+            <Setter Property="Opacity" Value="0.72"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+        </Style>
+
+        <Style
+            x:Key="Style.Translate.CopyButton"
+            TargetType="Button">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="MinWidth" Value="52"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Primary}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="ButtonBorder"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="8">
+                            <ContentPresenter
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource Brush.Window.Base}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.68"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource Brush.Focus}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.38"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding TranslatedText}" Value="">
+                    <Setter Property="IsEnabled" Value="False"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding TranslatedText}" Value="{x:Null}">
+                    <Setter Property="IsEnabled" Value="False"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
 
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome
@@ -29,7 +161,7 @@
 
     <Border
         x:Name="TranslationSurface"
-        Padding="18"
+        Padding="16"
         Background="{DynamicResource Brush.Surface.Card}"
         BorderThickness="0"
         CornerRadius="0"
@@ -37,23 +169,23 @@
 
         <Grid KeyboardNavigation.TabNavigation="Continue">
             <Grid.RowDefinitions>
-                <RowDefinition Height="40"/>
+                <RowDefinition Height="36"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="1"/>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="36"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="48"/>
+                    <ColumnDefinition Width="40"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
                 <ComboBox
                     Grid.Column="0"
-                    Height="36"
+                    Height="34"
                     Style="{DynamicResource Style.Input.ComboBox}"
                     SelectedValuePath="Tag"
                     SelectedValue="{Binding SourceLanguage}">
@@ -65,20 +197,20 @@
 
                 <Button
                     Grid.Column="1"
-                    Width="32"
-                    Height="32"
+                    Width="28"
+                    Height="28"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Style="{DynamicResource Style.Button.IconCircle}"
                     Content="⇄"
-                    FontSize="15"
+                    FontSize="14"
                     ToolTip="交换源语言和目标语言"
                     automation:AutomationProperties.Name="交换源语言和目标语言"
                     Click="OnSwapLanguagesClick"/>
 
                 <ComboBox
                     Grid.Column="2"
-                    Height="36"
+                    Height="34"
                     Style="{DynamicResource Style.Input.ComboBox}"
                     SelectedValuePath="Tag"
                     SelectedValue="{Binding TargetLanguage}">
@@ -88,28 +220,44 @@
                 </ComboBox>
             </Grid>
 
-            <TextBox
-                x:Name="SourceTextBox"
-                Grid.Row="1"
-                Height="Auto"
-                Margin="0,10,0,10"
-                Padding="2"
-                Text="{Binding SourceText, UpdateSourceTrigger=PropertyChanged}"
-                AcceptsReturn="True"
-                TextWrapping="Wrap"
-                VerticalScrollBarVisibility="Auto"
-                BorderThickness="0"
-                Background="Transparent"
-                FontSize="16"
-                VerticalContentAlignment="Top"
-                Style="{DynamicResource Style.Input.TextBox}"
-                automation:AutomationProperties.Name="待翻译文本"/>
+            <Grid Grid.Row="1" Margin="0,8,0,8">
+                <TextBox
+                    x:Name="SourceTextBox"
+                    Text="{Binding SourceText, UpdateSourceTrigger=PropertyChanged}"
+                    AcceptsReturn="True"
+                    TextWrapping="Wrap"
+                    VerticalScrollBarVisibility="Auto"
+                    Style="{StaticResource Style.Translate.SourceEditor}"
+                    automation:AutomationProperties.Name="待翻译文本"/>
+
+                <TextBlock
+                    x:Name="SourcePlaceholderTextBlock"
+                    Margin="13,10"
+                    VerticalAlignment="Top"
+                    Text="输入或粘贴要翻译的内容…">
+                    <TextBlock.Style>
+                        <Style
+                            TargetType="TextBlock"
+                            BasedOn="{StaticResource Style.Translate.Placeholder}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SourceText}" Value="">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding SourceText}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
 
             <Border
                 Grid.Row="2"
                 Background="{DynamicResource Brush.Border.Subtle}"/>
 
-            <Grid Grid.Row="3" Margin="0,10,0,8">
+            <Grid Grid.Row="3" Margin="0,8,0,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -124,32 +272,52 @@
                     <Button
                         x:Name="CopyTranslationButton"
                         HorizontalAlignment="Right"
-                        Height="30"
-                        MinWidth="56"
-                        Padding="10,0"
-                        Style="{DynamicResource Style.Button.Quiet}"
+                        Style="{StaticResource Style.Translate.CopyButton}"
                         Content="复制"
                         ToolTip="复制翻译结果"
                         automation:AutomationProperties.Name="复制翻译结果"
+                        automation:AutomationProperties.LiveSetting="Polite"
                         Click="OnCopyTranslationClick"/>
                 </Grid>
 
-                <TextBox
-                    Grid.Row="1"
-                    Height="Auto"
-                    Margin="0,4,0,0"
-                    Padding="2"
-                    Text="{Binding TranslatedText, Mode=OneWay}"
-                    IsReadOnly="True"
-                    IsTabStop="False"
-                    TextWrapping="Wrap"
-                    VerticalScrollBarVisibility="Auto"
-                    BorderThickness="0"
-                    Background="Transparent"
-                    FontSize="16"
-                    VerticalContentAlignment="Top"
-                    Style="{DynamicResource Style.Input.TextBox}"
-                    automation:AutomationProperties.Name="翻译结果"/>
+                <Grid Grid.Row="1" Margin="0,2,0,0">
+                    <TextBox
+                        Height="Auto"
+                        Padding="2"
+                        Text="{Binding TranslatedText, Mode=OneWay}"
+                        IsReadOnly="True"
+                        IsTabStop="False"
+                        TextWrapping="Wrap"
+                        VerticalScrollBarVisibility="Auto"
+                        BorderThickness="0"
+                        Background="Transparent"
+                        FontSize="15"
+                        VerticalContentAlignment="Top"
+                        Style="{DynamicResource Style.Input.TextBox}"
+                        automation:AutomationProperties.Name="翻译结果"/>
+
+                    <TextBlock
+                        x:Name="ResultPlaceholderTextBlock"
+                        Margin="2,2"
+                        VerticalAlignment="Top"
+                        Text="翻译结果将在这里显示">
+                        <TextBlock.Style>
+                            <Style
+                                TargetType="TextBlock"
+                                BasedOn="{StaticResource Style.Translate.Placeholder}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TranslatedText}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding TranslatedText}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
             </Grid>
 
             <Grid Grid.Row="4">
@@ -157,6 +325,7 @@
                     x:Name="ErrorStatusBorder"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
+                    Margin="0,6,0,0"
                     Padding="8,4"
                     Background="{DynamicResource Brush.Surface.Elevated}"
                     BorderBrush="{DynamicResource Brush.Error}"
@@ -180,13 +349,6 @@
                         Style="{DynamicResource Style.Text.Validation}"
                         Text="{Binding ErrorMessage}"/>
                 </Border>
-
-                <TextBlock
-                    x:Name="KeyboardHintTextBlock"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Style="{DynamicResource Style.Text.Caption}"
-                    Text="Enter 复制 · Shift+Enter 换行 · Esc 关闭"/>
             </Grid>
         </Grid>
     </Border>

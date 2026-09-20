@@ -1,8 +1,11 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 using System.Windows.Shell;
+using System.Windows.Threading;
 using LightTranslator.Models;
 using LightTranslator.Services.Clipboard;
 using LightTranslator.Services.Translation;
@@ -36,15 +39,15 @@ public sealed class TranslateWindowVisualTests
                     );
 
                 Assert.Equal(
-                    540d,
+                    520d,
                     window.Width
                 );
                 Assert.Equal(
-                    300d,
+                    280d,
                     window.Height
                 );
-                Assert.Equal(440d, window.MinWidth);
-                Assert.Equal(260d, window.MinHeight);
+                Assert.Equal(420d, window.MinWidth);
+                Assert.Equal(240d, window.MinHeight);
                 Assert.Equal(ResizeMode.CanResize, window.ResizeMode);
 
                 var chrome = WindowChrome.GetWindowChrome(window);
@@ -77,10 +80,8 @@ public sealed class TranslateWindowVisualTests
                         "ErrorStatusBorder"
                     )
                 );
-                Assert.IsType<TextBlock>(
-                    window.FindName(
-                        "KeyboardHintTextBlock"
-                    )
+                Assert.Null(
+                    window.FindName("KeyboardHintTextBlock")
                 );
 
                 var sourceTextBox =
@@ -96,6 +97,233 @@ public sealed class TranslateWindowVisualTests
                         sourceTextBox,
                         TextBox.TextProperty
                     )?.Path.Path
+                );
+
+                window.Close();
+            }
+        );
+    }
+
+    [Fact]
+    public void EmptyEditors_ShowSourceAndResultPlaceholders()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new TranslateWindow(
+                        new TranslateViewModel(
+                            new NoOpTranslationService()
+                        )
+                    );
+
+                var sourcePlaceholder =
+                    Assert.IsType<TextBlock>(
+                        window.FindName("SourcePlaceholderTextBlock")
+                    );
+                var resultPlaceholder =
+                    Assert.IsType<TextBlock>(
+                        window.FindName("ResultPlaceholderTextBlock")
+                    );
+
+                Assert.Equal(Visibility.Visible, sourcePlaceholder.Visibility);
+                Assert.Equal(Visibility.Visible, resultPlaceholder.Visibility);
+
+                window.Close();
+            }
+        );
+    }
+
+    [Fact]
+    public void SourceEditor_WhenFocused_KeepsSinglePixelFocusBorder()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new TranslateWindow(
+                        new TranslateViewModel(
+                            new NoOpTranslationService()
+                        )
+                    );
+
+                window.Show();
+                window.Activate();
+                window.SourceTextBox.Focus();
+                window.Dispatcher.Invoke(
+                    () => { },
+                    DispatcherPriority.Input
+                );
+                window.SourceTextBox.ApplyTemplate();
+
+                var inputBorder =
+                    Assert.IsType<Border>(
+                        window.SourceTextBox.Template.FindName(
+                            "InputBorder",
+                            window.SourceTextBox
+                        )
+                    );
+
+                Assert.Equal(new Thickness(1), inputBorder.BorderThickness);
+
+                window.Close();
+            }
+        );
+    }
+
+    [Fact]
+    public void CopyButton_WhenResultIsEmpty_IsDisabled()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new TranslateWindow(
+                        new TranslateViewModel(
+                            new NoOpTranslationService()
+                        )
+                    );
+
+                var copyButton =
+                    Assert.IsType<Button>(
+                        window.FindName("CopyTranslationButton")
+                    );
+
+                Assert.False(copyButton.IsEnabled);
+
+                window.Close();
+            }
+        );
+    }
+
+    [Fact]
+    public void CopyButton_WhenCopySucceeds_ShowsConfirmationState()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new TranslateWindow(
+                        CreateTranslatedViewModel(),
+                        languagePersistence: null,
+                        new FakeClipboardService(true),
+                        (_, _) => { }
+                    );
+                var copyButton =
+                    Assert.IsType<Button>(
+                        window.FindName("CopyTranslationButton")
+                    );
+
+                copyButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent)
+                );
+
+                Assert.Equal("✓ 已复制", copyButton.Content);
+                Assert.Equal(
+                    "已复制翻译结果",
+                    AutomationProperties.GetName(copyButton)
+                );
+
+                window.Close();
+            }
+        );
+    }
+
+    [Fact]
+    public void WhitespaceResult_ShowsPlaceholderAndDisablesCopy()
+    {
+        RunOnSta(
+            () =>
+            {
+                var viewModel =
+                    CreateTranslatedViewModel(
+                        new WhitespaceTranslationService(),
+                        "   "
+                    );
+                var window = new TranslateWindow(viewModel);
+                var copyButton =
+                    Assert.IsType<Button>(
+                        window.FindName("CopyTranslationButton")
+                    );
+                var resultPlaceholder =
+                    Assert.IsType<TextBlock>(
+                        window.FindName("ResultPlaceholderTextBlock")
+                    );
+
+                Assert.False(copyButton.IsEnabled);
+                Assert.Equal(Visibility.Visible, resultPlaceholder.Visibility);
+
+                window.Close();
+            }
+        );
+    }
+
+    [Fact]
+    public void CopyFeedback_WhenTranslationChanges_ResetsImmediately()
+    {
+        RunOnSta(
+            () =>
+            {
+                var viewModel =
+                    CreateTranslatedViewModel(
+                        new EchoTranslationService(),
+                        "你好"
+                    );
+                var window =
+                    new TranslateWindow(
+                        viewModel,
+                        languagePersistence: null,
+                        new FakeClipboardService(true),
+                        (_, _) => { }
+                    );
+                var copyButton =
+                    Assert.IsType<Button>(
+                        window.FindName("CopyTranslationButton")
+                    );
+
+                copyButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent)
+                );
+                Assert.Equal("✓ 已复制", copyButton.Content);
+
+                viewModel.SourceText = "第二条";
+
+                Assert.Equal("第二条", viewModel.TranslatedText);
+                Assert.Equal("复制", copyButton.Content);
+                Assert.Equal(
+                    "复制翻译结果",
+                    AutomationProperties.GetName(copyButton)
+                );
+
+                window.Close();
+            }
+        );
+    }
+
+    [Fact]
+    public void CopyFeedback_UsesBriefOneHundredFortyMillisecondAnimation()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new TranslateWindow(
+                        new TranslateViewModel(
+                            new NoOpTranslationService()
+                        )
+                    );
+                var storyboard =
+                    Assert.IsType<Storyboard>(
+                        window.FindResource("Storyboard.CopyFeedback.In")
+                    );
+                var animation =
+                    Assert.IsType<DoubleAnimation>(
+                        Assert.Single(storyboard.Children)
+                    );
+
+                Assert.Equal(
+                    TimeSpan.FromMilliseconds(140),
+                    animation.Duration.TimeSpan
                 );
 
                 window.Close();
@@ -191,9 +419,20 @@ public sealed class TranslateWindowVisualTests
 
     private static TranslateViewModel CreateTranslatedViewModel()
     {
+        return CreateTranslatedViewModel(
+            new FixedTranslationService(),
+            "Hello"
+        );
+    }
+
+    private static TranslateViewModel CreateTranslatedViewModel(
+        ITranslationService translationService,
+        string expectedTranslation
+    )
+    {
         var viewModel =
             new TranslateViewModel(
-                new FixedTranslationService(),
+                translationService,
                 TimeSpan.Zero
             );
 
@@ -201,7 +440,7 @@ public sealed class TranslateWindowVisualTests
 
         Assert.True(
             SpinWait.SpinUntil(
-                () => viewModel.TranslatedText == "Hello",
+                () => viewModel.TranslatedText == expectedTranslation,
                 TimeSpan.FromSeconds(1)
             )
         );
@@ -273,6 +512,34 @@ public sealed class TranslateWindowVisualTests
         {
             return Task.FromResult(
                 new TranslationResult("Hello", null)
+            );
+        }
+    }
+
+    private sealed class WhitespaceTranslationService
+        : ITranslationService
+    {
+        public Task<TranslationResult> TranslateAsync(
+            TranslationRequest request,
+            CancellationToken cancellationToken = default
+        )
+        {
+            return Task.FromResult(
+                new TranslationResult("   ", null)
+            );
+        }
+    }
+
+    private sealed class EchoTranslationService
+        : ITranslationService
+    {
+        public Task<TranslationResult> TranslateAsync(
+            TranslationRequest request,
+            CancellationToken cancellationToken = default
+        )
+        {
+            return Task.FromResult(
+                new TranslationResult(request.Text, null)
             );
         }
     }

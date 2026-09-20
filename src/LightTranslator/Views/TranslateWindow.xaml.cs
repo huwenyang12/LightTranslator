@@ -1,5 +1,9 @@
+using System.ComponentModel;
 using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 using LightTranslator.Services.Clipboard;
 using LightTranslator.ViewModels;
 using LightTranslator.Services.Windows;
@@ -14,6 +18,8 @@ public partial class TranslateWindow
     private readonly ITextLanguageSettingsPersistence? _languagePersistence;
     private readonly IClipboardService _clipboardService;
     private readonly Action<Window, string> _showClipboardError;
+
+    private CancellationTokenSource? _copyFeedbackCancellation;
 
     public TranslateWindow(
         TranslateViewModel viewModel,
@@ -62,6 +68,9 @@ public partial class TranslateWindow
         DataContext =
             viewModel;
 
+        _viewModel.PropertyChanged +=
+            OnViewModelPropertyChanged;
+
         Loaded +=
             OnLoaded;
 
@@ -94,6 +103,13 @@ public partial class TranslateWindow
         EventArgs e
     )
     {
+        _viewModel.PropertyChanged -=
+            OnViewModelPropertyChanged;
+
+        CancelCopyFeedback(
+            resetVisual: false
+        );
+
         if (_languagePersistence is null)
         {
             return;
@@ -134,12 +150,211 @@ public partial class TranslateWindow
     }
 
 
-    private void OnCopyTranslationClick(
+    private async void OnCopyTranslationClick(
         object sender,
         RoutedEventArgs e
     )
     {
-        TryCopyTranslation();
+        if (
+            !TryCopyTranslation() ||
+            string.IsNullOrWhiteSpace(
+                _viewModel.TranslatedText
+            )
+        )
+        {
+            return;
+        }
+
+        await ShowCopyFeedbackAsync();
+    }
+
+    private async Task ShowCopyFeedbackAsync()
+    {
+        CancelCopyFeedback(
+            resetVisual: false
+        );
+
+        var cancellation =
+            new CancellationTokenSource();
+
+        _copyFeedbackCancellation = cancellation;
+
+        CopyTranslationButton.Content = "✓ 已复制";
+        AutomationProperties.SetName(
+            CopyTranslationButton,
+            "已复制翻译结果"
+        );
+        CopyTranslationButton.SetResourceReference(
+            System.Windows.Controls.Control.ForegroundProperty,
+            "Brush.Accent"
+        );
+        BeginCopyFeedbackAnimation(
+            "Storyboard.CopyFeedback.In"
+        );
+        RaiseCopyFeedbackAutomationEvent();
+
+        try
+        {
+            await Task.Delay(
+                TimeSpan.FromMilliseconds(1000),
+                cancellation.Token
+            );
+
+            if (SystemParameters.ClientAreaAnimation)
+            {
+                BeginCopyFeedbackAnimation(
+                    "Storyboard.CopyFeedback.Out"
+                );
+
+                await Task.Delay(
+                    TimeSpan.FromMilliseconds(140),
+                    cancellation.Token
+                );
+            }
+
+            ResetCopyFeedbackVisual();
+
+            if (SystemParameters.ClientAreaAnimation)
+            {
+                BeginCopyFeedbackAnimation(
+                    "Storyboard.CopyFeedback.In"
+                );
+            }
+        }
+        catch (OperationCanceledException)
+            when (cancellation.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if (
+                ReferenceEquals(
+                    _copyFeedbackCancellation,
+                    cancellation
+                )
+            )
+            {
+                _copyFeedbackCancellation = null;
+            }
+
+            cancellation.Dispose();
+        }
+    }
+
+    private void BeginCopyFeedbackAnimation(
+        string resourceKey
+    )
+    {
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            return;
+        }
+
+        var storyboard =
+            (Storyboard)FindResource(resourceKey);
+
+        storyboard.Begin(
+            this,
+            HandoffBehavior.SnapshotAndReplace,
+            isControllable: true
+        );
+    }
+
+    private void OnViewModelPropertyChanged(
+        object? sender,
+        PropertyChangedEventArgs e
+    )
+    {
+        if (
+            e.PropertyName !=
+            nameof(TranslateViewModel.TranslatedText)
+        )
+        {
+            return;
+        }
+
+        if (Dispatcher.CheckAccess())
+        {
+            CancelCopyFeedback(
+                resetVisual: true
+            );
+            return;
+        }
+
+        if (!Dispatcher.HasShutdownStarted)
+        {
+            Dispatcher.BeginInvoke(
+                () => CancelCopyFeedback(
+                    resetVisual: true
+                )
+            );
+        }
+    }
+
+    private void CancelCopyFeedback(
+        bool resetVisual
+    )
+    {
+        var cancellation =
+            _copyFeedbackCancellation;
+
+        _copyFeedbackCancellation = null;
+        cancellation?.Cancel();
+
+        StopCopyFeedbackAnimations();
+
+        if (resetVisual)
+        {
+            ResetCopyFeedbackVisual();
+        }
+    }
+
+    private void StopCopyFeedbackAnimations()
+    {
+        foreach (
+            var resourceKey in new[]
+            {
+                "Storyboard.CopyFeedback.In",
+                "Storyboard.CopyFeedback.Out"
+            }
+        )
+        {
+            if (TryFindResource(resourceKey) is Storyboard storyboard)
+            {
+                storyboard.Remove(this);
+            }
+        }
+
+        CopyTranslationButton.Opacity = 1;
+    }
+
+    private void ResetCopyFeedbackVisual()
+    {
+        CopyTranslationButton.Content = "复制";
+        AutomationProperties.SetName(
+            CopyTranslationButton,
+            "复制翻译结果"
+        );
+        CopyTranslationButton.SetResourceReference(
+            System.Windows.Controls.Control.ForegroundProperty,
+            "Brush.Text.Secondary"
+        );
+        CopyTranslationButton.Opacity = 1;
+    }
+
+    private void RaiseCopyFeedbackAutomationEvent()
+    {
+        var peer =
+            UIElementAutomationPeer.CreatePeerForElement(
+                CopyTranslationButton
+            ) ??
+            UIElementAutomationPeer.FromElement(
+                CopyTranslationButton
+            );
+
+        peer?.RaiseAutomationEvent(
+            AutomationEvents.LiveRegionChanged
+        );
     }
 
     private bool TryCopyTranslation()
