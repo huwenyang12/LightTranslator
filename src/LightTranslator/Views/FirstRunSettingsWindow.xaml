@@ -87,16 +87,16 @@
         </Style>
 
         <Style x:Key="Style.Settings.SaveButton" TargetType="Button">
-            <Setter Property="Width" Value="68"/>
+            <Setter Property="Width" Value="72"/>
             <Setter Property="Height" Value="32"/>
             <Setter Property="Padding" Value="12,0"/>
             <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Primary}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Background" Value="{DynamicResource Brush.Surface.Elevated}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Selection.Selected}"/>
             <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Faint}"/>
-            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -108,7 +108,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="16"/>
+                                CornerRadius="10"/>
                             <ContentPresenter
                                 Margin="{TemplateBinding Padding}"
                                 HorizontalAlignment="Center"
@@ -126,7 +126,7 @@
                                 <Setter
                                     TargetName="ButtonSurface"
                                     Property="Background"
-                                    Value="{DynamicResource Brush.Selection.Selected}"/>
+                                    Value="{DynamicResource Brush.Border.Faint}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.38"/>
@@ -207,15 +207,11 @@
                 Click="OnSettingsCloseButtonClick"/>
         </Grid>
 
-        <StackPanel Grid.Row="1" Margin="20,6,20,14">
+        <StackPanel Grid.Row="1" Margin="20,6,20,12">
             <TextBlock
                 x:Name="TitleTextBlock"
                 Text="首次设置"
                 Style="{StaticResource Style.Settings.Title}"/>
-            <TextBlock
-                Margin="0,3,0,0"
-                Text="设置翻译服务、快捷键和常用偏好。"
-                Style="{StaticResource Style.Settings.Caption}"/>
         </StackPanel>
 
         <ScrollViewer
@@ -273,7 +269,7 @@
                 </Style>
             </ScrollViewer.Resources>
 
-            <StackPanel Margin="20,0,20,16">
+            <StackPanel Margin="20,0,8,16">
 
                 <Border
                     x:Name="AccountSettingsCard"

@@ -47,14 +47,20 @@ public sealed class FirstRunSettingsWindowVisualTests
 
                 Assert.Equal(36d, titleBar.Height);
 
-                Assert.Equal(
-                    expectedTitle,
+                var title =
                     Assert.IsType<TextBlock>(
                         window.FindName(
                             "TitleTextBlock"
                         )
-                    ).Text
-                );
+                    );
+
+                Assert.Equal(expectedTitle, title.Text);
+
+                var header =
+                    Assert.IsType<StackPanel>(title.Parent);
+
+                Assert.Single(header.Children);
+                Assert.Equal(new Thickness(20, 6, 20, 12), header.Margin);
 
                 foreach (
                     var cardName in new[]
@@ -113,6 +119,14 @@ public sealed class FirstRunSettingsWindowVisualTests
 
                 Assert.False(settingsScrollViewer.Focusable);
 
+                var settingsCardsPanel =
+                    Assert.IsType<StackPanel>(settingsScrollViewer.Content);
+
+                Assert.Equal(
+                    new Thickness(20, 0, 8, 16),
+                    settingsCardsPanel.Margin
+                );
+
                 var scrollBarStyle =
                     Assert.IsType<Style>(
                         settingsScrollViewer.Resources[
@@ -161,10 +175,10 @@ public sealed class FirstRunSettingsWindowVisualTests
                         window.FindName("SaveButton")
                     );
 
-                Assert.Equal(68d, saveButton.Width);
+                Assert.Equal(72d, saveButton.Width);
                 Assert.Equal(32d, saveButton.Height);
                 Assert.Equal(13d, saveButton.FontSize);
-                Assert.Equal(new Thickness(1), saveButton.BorderThickness);
+                Assert.Equal(new Thickness(0), saveButton.BorderThickness);
                 Assert.Same(
                     window.FindResource("Style.Settings.SaveButton"),
                     saveButton.Style
@@ -177,7 +191,7 @@ public sealed class FirstRunSettingsWindowVisualTests
                         saveButton.Template.FindName("ButtonSurface", saveButton)
                     );
 
-                Assert.Equal(new CornerRadius(16), saveButtonSurface.CornerRadius);
+                Assert.Equal(new CornerRadius(10), saveButtonSurface.CornerRadius);
 
                 var footer =
                     Assert.IsType<Border>(
