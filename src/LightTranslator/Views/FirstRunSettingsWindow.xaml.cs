@@ -88,6 +88,33 @@ public partial class FirstRunSettingsWindow
         );
     }
 
+    private void OnSettingsTitleBarMouseLeftButtonDown(
+        object sender,
+        System.Windows.Input.MouseButtonEventArgs e
+    )
+    {
+        if (
+            e.ChangedButton != System.Windows.Input.MouseButton.Left ||
+            e.ButtonState != System.Windows.Input.MouseButtonState.Pressed ||
+            e.OriginalSource is not System.Windows.DependencyObject source ||
+            !WindowDragHitTest.CanStartDrag(source)
+        )
+        {
+            return;
+        }
+
+        DragMove();
+        e.Handled = true;
+    }
+
+    private void OnSettingsCloseButtonClick(
+        object sender,
+        System.Windows.RoutedEventArgs e
+    )
+    {
+        Close();
+    }
+
     private static string FormatHotkey(
         LightTranslator.Models.HotkeyDefinition? hotkey
     )

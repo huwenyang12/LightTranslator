@@ -29,15 +29,23 @@ public sealed class FirstRunSettingsWindowVisualTests
                     );
 
                 Assert.Equal(
-                    540d,
+                    520d,
                     window.Width
                 );
                 Assert.Equal(
-                    680d,
+                    640d,
                     window.Height
                 );
-                Assert.Equal(540d, window.MinWidth);
-                Assert.Equal(600d, window.MinHeight);
+                Assert.Equal(520d, window.MinWidth);
+                Assert.Equal(560d, window.MinHeight);
+                Assert.Equal(WindowStyle.None, window.WindowStyle);
+
+                var titleBar =
+                    Assert.IsType<Grid>(
+                        window.FindName("SettingsTitleBar")
+                    );
+
+                Assert.Equal(36d, titleBar.Height);
 
                 Assert.Equal(
                     expectedTitle,
@@ -83,6 +91,12 @@ public sealed class FirstRunSettingsWindowVisualTests
                 );
                 Assert.True(iconSource.PixelWidth > 0);
                 Assert.True(iconSource.PixelHeight > 0);
+                Assert.Equal(20d, appIcon.Width);
+                Assert.Equal(20d, appIcon.Height);
+
+                Assert.IsType<Button>(
+                    window.FindName("SettingsCloseButton")
+                );
 
                 Assert.IsType<CheckBox>(
                     window.FindName(
@@ -98,6 +112,42 @@ public sealed class FirstRunSettingsWindowVisualTests
                     );
 
                 Assert.False(settingsScrollViewer.Focusable);
+
+                var scrollBarStyle =
+                    Assert.IsType<Style>(
+                        settingsScrollViewer.Resources[
+                            typeof(System.Windows.Controls.Primitives.ScrollBar)
+                        ]
+                    );
+                var widthSetter =
+                    scrollBarStyle
+                        .Setters
+                        .OfType<Setter>()
+                        .Single(
+                            setter =>
+                                setter.Property == FrameworkElement.WidthProperty
+                        );
+
+                Assert.Equal(6d, widthSetter.Value);
+
+                foreach (
+                    var cardName in new[]
+                    {
+                        "AccountSettingsCard",
+                        "TextTranslationSettingsCard",
+                        "ScreenshotTranslationSettingsCard",
+                        "StartupSettingsCard"
+                    }
+                )
+                {
+                    var card =
+                        Assert.IsType<Border>(
+                            window.FindName(cardName)
+                        );
+
+                    Assert.Equal(new Thickness(14), card.Padding);
+                    Assert.Equal(new CornerRadius(12), card.CornerRadius);
+                }
 
                 var sourceLanguage =
                     Assert.IsType<ComboBox>(
@@ -173,6 +223,32 @@ public sealed class FirstRunSettingsWindowVisualTests
                 }
 
                 window.Close();
+            }
+        );
+    }
+
+    [Fact]
+    public void CloseButton_ClosesSettingsWindow()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new FirstRunSettingsWindow(
+                        new FirstRunSettingsViewModel(),
+                        isFirstRun: false
+                    );
+                var closeButton =
+                    Assert.IsType<Button>(
+                        window.FindName("SettingsCloseButton")
+                    );
+
+                window.Show();
+                closeButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent)
+                );
+
+                Assert.False(window.IsVisible);
             }
         );
     }

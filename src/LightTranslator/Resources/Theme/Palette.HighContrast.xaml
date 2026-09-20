@@ -9,6 +9,7 @@
     <SolidColorBrush x:Key="Brush.Text.Secondary" Color="{x:Static SystemColors.GrayTextColor}"/>
     <SolidColorBrush x:Key="Brush.Text.OnAccent" Color="{x:Static SystemColors.HighlightTextColor}"/>
     <SolidColorBrush x:Key="Brush.Border.Subtle" Color="{x:Static SystemColors.WindowTextColor}"/>
+    <SolidColorBrush x:Key="Brush.Border.Faint" Color="{x:Static SystemColors.WindowTextColor}"/>
     <SolidColorBrush x:Key="Brush.Accent" Color="{x:Static SystemColors.HighlightColor}"/>
     <SolidColorBrush x:Key="Brush.Accent.Hover" Color="{x:Static SystemColors.HotTrackColor}"/>
     <SolidColorBrush x:Key="Brush.Selection.Selected" Color="{x:Static SystemColors.ControlColor}"/>

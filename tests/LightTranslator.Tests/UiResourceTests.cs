@@ -86,6 +86,7 @@ public sealed class UiResourceTests
                 "Brush.Text.Secondary",
                 "Brush.Text.OnAccent",
                 "Brush.Border.Subtle",
+                "Brush.Border.Faint",
                 "Brush.Accent",
                 "Brush.Accent.Hover",
                 "Brush.Selection.Selected",
