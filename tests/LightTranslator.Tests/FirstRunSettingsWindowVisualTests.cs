@@ -127,8 +127,34 @@ public sealed class FirstRunSettingsWindowVisualTests
                             setter =>
                                 setter.Property == FrameworkElement.WidthProperty
                         );
+                var marginSetter =
+                    scrollBarStyle
+                        .Setters
+                        .OfType<Setter>()
+                        .Single(
+                            setter =>
+                                setter.Property == FrameworkElement.MarginProperty
+                        );
 
-                Assert.Equal(6d, widthSetter.Value);
+                Assert.Equal(4d, widthSetter.Value);
+                Assert.Equal(new Thickness(0, 8, 6, 8), marginSetter.Value);
+
+                var saveButton =
+                    Assert.IsType<Button>(
+                        window.FindName("SaveButton")
+                    );
+
+                Assert.Equal(76d, saveButton.Width);
+                Assert.Equal(34d, saveButton.Height);
+                Assert.Equal(13d, saveButton.FontSize);
+
+                var footer =
+                    Assert.IsType<Border>(
+                        VisualTreeHelper.GetParent(saveButton)
+                    );
+
+                Assert.Equal(new Thickness(20, 8, 20, 8), footer.Padding);
+                Assert.Equal(new Thickness(0, 1, 0, 0), footer.BorderThickness);
 
                 foreach (
                     var cardName in new[]

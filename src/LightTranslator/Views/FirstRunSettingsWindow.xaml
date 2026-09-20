@@ -86,6 +86,49 @@
             </Setter>
         </Style>
 
+        <Style x:Key="Style.Settings.SaveButton" TargetType="Button">
+            <Setter Property="Width" Value="76"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Primary}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Accent}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnAccent}"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border
+                                x:Name="ButtonSurface"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="9"
+                                Opacity="0.90"/>
+                            <ContentPresenter
+                                Margin="{TemplateBinding Padding}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                RecognizesAccessKey="True"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="1"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.76"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.38"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="Style.Settings.ScrollThumb" TargetType="Thumb">
             <Setter Property="Background" Value="{DynamicResource Brush.Text.Secondary}"/>
             <Setter Property="Template">
@@ -93,16 +136,16 @@
                     <ControlTemplate TargetType="Thumb">
                         <Border
                             x:Name="ThumbSurface"
-                            MinHeight="24"
+                            MinHeight="20"
                             Background="{TemplateBinding Background}"
                             CornerRadius="3"
-                            Opacity="0.38"/>
+                            Opacity="0.28"/>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ThumbSurface" Property="Opacity" Value="0.58"/>
+                                <Setter TargetName="ThumbSurface" Property="Opacity" Value="0.50"/>
                             </Trigger>
                             <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="ThumbSurface" Property="Opacity" Value="0.76"/>
+                                <Setter TargetName="ThumbSurface" Property="Opacity" Value="0.70"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -173,8 +216,8 @@
             VerticalScrollBarVisibility="Auto">
             <ScrollViewer.Resources>
                 <Style TargetType="{x:Type ScrollBar}">
-                    <Setter Property="Width" Value="6"/>
-                    <Setter Property="Margin" Value="0,2,2,2"/>
+                    <Setter Property="Width" Value="4"/>
+                    <Setter Property="Margin" Value="0,8,6,8"/>
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="Focusable" Value="False"/>
                     <Setter Property="Template">
@@ -430,15 +473,14 @@
 
         <Border
             Grid.Row="3"
-            Padding="20,10"
+            Padding="20,8"
             Background="{DynamicResource Brush.Surface.Card}"
-            BorderBrush="{DynamicResource Brush.Border.Subtle}"
+            BorderBrush="{DynamicResource Brush.Border.Faint}"
             BorderThickness="0,1,0,0">
             <Button
                 x:Name="SaveButton"
-                Width="84"
                 HorizontalAlignment="Right"
-                Style="{DynamicResource Style.Button.Primary}"
+                Style="{StaticResource Style.Settings.SaveButton}"
                 Content="保存"
                 IsEnabled="False"
                 automation:AutomationProperties.Name="保存设置"
