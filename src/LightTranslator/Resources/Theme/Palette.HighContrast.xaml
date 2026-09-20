@@ -11,6 +11,8 @@
     <SolidColorBrush x:Key="Brush.Border.Subtle" Color="{x:Static SystemColors.WindowTextColor}"/>
     <SolidColorBrush x:Key="Brush.Accent" Color="{x:Static SystemColors.HighlightColor}"/>
     <SolidColorBrush x:Key="Brush.Accent.Hover" Color="{x:Static SystemColors.HotTrackColor}"/>
+    <SolidColorBrush x:Key="Brush.Selection.Selected" Color="{x:Static SystemColors.ControlColor}"/>
+    <SolidColorBrush x:Key="Brush.Selection.Hover" Color="{x:Static SystemColors.ControlDarkColor}"/>
     <SolidColorBrush x:Key="Brush.Error" Color="{x:Static SystemColors.WindowTextColor}"/>
     <SolidColorBrush x:Key="Brush.Success" Color="{x:Static SystemColors.WindowTextColor}"/>
     <SolidColorBrush x:Key="Brush.Focus" Color="{x:Static SystemColors.HighlightColor}"/>

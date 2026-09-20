@@ -88,6 +88,8 @@ public sealed class UiResourceTests
                 "Brush.Border.Subtle",
                 "Brush.Accent",
                 "Brush.Accent.Hover",
+                "Brush.Selection.Selected",
+                "Brush.Selection.Hover",
                 "Brush.Error",
                 "Brush.Success",
                 "Brush.Focus",
@@ -141,6 +143,129 @@ public sealed class UiResourceTests
                 actualKeys
             );
         }
+    }
+
+    [Fact]
+    public void ButtonsAndLanguageSelectors_DoNotAddFocusBorders()
+    {
+        var stylesDirectory =
+            Path.Combine(
+                FindRepositoryRoot(),
+                "src",
+                "LightTranslator",
+                "Resources",
+                "Styles"
+            );
+
+        var buttonsDocument =
+            XDocument.Load(
+                Path.Combine(stylesDirectory, "Buttons.xaml")
+            );
+        var inputsDocument =
+            XDocument.Load(
+                Path.Combine(stylesDirectory, "Inputs.xaml")
+            );
+
+        Assert.DoesNotContain(
+            buttonsDocument.Descendants(PresentationNamespace + "Trigger"),
+            trigger =>
+                (string?)trigger.Attribute("Property") ==
+                    "IsKeyboardFocused"
+        );
+
+        var comboBoxStyle =
+            inputsDocument
+                .Descendants(PresentationNamespace + "Style")
+                .Single(
+                    style =>
+                        (string?)style.Attribute(XamlNamespace + "Key") ==
+                            "Style.Input.ComboBox"
+                );
+
+        Assert.DoesNotContain(
+            comboBoxStyle.Descendants(PresentationNamespace + "Trigger"),
+            trigger =>
+                (string?)trigger.Attribute("Property") ==
+                    "IsKeyboardFocusWithin"
+        );
+    }
+
+    [Fact]
+    public void SharedButtons_SuppressTheDefaultFocusAdorner()
+    {
+        var document =
+            XDocument.Load(
+                Path.Combine(
+                    FindRepositoryRoot(),
+                    "src",
+                    "LightTranslator",
+                    "Resources",
+                    "Styles",
+                    "Buttons.xaml"
+                )
+            );
+
+        foreach (
+            var styleKey in new[]
+            {
+                "Style.Button.Base",
+                "Style.Button.IconCircle"
+            }
+        )
+        {
+            var style =
+                document
+                    .Descendants(PresentationNamespace + "Style")
+                    .Single(
+                        candidate =>
+                            (string?)candidate.Attribute(XamlNamespace + "Key") ==
+                                styleKey
+                    );
+
+            Assert.Contains(
+                style.Elements(PresentationNamespace + "Setter"),
+                setter =>
+                    (string?)setter.Attribute("Property") ==
+                        "FocusVisualStyle" &&
+                    (string?)setter.Attribute("Value") == "{x:Null}"
+            );
+        }
+    }
+
+    [Fact]
+    public void LanguageOptions_UseNeutralSelectionColors()
+    {
+        var document =
+            XDocument.Load(
+                Path.Combine(
+                    FindRepositoryRoot(),
+                    "src",
+                    "LightTranslator",
+                    "Resources",
+                    "Styles",
+                    "Inputs.xaml"
+                )
+            );
+
+        var itemStyle =
+            document
+                .Descendants(PresentationNamespace + "Style")
+                .Single(
+                    style =>
+                        (string?)style.Attribute(XamlNamespace + "Key") ==
+                            "Style.Input.ComboBoxItem"
+                );
+
+        AssertTriggerUsesNeutralColors(
+            itemStyle,
+            "IsSelected",
+            "{DynamicResource Brush.Selection.Selected}"
+        );
+        AssertTriggerUsesNeutralColors(
+            itemStyle,
+            "IsHighlighted",
+            "{DynamicResource Brush.Selection.Hover}"
+        );
     }
 
     [Theory]
@@ -501,6 +626,41 @@ public sealed class UiResourceTests
                 "LightTranslator",
                 relativePath
             )
+        );
+    }
+
+    private static void AssertTriggerUsesNeutralColors(
+        XElement style,
+        string triggerProperty,
+        string expectedBackground
+    )
+    {
+        var trigger =
+            style
+                .Descendants(PresentationNamespace + "Trigger")
+                .Single(
+                    candidate =>
+                        (string?)candidate.Attribute("Property") ==
+                            triggerProperty &&
+                        (string?)candidate.Attribute("Value") == "True"
+                );
+        var setters =
+            trigger
+                .Elements(PresentationNamespace + "Setter")
+                .ToArray();
+
+        Assert.Contains(
+            setters,
+            setter =>
+                (string?)setter.Attribute("Property") == "Background" &&
+                (string?)setter.Attribute("Value") == expectedBackground
+        );
+        Assert.Contains(
+            setters,
+            setter =>
+                (string?)setter.Attribute("Property") == "Foreground" &&
+                (string?)setter.Attribute("Value") ==
+                    "{DynamicResource Brush.Text.Primary}"
         );
     }
 
