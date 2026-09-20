@@ -4,10 +4,11 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
         Title="语桥"
+        Icon="/Bridgo;component/Assets/AppIcon.ico"
         Width="520"
-        Height="280"
+        Height="316"
         MinWidth="420"
-        MinHeight="240"
+        MinHeight="276"
         WindowStyle="None"
         ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
@@ -67,6 +68,44 @@
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
 
+        <Style
+            x:Key="Style.Translate.TitleBarButton"
+            TargetType="Button">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="ButtonSurface"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="7">
+                            <ContentPresenter
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter
+                                    TargetName="ButtonSurface"
+                                    Property="Background"
+                                    Value="{DynamicResource Brush.Surface.Elevated}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.68"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Window.Resources>
 
     <shell:WindowChrome.WindowChrome>
@@ -89,13 +128,47 @@
         <Grid KeyboardNavigation.TabNavigation="Continue">
             <Grid.RowDefinitions>
                 <RowDefinition Height="36"/>
+                <RowDefinition Height="36"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="1"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0">
+            <Grid
+                x:Name="TranslationTitleBar"
+                Grid.Row="0"
+                Height="36">
+                <Image
+                    x:Name="TranslationAppIcon"
+                    Width="20"
+                    Height="20"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Stretch="Uniform"
+                    automation:AutomationProperties.Name="语桥">
+                    <Image.Source>
+                        <BitmapImage
+                            UriSource="/Bridgo;component/Assets/AppIcon.png"
+                            CacheOption="OnLoad"/>
+                    </Image.Source>
+                </Image>
+
+                <Button
+                    x:Name="TranslationCloseButton"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Style="{StaticResource Style.Translate.TitleBarButton}"
+                    Content="×"
+                    FontSize="20"
+                    FontWeight="Light"
+                    IsTabStop="False"
+                    ToolTip="关闭"
+                    automation:AutomationProperties.Name="关闭"
+                    Click="OnCloseButtonClick"/>
+            </Grid>
+
+            <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="40"/>
@@ -139,7 +212,7 @@
                 </ComboBox>
             </Grid>
 
-            <Grid Grid.Row="1" Margin="0,8,0,8">
+            <Grid Grid.Row="2" Margin="0,8,0,8">
                 <TextBox
                     x:Name="SourceTextBox"
                     Text="{Binding SourceText, UpdateSourceTrigger=PropertyChanged}"
@@ -151,10 +224,10 @@
             </Grid>
 
             <Border
-                Grid.Row="2"
+                Grid.Row="3"
                 Background="{DynamicResource Brush.Border.Subtle}"/>
 
-            <Grid Grid.Row="3" Margin="0,8,0,0">
+            <Grid Grid.Row="4" Margin="0,8,0,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -186,7 +259,7 @@
                 </Grid>
             </Grid>
 
-            <Grid Grid.Row="4">
+            <Grid Grid.Row="5">
                 <Border
                     x:Name="ErrorStatusBorder"
                     HorizontalAlignment="Left"

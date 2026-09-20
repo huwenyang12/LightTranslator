@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shell;
 using System.Windows.Threading;
 using LightTranslator.Models;
@@ -42,11 +43,11 @@ public sealed class TranslateWindowVisualTests
                     window.Width
                 );
                 Assert.Equal(
-                    280d,
+                    316d,
                     window.Height
                 );
                 Assert.Equal(420d, window.MinWidth);
-                Assert.Equal(240d, window.MinHeight);
+                Assert.Equal(276d, window.MinHeight);
                 Assert.Equal(ResizeMode.CanResize, window.ResizeMode);
 
                 var chrome = WindowChrome.GetWindowChrome(window);
@@ -99,6 +100,56 @@ public sealed class TranslateWindowVisualTests
                 );
 
                 window.Close();
+            }
+        );
+    }
+
+    [Fact]
+    public void Header_ShowsBrandAndCloseButtonThatClosesWindow()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new TranslateWindow(
+                        new TranslateViewModel(
+                            new NoOpTranslationService()
+                        )
+                    );
+
+                var header =
+                    Assert.IsType<Grid>(
+                        window.FindName("TranslationTitleBar")
+                    );
+
+                Assert.Equal(36d, header.Height);
+
+                var appIcon =
+                    Assert.IsType<Image>(
+                        window.FindName("TranslationAppIcon")
+                    );
+                var iconSource =
+                    Assert.IsType<BitmapImage>(appIcon.Source);
+
+                Assert.Equal(20d, appIcon.Width);
+                Assert.Equal(20d, appIcon.Height);
+                Assert.True(iconSource.PixelWidth > 0);
+                Assert.True(iconSource.PixelHeight > 0);
+
+                var closeButton =
+                    Assert.IsType<Button>(
+                        window.FindName("TranslationCloseButton")
+                    );
+
+                Assert.Equal(28d, closeButton.Width);
+                Assert.Equal(28d, closeButton.Height);
+
+                window.Show();
+                closeButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent)
+                );
+
+                Assert.False(window.IsVisible);
             }
         );
     }

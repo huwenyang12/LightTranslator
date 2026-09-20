@@ -133,6 +133,14 @@ public partial class TranslateWindow
         _viewModel.SwapLanguages();
     }
 
+    private void OnCloseButtonClick(
+        object sender,
+        RoutedEventArgs e
+    )
+    {
+        Close();
+    }
+
     private bool TryCopyTranslation()
     {
         var translatedText =
