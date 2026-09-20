@@ -36,6 +36,8 @@ public partial class App
     private Win32HotkeyBackend? _hotkeyBackend;
     private HotkeyService? _hotkeyService;
     private WindowManager? _windowManager;
+    private readonly SettingsWindowCoordinator
+        _settingsWindowCoordinator = new();
     private TrayService? _trayService;
     private AppController? _appController;
 
@@ -481,89 +483,101 @@ public partial class App
             return;
         }
 
-        AppSettings currentSettings;
-
-        try
+        if (!_settingsWindowCoordinator.TryReserveOpen())
         {
-            currentSettings =
-                await _settingsService.LoadAsync();
-        }
-        catch
-        {
-            System.Windows.MessageBox.Show(
-                "读取设置失败。",
-                "语桥"
-            );
-
             return;
         }
 
-        var hotkeyChangeService =
-            new TextTranslationHotkeyChangeService(
-                _hotkeyService,
-                _textTranslationHotkeyPersistence
-            );
-
-        var screenshotHotkeyChangeService =
-            new ScreenshotTranslationHotkeyChangeService(
-                _hotkeyService,
-                _screenshotTranslationHotkeyPersistence
-            );
-
-        var viewModel =
-            new FirstRunSettingsViewModel(
-                _firstRunSettingsPersistence,
-                _startWithWindowsSettingsPersistence,
-                _apiKeyValidator,
-                hotkeyChangeService:
-                    hotkeyChangeService,
-                currentTextTranslationHotkey:
-                    currentSettings.TextTranslationHotkey,
-                screenshotLanguagePersistence:
-                    _screenshotLanguageSettingsPersistence,
-                currentScreenshotSourceLanguage:
-                    currentSettings.ScreenshotSourceLanguage,
-                currentScreenshotTargetLanguage:
-                    currentSettings.ScreenshotTargetLanguage,
-                screenshotHotkeyChangeService:
-                    screenshotHotkeyChangeService,
-                currentScreenshotTranslationHotkey:
-                    currentSettings.ScreenshotTranslationHotkey
-            )
-            {
-                StartWithWindows =
-                    _startWithWindows
-            };
-
-        var window =
-            new FirstRunSettingsWindow(
-                viewModel,
-                isFirstRun: false,
-                hotkeyService: _hotkeyService
-            );
-
-        var hotkeyService =
-            _hotkeyService;
-
-        hotkeyService.SuspendRequests();
-
-        window.Closed +=
-            (_, _) =>
-            {
-                _startWithWindows =
-                    viewModel.StartWithWindows;
-
-                hotkeyService.ResumeRequests();
-            };
-
         try
         {
-            window.Show();
+            AppSettings currentSettings;
+
+            try
+            {
+                currentSettings =
+                    await _settingsService.LoadAsync();
+            }
+            catch
+            {
+                System.Windows.MessageBox.Show(
+                    "读取设置失败。",
+                    "语桥"
+                );
+
+                return;
+            }
+
+            var hotkeyChangeService =
+                new TextTranslationHotkeyChangeService(
+                    _hotkeyService,
+                    _textTranslationHotkeyPersistence
+                );
+
+            var screenshotHotkeyChangeService =
+                new ScreenshotTranslationHotkeyChangeService(
+                    _hotkeyService,
+                    _screenshotTranslationHotkeyPersistence
+                );
+
+            var viewModel =
+                new FirstRunSettingsViewModel(
+                    _firstRunSettingsPersistence,
+                    _startWithWindowsSettingsPersistence,
+                    _apiKeyValidator,
+                    hotkeyChangeService:
+                        hotkeyChangeService,
+                    currentTextTranslationHotkey:
+                        currentSettings.TextTranslationHotkey,
+                    screenshotLanguagePersistence:
+                        _screenshotLanguageSettingsPersistence,
+                    currentScreenshotSourceLanguage:
+                        currentSettings.ScreenshotSourceLanguage,
+                    currentScreenshotTargetLanguage:
+                        currentSettings.ScreenshotTargetLanguage,
+                    screenshotHotkeyChangeService:
+                        screenshotHotkeyChangeService,
+                    currentScreenshotTranslationHotkey:
+                        currentSettings.ScreenshotTranslationHotkey
+                )
+                {
+                    StartWithWindows =
+                        _startWithWindows
+                };
+
+            var window =
+                new FirstRunSettingsWindow(
+                    viewModel,
+                    isFirstRun: false,
+                    hotkeyService: _hotkeyService
+                );
+
+            var hotkeyService =
+                _hotkeyService;
+
+            hotkeyService.SuspendRequests();
+
+            window.Closed +=
+                (_, _) =>
+                {
+                    _startWithWindows =
+                        viewModel.StartWithWindows;
+
+                    hotkeyService.ResumeRequests();
+                };
+
+            try
+            {
+                _settingsWindowCoordinator.Show(window);
+            }
+            catch
+            {
+                hotkeyService.ResumeRequests();
+                throw;
+            }
         }
-        catch
+        finally
         {
-            hotkeyService.ResumeRequests();
-            throw;
+            _settingsWindowCoordinator.CancelOpen();
         }
     }
 
