@@ -104,6 +104,7 @@ public sealed class FirstRunSettingsWindowVisualTests
                     Assert.IsType<Button>(
                         window.FindName("SettingsCloseButton")
                     );
+                Assert.Null(settingsCloseButton.ToolTip);
 
                 var sharedTitleBarButtonStyle =
                     window.TryFindResource("Style.Button.TitleBar");

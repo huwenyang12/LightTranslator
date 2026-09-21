@@ -144,6 +144,7 @@ public sealed class TranslateWindowVisualTests
 
                 Assert.Equal(28d, closeButton.Width);
                 Assert.Equal(28d, closeButton.Height);
+                Assert.Null(closeButton.ToolTip);
 
                 var sharedTitleBarButtonStyle =
                     window.TryFindResource("Style.Button.TitleBar");
