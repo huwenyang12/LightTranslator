@@ -5,8 +5,8 @@ namespace LightTranslator.Services.Screenshot;
 public static class ScreenshotTranslationTypography
 {
     private const double MinimumFontSize = 6d;
-    private const double MaximumFontSize = 32d;
-    private const double PhysicalLineHeightScale = 0.63d;
+    private const double MaximumFontSize = 38d;
+    private const double PhysicalLineHeightScale = 0.86d;
     private const double BodyNormalizationTolerance = 0.20d;
     private const double MinimumBodyMedianRatio = 0.78d;
     private const double MaximumBodyMedianRatio = 1.08d;

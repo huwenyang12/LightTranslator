@@ -38,7 +38,7 @@ public sealed class ScreenshotBackgroundStyleResolverTests
         );
 
         Assert.Equal(
-            Colors.Black,
+            Color.FromRgb(41, 41, 41),
             style.Foreground
         );
     }
@@ -107,7 +107,7 @@ public sealed class ScreenshotBackgroundStyleResolverTests
         );
 
         Assert.Equal(
-            Colors.Black,
+            Color.FromRgb(41, 41, 41),
             style.Foreground
         );
     }

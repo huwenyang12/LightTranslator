@@ -18,6 +18,13 @@ public static class ScreenshotBackgroundStyleResolver
     private const int MaximumChannelRange = 24;
     private const double LightBackgroundThreshold = 0.55d;
 
+    private static readonly Color LightForeground =
+        Color.FromRgb(
+            41,
+            41,
+            41
+        );
+
     public static ScreenshotBackgroundStyle Fallback { get; } =
         new(
             Color.FromArgb(
@@ -191,7 +198,7 @@ public static class ScreenshotBackgroundStyleResolver
                     ),
                     normalizedMedianLuma >=
                     LightBackgroundThreshold
-                        ? Colors.Black
+                        ? LightForeground
                         : Colors.White
                 );
         }

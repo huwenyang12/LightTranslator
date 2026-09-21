@@ -14,8 +14,10 @@ public partial class ScreenshotTranslationWindow
       IScreenshotResultView
 {
     private const double MinimumReadableFontSize = 12d;
+    private const double MaximumReadableFontSize = 38d;
     private const double SourceCoverExpansion = 2d;
     private const double TranslationLineHeightRatio = 1.28d;
+    private const double TargetSourceHeightRatio = 0.75d;
 
     private readonly ICommand _closeRequestCommand;
     private bool _closeRequestRaised;
@@ -310,7 +312,12 @@ public partial class ScreenshotTranslationWindow
                 text,
                 preferredFontSize,
                 availableWidth,
-                availableHeight
+                availableHeight,
+                region.Role ==
+                ScreenshotTextRole.Body
+                    ? sourceBounds.Height *
+                      TargetSourceHeightRatio
+                    : 0d
             );
 
         text.LineHeight =
@@ -411,7 +418,8 @@ public partial class ScreenshotTranslationWindow
         TextBlock text,
         double preferredFontSize,
         double availableWidth,
-        double availableHeight
+        double availableHeight,
+        double targetContentHeight
     )
     {
         if (availableWidth <= 0d ||
@@ -421,9 +429,10 @@ public partial class ScreenshotTranslationWindow
         }
 
         var candidate =
-            Math.Max(
+            Math.Clamp(
+                preferredFontSize,
                 MinimumReadableFontSize,
-                preferredFontSize
+                MaximumReadableFontSize
             );
 
         while (candidate > MinimumReadableFontSize)
@@ -447,7 +456,7 @@ public partial class ScreenshotTranslationWindow
 
             if (text.DesiredSize.Height <= availableHeight)
             {
-                return candidate;
+                break;
             }
 
             candidate =
@@ -457,7 +466,88 @@ public partial class ScreenshotTranslationWindow
                 );
         }
 
-        return MinimumReadableFontSize;
+        var targetHeight =
+            Math.Min(
+                availableHeight,
+                Math.Max(
+                    0d,
+                    targetContentHeight
+                )
+            );
+
+        text.FontSize =
+            candidate;
+
+        text.LineHeight =
+            candidate *
+            TranslationLineHeightRatio;
+
+        text.Measure(
+            new System.Windows.Size(
+                availableWidth,
+                double.PositiveInfinity
+            )
+        );
+
+        var bestCandidate =
+            candidate;
+
+        var bestDistance =
+            Math.Abs(
+                text.DesiredSize.Height -
+                targetHeight
+            );
+
+        while (
+            candidate <
+            MaximumReadableFontSize &&
+            text.DesiredSize.Height <
+            targetHeight
+        )
+        {
+            candidate =
+                Math.Min(
+                    MaximumReadableFontSize,
+                    candidate +
+                    1d
+                );
+
+            text.FontSize =
+                candidate;
+
+            text.LineHeight =
+                candidate *
+                TranslationLineHeightRatio;
+
+            text.Measure(
+                new System.Windows.Size(
+                    availableWidth,
+                    double.PositiveInfinity
+                )
+            );
+
+            if (text.DesiredSize.Height > availableHeight)
+            {
+                break;
+            }
+
+            var distance =
+                Math.Abs(
+                    text.DesiredSize.Height -
+                    targetHeight
+                );
+
+            if (distance < bestDistance)
+            {
+                bestCandidate =
+                    candidate;
+
+                bestDistance =
+                    distance;
+            }
+        }
+
+        return bestCandidate;
     }
 
     private double CalculateMaximumContainerHeight(

@@ -574,7 +574,7 @@ public sealed class ScreenshotTranslationWindowTests
                         );
 
                     Assert.Equal(
-                        25.2d,
+                        34.4d,
                         title.FontSize,
                         6
                     );
@@ -585,7 +585,7 @@ public sealed class ScreenshotTranslationWindowTests
                     );
 
                     Assert.Equal(
-                        32.256d,
+                        44.032d,
                         title.LineHeight,
                         6
                     );
@@ -681,7 +681,7 @@ public sealed class ScreenshotTranslationWindowTests
                     );
 
                     Assert.Equal(
-                        Colors.Black,
+                        Color.FromRgb(41, 41, 41),
                         foreground.Color
                     );
                 }

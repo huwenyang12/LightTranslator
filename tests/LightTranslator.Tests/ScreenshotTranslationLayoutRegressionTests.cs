@@ -88,8 +88,8 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
 
                     Assert.InRange(
                         translatedText.FontSize,
-                        12d,
-                        16.8d
+                        18d,
+                        24d
                     );
                 }
                 finally
@@ -191,6 +191,145 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
     }
 
     [Fact]
+    public void ShowResults_LongParagraphUsesSourceRegionHeightInsteadOfStayingTiny()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new ScreenshotTranslationWindow(
+                        CreateSelection()
+                    );
+
+                try
+                {
+                    window.ShowResults(
+                        new[]
+                        {
+                            new ScreenshotTextRegion(
+                                "paragraph",
+                                "Source paragraph",
+                                0.95,
+                                new PixelRect(
+                                    20,
+                                    20,
+                                    300,
+                                    120
+                                ),
+                                15,
+                                ScreenshotTextRole.Body,
+                                new string(
+                                    '译',
+                                    50
+                                )
+                            )
+                        }
+                    );
+
+                    var canvas =
+                        Assert.IsType<Canvas>(
+                            window.FindName(
+                                "TranslationCanvas"
+                            )
+                        );
+
+                    var container =
+                        Assert.Single(
+                            canvas.Children
+                                .OfType<Border>()
+                        );
+
+                    var translatedText =
+                        Assert.IsType<TextBlock>(
+                            container.Child
+                        );
+
+                    Assert.InRange(
+                        translatedText.FontSize,
+                        14d,
+                        20d
+                    );
+
+                    Assert.InRange(
+                        translatedText.DesiredSize.Height,
+                        69d,
+                        75d
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
+    [Fact]
+    public void ShowResults_AdaptiveBodyFontNeverExceedsMaximumReadableSize()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new ScreenshotTranslationWindow(
+                        CreateSelection()
+                    );
+
+                try
+                {
+                    window.ShowResults(
+                        new[]
+                        {
+                            new ScreenshotTextRegion(
+                                "body",
+                                "Source",
+                                0.95,
+                                new PixelRect(
+                                    20,
+                                    20,
+                                    500,
+                                    400
+                                ),
+                                50,
+                                ScreenshotTextRole.Body,
+                                "短正文"
+                            )
+                        }
+                    );
+
+                    var canvas =
+                        Assert.IsType<Canvas>(
+                            window.FindName(
+                                "TranslationCanvas"
+                            )
+                        );
+
+                    var container =
+                        Assert.Single(
+                            canvas.Children
+                                .OfType<Border>()
+                        );
+
+                    var translatedText =
+                        Assert.IsType<TextBlock>(
+                            container.Child
+                        );
+
+                    Assert.Equal(
+                        38d,
+                        translatedText.FontSize,
+                        6
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
+    [Fact]
     public void ShowResults_ExpandedParagraphStopsBeforeFollowingRegion()
     {
         RunOnSta(
@@ -271,6 +410,7 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
                         secondTop -
                         10d
                     );
+
                 }
                 finally
                 {

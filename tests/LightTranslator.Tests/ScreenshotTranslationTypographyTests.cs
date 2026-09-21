@@ -46,13 +46,13 @@ public sealed class ScreenshotTranslationTypographyTests
             );
 
         Assert.Equal(
-            15.12d,
+            20.64d,
             sizes["body-1"],
             6
         );
 
         Assert.Equal(
-            15.12d,
+            20.64d,
             sizes["body-2"],
             6
         );
@@ -99,13 +99,13 @@ public sealed class ScreenshotTranslationTypographyTests
             );
 
         Assert.Equal(
-            16.9344d,
+            23.1168d,
             sizes["title"],
             6
         );
 
         Assert.Equal(
-            15.12d,
+            20.64d,
             sizes["body"],
             6
         );
@@ -117,9 +117,9 @@ public sealed class ScreenshotTranslationTypographyTests
     }
 
     [Theory]
-    [InlineData(96d, 24d, 15.12d)]
-    [InlineData(120d, 30d, 15.12d)]
-    [InlineData(144d, 36d, 15.12d)]
+    [InlineData(96d, 24d, 20.64d)]
+    [InlineData(120d, 30d, 20.64d)]
+    [InlineData(144d, 36d, 20.64d)]
     public void CalculatePreferredFontSizes_ConvertsPhysicalLineHeightToDip(
         double dpiY,
         double sourceLineHeight,
@@ -190,19 +190,19 @@ public sealed class ScreenshotTranslationTypographyTests
             );
 
         Assert.Equal(
-            19.656d,
+            26.832d,
             sizes["small"],
             6
         );
 
         Assert.Equal(
-            25.2d,
+            34.4d,
             sizes["body"],
             6
         );
 
         Assert.Equal(
-            27.216d,
+            34.4d,
             sizes["large"],
             6
         );
@@ -235,13 +235,13 @@ public sealed class ScreenshotTranslationTypographyTests
             );
 
         Assert.Equal(
-            12.6d,
+            17.2d,
             sizes["body"],
             6
         );
 
         Assert.Equal(
-            13.608d,
+            18.576d,
             sizes["outlier"],
             6
         );
@@ -274,7 +274,7 @@ public sealed class ScreenshotTranslationTypographyTests
             );
 
         Assert.Equal(
-            20.664d,
+            28.208d,
             sizes["section"],
             6
         );
@@ -316,7 +316,7 @@ public sealed class ScreenshotTranslationTypographyTests
             );
 
         Assert.Equal(
-            20.664d,
+            28.208d,
             sizes["section"],
             6
         );
@@ -349,13 +349,13 @@ public sealed class ScreenshotTranslationTypographyTests
             );
 
         Assert.Equal(
-            28.224d,
+            38d,
             sizes["title"],
             6
         );
 
         Assert.Equal(
-            25.2d,
+            34.4d,
             sizes["body"],
             6
         );
