@@ -32,20 +32,20 @@ public sealed class ProductBrandingTests
     }
 
     [Fact]
-    public void ApplicationAssembly_UsesV020ReleaseVersion()
+    public void ApplicationAssembly_UsesV030ReleaseVersion()
     {
         var assembly = typeof(App).Assembly;
 
         Assert.Equal(
-            new Version(0, 2, 0, 0),
+            new Version(0, 3, 0, 0),
             assembly.GetName().Version
         );
         Assert.Equal(
-            "0.2.0.0",
+            "0.3.0.0",
             assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version
         );
         Assert.Equal(
-            "0.2.0",
+            "0.3.0",
             assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
         );
     }
