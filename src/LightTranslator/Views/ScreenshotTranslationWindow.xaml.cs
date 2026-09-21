@@ -14,9 +14,8 @@ public partial class ScreenshotTranslationWindow
       IScreenshotResultView
 {
     private const double MinimumReadableFontSize = 12d;
-    private const double MinimumParagraphGap = 4d;
     private const double SourceCoverExpansion = 2d;
-    private const double TranslationLineHeightRatio = 1.38d;
+    private const double TranslationLineHeightRatio = 1.28d;
 
     private readonly ICommand _closeRequestCommand;
     private bool _closeRequestRaised;
@@ -102,6 +101,12 @@ public partial class ScreenshotTranslationWindow
                 _dpiY
             );
 
+        var alignedLeftEdges =
+            ScreenshotTranslationLayout.CalculateAlignedLeftEdges(
+                visibleRegions,
+                _dpiX
+            );
+
         for (var index = 0;
              index < visibleRegions.Length;
              index++)
@@ -112,6 +117,7 @@ public partial class ScreenshotTranslationWindow
             AddTranslationBlock(
                 region,
                 preferredFonts[region.Id],
+                alignedLeftEdges[region.Id],
                 visibleRegions
                     .Skip(
                         index +
@@ -206,6 +212,7 @@ public partial class ScreenshotTranslationWindow
     private void AddTranslationBlock(
         ScreenshotTextRegion region,
         double preferredFontSize,
+        double alignedLeft,
         IReadOnlyList<ScreenshotTextRegion> followingRegions
     )
     {
@@ -219,6 +226,12 @@ public partial class ScreenshotTranslationWindow
         var bounds =
             ExpandForSourceCoverage(
                 sourceBounds
+            );
+
+        bounds =
+            ExpandToAlignedLeft(
+                bounds,
+                alignedLeft
             );
 
         var horizontalPadding =
@@ -237,7 +250,10 @@ public partial class ScreenshotTranslationWindow
 
         var padding =
             new Thickness(
-                horizontalPadding,
+                alignedLeft +
+                horizontalPadding -
+                SourceCoverExpansion -
+                bounds.Left,
                 verticalPadding,
                 horizontalPadding,
                 verticalPadding
@@ -280,6 +296,11 @@ public partial class ScreenshotTranslationWindow
         var maximumContainerHeight =
             CalculateMaximumContainerHeight(
                 bounds,
+                region.Role,
+                Math.Max(
+                    MinimumReadableFontSize,
+                    preferredFontSize
+                ),
                 followingRegions
             );
 
@@ -448,36 +469,55 @@ public partial class ScreenshotTranslationWindow
 
     private double CalculateMaximumContainerHeight(
         Rect currentBounds,
+        ScreenshotTextRole currentRole,
+        double currentFontSize,
         IReadOnlyList<ScreenshotTextRegion> followingRegions
     )
     {
+        var bottomLimit =
+            ScreenshotTranslationLayout.CalculateBottomLimit(
+                Height,
+                currentBounds.Bottom
+            );
+
         var nextTop =
             followingRegions
                 .Select(
                     region =>
-                        ExpandForSourceCoverage(
-                            DpiCoordinateMapper.PixelsToDips(
-                                region.Bounds,
-                                _dpiX,
-                                _dpiY
-                            )
-                        )
+                        new
+                        {
+                            Region =
+                                region,
+                            Bounds =
+                                ExpandForSourceCoverage(
+                                    DpiCoordinateMapper.PixelsToDips(
+                                        region.Bounds,
+                                        _dpiX,
+                                        _dpiY
+                                    )
+                                )
+                        }
                 )
                 .Where(
-                    bounds =>
-                        bounds.Y >
+                    item =>
+                        item.Bounds.Y >
                         currentBounds.Y &&
                         HorizontallyOverlaps(
                             currentBounds,
-                            bounds
+                            item.Bounds
                         )
                 )
                 .Select(
-                    bounds =>
-                        bounds.Y
+                    item =>
+                        item.Bounds.Y -
+                        ScreenshotTranslationLayout.CalculateParagraphGap(
+                            currentRole,
+                            item.Region.Role,
+                            currentFontSize
+                        )
                 )
                 .DefaultIfEmpty(
-                    Height
+                    bottomLimit
                 )
                 .Min();
 
@@ -485,8 +525,34 @@ public partial class ScreenshotTranslationWindow
             Math.Max(
                 currentBounds.Height,
                 nextTop -
-                currentBounds.Y -
-                MinimumParagraphGap
+                currentBounds.Y
+            );
+    }
+
+    private Rect ExpandToAlignedLeft(
+        Rect bounds,
+        double alignedLeft
+    )
+    {
+        var alignedCoverageLeft =
+            Math.Max(
+                0d,
+                alignedLeft -
+                SourceCoverExpansion
+            );
+
+        if (alignedCoverageLeft >= bounds.Left)
+        {
+            return bounds;
+        }
+
+        return
+            new Rect(
+                alignedCoverageLeft,
+                bounds.Top,
+                bounds.Right -
+                alignedCoverageLeft,
+                bounds.Height
             );
     }
 

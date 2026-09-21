@@ -171,7 +171,15 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
                     Assert.InRange(
                         container.Height,
                         100d,
-                        184d
+                        166d
+                    );
+
+                    Assert.True(
+                        Canvas.GetTop(
+                            container
+                        ) +
+                        container.Height <=
+                        180d
                     );
                 }
                 finally
@@ -261,7 +269,97 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
                     Assert.True(
                         firstBottom <=
                         secondTop -
-                        4d
+                        10d
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
+    [Fact]
+    public void ShowResults_AlignsNearbyRegionsToOneTextColumn()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new ScreenshotTranslationWindow(
+                        CreateSelection()
+                    );
+
+                try
+                {
+                    window.ShowResults(
+                        new[]
+                        {
+                            new ScreenshotTextRegion(
+                                "body-1",
+                                "First",
+                                0.95,
+                                new PixelRect(
+                                    20,
+                                    20,
+                                    160,
+                                    30
+                                ),
+                                30,
+                                ScreenshotTextRole.Body,
+                                "第一段"
+                            ),
+                            new ScreenshotTextRegion(
+                                "body-2",
+                                "Second",
+                                0.95,
+                                new PixelRect(
+                                    30,
+                                    100,
+                                    160,
+                                    30
+                                ),
+                                30,
+                                ScreenshotTextRole.Body,
+                                "第二段"
+                            )
+                        }
+                    );
+
+                    var canvas =
+                        Assert.IsType<Canvas>(
+                            window.FindName(
+                                "TranslationCanvas"
+                            )
+                        );
+
+                    var containers =
+                        canvas.Children
+                            .OfType<Border>()
+                            .ToArray();
+
+                    Assert.Equal(
+                        2,
+                        containers.Length
+                    );
+
+                    var firstTextLeft =
+                        Canvas.GetLeft(
+                            containers[0]
+                        ) +
+                        containers[0].Padding.Left;
+
+                    var secondTextLeft =
+                        Canvas.GetLeft(
+                            containers[1]
+                        ) +
+                        containers[1].Padding.Left;
+
+                    Assert.Equal(
+                        firstTextLeft,
+                        secondTextLeft,
+                        6
                     );
                 }
                 finally
