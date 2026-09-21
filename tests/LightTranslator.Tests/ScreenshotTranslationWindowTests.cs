@@ -574,7 +574,7 @@ public sealed class ScreenshotTranslationWindowTests
                         );
 
                     Assert.Equal(
-                        28d,
+                        25.2d,
                         title.FontSize,
                         6
                     );
@@ -585,7 +585,7 @@ public sealed class ScreenshotTranslationWindowTests
                     );
 
                     Assert.Equal(
-                        38.64d,
+                        34.776d,
                         title.LineHeight,
                         6
                     );
