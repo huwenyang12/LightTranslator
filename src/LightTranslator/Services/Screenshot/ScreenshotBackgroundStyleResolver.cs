@@ -52,22 +52,15 @@ public static class ScreenshotBackgroundStyleResolver
 
         try
         {
-            var xPositions =
-                CreateSamplePositions(
-                    bounds.X,
-                    bounds.Width
-                );
-
-            var yPositions =
-                CreateSamplePositions(
-                    bounds.Y,
-                    bounds.Height
+            var samplePoints =
+                CreatePerimeterSamplePoints(
+                    image,
+                    bounds
                 );
 
             var samples =
                 new List<RgbSample>(
-                    xPositions.Length *
-                    yPositions.Length
+                    samplePoints.Count
                 );
 
             var pixel =
@@ -75,29 +68,26 @@ public static class ScreenshotBackgroundStyleResolver
                     bytesPerPixel
                 ];
 
-            foreach (var y in yPositions)
+            foreach (var point in samplePoints)
             {
-                foreach (var x in xPositions)
-                {
-                    image.CopyPixels(
-                        new Int32Rect(
-                            x,
-                            y,
-                            1,
-                            1
-                        ),
-                        pixel,
-                        bytesPerPixel,
-                        0
-                    );
+                image.CopyPixels(
+                    new Int32Rect(
+                        point.X,
+                        point.Y,
+                        1,
+                        1
+                    ),
+                    pixel,
+                    bytesPerPixel,
+                    0
+                );
 
-                    samples.Add(
-                        DecodePixel(
-                            pixel,
-                            isPremultiplied
-                        )
-                    );
-                }
+                samples.Add(
+                    DecodePixel(
+                        pixel,
+                        isPremultiplied
+                    )
+                );
             }
 
             if (samples.Count == 0)
@@ -319,6 +309,88 @@ public static class ScreenshotBackgroundStyleResolver
                             ),
                             MidpointRounding.AwayFromZero
                         )
+                )
+                .Distinct()
+                .ToArray();
+    }
+
+    private static IReadOnlyList<(int X, int Y)>
+        CreatePerimeterSamplePoints(
+            BitmapSource image,
+            PixelRect bounds
+        )
+    {
+        const int samplingOffset = 2;
+
+        var left =
+            Math.Max(
+                0,
+                bounds.X -
+                samplingOffset
+            );
+
+        var right =
+            Math.Min(
+                image.PixelWidth -
+                1,
+                bounds.X +
+                bounds.Width -
+                1 +
+                samplingOffset
+            );
+
+        var top =
+            Math.Max(
+                0,
+                bounds.Y -
+                samplingOffset
+            );
+
+        var bottom =
+            Math.Min(
+                image.PixelHeight -
+                1,
+                bounds.Y +
+                bounds.Height -
+                1 +
+                samplingOffset
+            );
+
+        var xPositions =
+            CreateSamplePositions(
+                left,
+                right -
+                left +
+                1
+            );
+
+        var yPositions =
+            CreateSamplePositions(
+                top,
+                bottom -
+                top +
+                1
+            );
+
+        return
+            xPositions
+                .SelectMany(
+                    x =>
+                        new[]
+                        {
+                            (X: x, Y: top),
+                            (X: x, Y: bottom)
+                        }
+                )
+                .Concat(
+                    yPositions.SelectMany(
+                        y =>
+                            new[]
+                            {
+                                (X: left, Y: y),
+                                (X: right, Y: y)
+                            }
+                    )
                 )
                 .Distinct()
                 .ToArray();

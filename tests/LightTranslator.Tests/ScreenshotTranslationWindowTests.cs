@@ -214,7 +214,7 @@ public sealed class ScreenshotTranslationWindowTests
                         );
 
                     Assert.Equal(
-                        80,
+                        78,
                         Canvas.GetLeft(
                             translatedBlock
                         ),
@@ -222,7 +222,7 @@ public sealed class ScreenshotTranslationWindowTests
                     );
 
                     Assert.Equal(
-                        40,
+                        38,
                         Canvas.GetTop(
                             translatedBlock
                         ),
@@ -230,15 +230,14 @@ public sealed class ScreenshotTranslationWindowTests
                     );
 
                     Assert.Equal(
-                        160,
+                        164,
                         translatedBlock.Width,
                         6
                     );
 
-                    Assert.Equal(
-                        32,
-                        translatedBlock.Height,
-                        6
+                    Assert.True(
+                        translatedBlock.Height >=
+                        36d
                     );
 
                     var translatedText =
@@ -350,20 +349,20 @@ public sealed class ScreenshotTranslationWindowTests
 
                     Assert.Equal(
                         new Thickness(
-                            1.44,
-                            0.72,
-                            1.44,
-                            0.72
+                            4,
+                            2,
+                            4,
+                            2
                         ),
                         containers[0].Padding
                     );
 
                     Assert.Equal(
                         new Thickness(
-                            4,
-                            2,
-                            4,
-                            2
+                            6,
+                            3.2,
+                            6,
+                            3.2
                         ),
                         containers[1].Padding
                     );
@@ -460,6 +459,70 @@ public sealed class ScreenshotTranslationWindowTests
     }
 
     [Fact]
+    public void ShowResults_TopAlignsAutomaticallyWrappedTranslation()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new ScreenshotTranslationWindow(
+                        CreateSelection()
+                    );
+
+                try
+                {
+                    window.ShowResults(
+                        new[]
+                        {
+                            new ScreenshotTextRegion(
+                                "wrapped",
+                                "Wrapped",
+                                0.95,
+                                new PixelRect(
+                                    20,
+                                    20,
+                                    120,
+                                    30
+                                ),
+                                30,
+                                ScreenshotTextRole.Body,
+                                "这是一段需要自动换行并从顶部开始排列的翻译内容"
+                            )
+                        }
+                    );
+
+                    var canvas =
+                        Assert.IsType<Canvas>(
+                            window.FindName(
+                                "TranslationCanvas"
+                            )
+                        );
+
+                    var container =
+                        Assert.Single(
+                            canvas.Children
+                                .OfType<Border>()
+                        );
+
+                    var text =
+                        Assert.IsType<TextBlock>(
+                            container.Child
+                        );
+
+                    Assert.Equal(
+                        VerticalAlignment.Top,
+                        text.VerticalAlignment
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
+    [Fact]
     public void ShowResults_KeepsLargeTitleAboveEighteenDip()
     {
         RunOnSta(
@@ -511,8 +574,19 @@ public sealed class ScreenshotTranslationWindowTests
                         );
 
                     Assert.Equal(
-                        32d,
+                        28d,
                         title.FontSize,
+                        6
+                    );
+
+                    Assert.Equal(
+                        FontWeights.SemiBold,
+                        title.FontWeight
+                    );
+
+                    Assert.Equal(
+                        38.64d,
+                        title.LineHeight,
                         6
                     );
                 }

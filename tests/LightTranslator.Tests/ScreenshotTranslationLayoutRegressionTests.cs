@@ -10,7 +10,7 @@ namespace LightTranslator.Tests;
 public sealed class ScreenshotTranslationLayoutRegressionTests
 {
     [Fact]
-    public void ShowResults_LongTranslationStaysInsideSourceBoxAndShrinksFont()
+    public void ShowResults_LongTranslationExpandsIntoAvailableSpaceWithoutTinyText()
     {
         RunOnSta(
             () =>
@@ -58,22 +58,22 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
                             container.Child
                         );
 
-                    var mappedSourceWidth =
-                        120d * 96d / 120d;
+                    var mappedSourceWidthWithCoverage =
+                        120d * 96d / 120d +
+                        4d;
 
                     var mappedSourceHeight =
                         30d * 96d / 120d;
 
                     Assert.Equal(
-                        mappedSourceWidth,
+                        mappedSourceWidthWithCoverage,
                         container.Width,
                         6
                     );
 
-                    Assert.Equal(
-                        mappedSourceHeight,
-                        container.Height,
-                        6
+                    Assert.True(
+                        container.Height >
+                        mappedSourceHeight
                     );
 
                     Assert.Equal(
@@ -88,8 +88,8 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
 
                     Assert.InRange(
                         translatedText.FontSize,
-                        6d,
-                        17.999d
+                        12d,
+                        16.8d
                     );
                 }
                 finally
@@ -101,7 +101,7 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
     }
 
     [Fact]
-    public void ShowResults_ExtremeTranslationStopsAtMinimumFontAndClipsToSourceBox()
+    public void ShowResults_ExtremeTranslationKeepsReadableMinimumAndUsesAvailableHeight()
     {
         RunOnSta(
             () =>
@@ -153,7 +153,7 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
                         );
 
                     Assert.Equal(
-                        6d,
+                        12d,
                         translatedText.FontSize,
                         6
                     );
@@ -163,15 +163,105 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
                     );
 
                     Assert.Equal(
-                        48d,
+                        52d,
                         container.Width,
                         6
                     );
 
-                    Assert.Equal(
-                        9.6d,
+                    Assert.InRange(
                         container.Height,
-                        6
+                        100d,
+                        184d
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
+    [Fact]
+    public void ShowResults_ExpandedParagraphStopsBeforeFollowingRegion()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new ScreenshotTranslationWindow(
+                        CreateSelection()
+                    );
+
+                try
+                {
+                    window.ShowResults(
+                        new[]
+                        {
+                            new OcrBlock(
+                                "block-0001",
+                                "Summary",
+                                0.95,
+                                new PixelRect(
+                                    20,
+                                    20,
+                                    120,
+                                    20
+                                ),
+                                "这是一个需要自动换行并利用下方留白显示的较长翻译段落"
+                            ),
+                            new OcrBlock(
+                                "block-0002",
+                                "Next",
+                                0.95,
+                                new PixelRect(
+                                    20,
+                                    100,
+                                    120,
+                                    20
+                                ),
+                                "下一段"
+                            )
+                        }
+                    );
+
+                    var canvas =
+                        Assert.IsType<Canvas>(
+                            window.FindName(
+                                "TranslationCanvas"
+                            )
+                        );
+
+                    var containers =
+                        canvas.Children
+                            .OfType<Border>()
+                            .ToArray();
+
+                    Assert.Equal(
+                        2,
+                        containers.Length
+                    );
+
+                    var firstBottom =
+                        Canvas.GetTop(
+                            containers[0]
+                        ) +
+                        containers[0].Height;
+
+                    var secondTop =
+                        Canvas.GetTop(
+                            containers[1]
+                        );
+
+                    Assert.True(
+                        containers[0].Height >
+                        16d
+                    );
+
+                    Assert.True(
+                        firstBottom <=
+                        secondTop -
+                        4d
                     );
                 }
                 finally

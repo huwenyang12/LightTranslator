@@ -27,7 +27,7 @@ public static class ScreenshotTranslationTypography
                         region.SourceLineHeight *
                         96d /
                         dpiY *
-                        0.80d,
+                        0.70d,
                         MinimumFontSize,
                         MaximumFontSize
                     )

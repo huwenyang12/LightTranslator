@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using LightTranslator.Models;
 
 namespace LightTranslator.Services.Screenshot;
@@ -160,8 +161,18 @@ public static class ScreenshotTextRegionAnalyzer
                 )
             );
 
+        if (bodyMedianHeight <= 0d)
+        {
+            return false;
+        }
+
+        var isExplicitNumberedTitle =
+            IsExplicitNumberedTitle(
+                candidate.Text
+            );
+
         if (
-            bodyMedianHeight <= 0d ||
+            !isExplicitNumberedTitle &&
             candidate.Bounds.Height <
             bodyMedianHeight * 1.30d
         )
@@ -229,6 +240,27 @@ public static class ScreenshotTextRegionAnalyzer
         return
             gap <=
             bodyMedianHeight * 1.5d;
+    }
+
+    private static bool IsExplicitNumberedTitle(
+        string text
+    )
+    {
+        var normalized =
+            text.Trim();
+
+        return
+            Regex.IsMatch(
+                normalized,
+                @"^(paragraph|section|chapter)\s*\d+\s*[:：.]?$",
+                RegexOptions.IgnoreCase |
+                RegexOptions.CultureInvariant
+            ) ||
+            Regex.IsMatch(
+                normalized,
+                @"^(第\s*\d+\s*[段章节]|段落\s*\d+)\s*[:：.]?$",
+                RegexOptions.CultureInvariant
+            );
     }
 
     private static ScreenshotTextRegion CreateRegion(

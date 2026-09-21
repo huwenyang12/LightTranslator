@@ -46,13 +46,13 @@ public sealed class ScreenshotTranslationTypographyTests
             );
 
         Assert.Equal(
-            19.84d,
+            17.36d,
             sizes["body-1"],
             6
         );
 
         Assert.Equal(
-            19.84d,
+            17.36d,
             sizes["body-2"],
             6
         );
@@ -99,13 +99,13 @@ public sealed class ScreenshotTranslationTypographyTests
             );
 
         Assert.Equal(
-            32d,
+            28d,
             sizes["title"],
             6
         );
 
         Assert.Equal(
-            19.2d,
+            16.8d,
             sizes["body"],
             6
         );
@@ -117,9 +117,9 @@ public sealed class ScreenshotTranslationTypographyTests
     }
 
     [Theory]
-    [InlineData(96d, 24d, 19.2d)]
-    [InlineData(120d, 30d, 19.2d)]
-    [InlineData(144d, 36d, 19.2d)]
+    [InlineData(96d, 24d, 16.8d)]
+    [InlineData(120d, 30d, 16.8d)]
+    [InlineData(144d, 36d, 16.8d)]
     public void CalculatePreferredFontSizes_ConvertsPhysicalLineHeightToDip(
         double dpiY,
         double sourceLineHeight,

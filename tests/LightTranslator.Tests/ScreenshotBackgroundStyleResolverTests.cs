@@ -80,6 +80,39 @@ public sealed class ScreenshotBackgroundStyleResolverTests
     }
 
     [Fact]
+    public void Resolve_LightDocumentIgnoresDarkGlyphsInsideTextBounds()
+    {
+        var style =
+            ScreenshotBackgroundStyleResolver.Resolve(
+                CreateLightDocumentBitmapWithDarkGlyphs(
+                    100,
+                    60
+                ),
+                new PixelRect(
+                    10,
+                    10,
+                    60,
+                    30
+                )
+            );
+
+        Assert.Equal(
+            Color.FromArgb(
+                255,
+                248,
+                248,
+                248
+            ),
+            style.Background
+        );
+
+        Assert.Equal(
+            Colors.Black,
+            style.Foreground
+        );
+    }
+
+    [Fact]
     public void Resolve_HighVarianceRegionUsesDeterministicFallback()
     {
         var style =
@@ -236,6 +269,68 @@ public sealed class ScreenshotBackgroundStyleResolverTests
 
                 pixels[index + 3] =
                     255;
+            }
+        }
+
+        var bitmap =
+            BitmapSource.Create(
+                width,
+                height,
+                96,
+                96,
+                PixelFormats.Bgra32,
+                null,
+                pixels,
+                width * 4
+            );
+
+        bitmap.Freeze();
+
+        return bitmap;
+    }
+
+    private static BitmapSource CreateLightDocumentBitmapWithDarkGlyphs(
+        int width,
+        int height
+    )
+    {
+        var pixels =
+            new byte[
+                width *
+                height *
+                4
+            ];
+
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var isGlyph =
+                    x >= 18 &&
+                    x <= 62 &&
+                    y >= 16 &&
+                    y <= 32 &&
+                    (
+                        x % 6 <= 2 ||
+                        y % 7 <= 1
+                    );
+
+                var value =
+                    isGlyph
+                        ? (byte)18
+                        : (byte)248;
+
+                var index =
+                    (
+                        y *
+                        width +
+                        x
+                    ) * 4;
+
+                pixels[index] = value;
+                pixels[index + 1] = value;
+                pixels[index + 2] = value;
+                pixels[index + 3] = 255;
             }
         }
 

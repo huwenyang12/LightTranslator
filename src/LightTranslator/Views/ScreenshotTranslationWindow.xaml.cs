@@ -13,7 +13,10 @@ public partial class ScreenshotTranslationWindow
     : Window,
       IScreenshotResultView
 {
-    private const double MinimumTranslationFontSize = 6d;
+    private const double MinimumReadableFontSize = 12d;
+    private const double MinimumParagraphGap = 4d;
+    private const double SourceCoverExpansion = 2d;
+    private const double TranslationLineHeightRatio = 1.38d;
 
     private readonly ICommand _closeRequestCommand;
     private bool _closeRequestRaised;
@@ -74,25 +77,47 @@ public partial class ScreenshotTranslationWindow
 
         HideStatus();
 
+        var visibleRegions =
+            regions
+                .Where(
+                    region =>
+                        !string.IsNullOrWhiteSpace(
+                            region.TranslatedText
+                        ) &&
+                        !region.Bounds.IsEmpty
+                )
+                .OrderBy(
+                    region =>
+                        region.Bounds.Y
+                )
+                .ThenBy(
+                    region =>
+                        region.Bounds.X
+                )
+                .ToArray();
+
         var preferredFonts =
             ScreenshotTranslationTypography.CalculatePreferredFontSizes(
-                regions,
+                visibleRegions,
                 _dpiY
             );
 
-        foreach (var region in regions)
+        for (var index = 0;
+             index < visibleRegions.Length;
+             index++)
         {
-            if (string.IsNullOrWhiteSpace(
-                    region.TranslatedText
-                ) ||
-                region.Bounds.IsEmpty)
-            {
-                continue;
-            }
+            var region =
+                visibleRegions[index];
 
             AddTranslationBlock(
                 region,
-                preferredFonts[region.Id]
+                preferredFonts[region.Id],
+                visibleRegions
+                    .Skip(
+                        index +
+                        1
+                    )
+                    .ToArray()
             );
         }
     }
@@ -180,28 +205,34 @@ public partial class ScreenshotTranslationWindow
 
     private void AddTranslationBlock(
         ScreenshotTextRegion region,
-        double preferredFontSize
+        double preferredFontSize,
+        IReadOnlyList<ScreenshotTextRegion> followingRegions
     )
     {
-        var bounds =
+        var sourceBounds =
             DpiCoordinateMapper.PixelsToDips(
                 region.Bounds,
                 _dpiX,
                 _dpiY
             );
 
+        var bounds =
+            ExpandForSourceCoverage(
+                sourceBounds
+            );
+
         var horizontalPadding =
             Math.Clamp(
-                bounds.Height * 0.12d,
-                1d,
-                4d
+                sourceBounds.Height * 0.15d,
+                4d,
+                8d
             );
 
         var verticalPadding =
             Math.Clamp(
-                bounds.Height * 0.06d,
-                0d,
-                2d
+                sourceBounds.Height * 0.08d,
+                2d,
+                4d
             );
 
         var padding =
@@ -246,10 +277,16 @@ public partial class ScreenshotTranslationWindow
                 padding.Right
             );
 
+        var maximumContainerHeight =
+            CalculateMaximumContainerHeight(
+                bounds,
+                followingRegions
+            );
+
         var availableHeight =
             Math.Max(
                 0d,
-                bounds.Height -
+                maximumContainerHeight -
                 padding.Top -
                 padding.Bottom
             );
@@ -262,12 +299,47 @@ public partial class ScreenshotTranslationWindow
                 availableHeight
             );
 
+        text.LineHeight =
+            text.FontSize *
+            TranslationLineHeightRatio;
+
+        text.LineStackingStrategy =
+            LineStackingStrategy.BlockLineHeight;
+
+        text.FontWeight =
+            region.Role ==
+            ScreenshotTextRole.Title
+                ? FontWeights.SemiBold
+                : FontWeights.Normal;
+
         text.Measure(
             new System.Windows.Size(
                 double.PositiveInfinity,
                 double.PositiveInfinity
             )
         );
+
+        var requiresWrapping =
+            text.DesiredSize.Width >
+            availableWidth;
+
+        text.Measure(
+            new System.Windows.Size(
+                availableWidth,
+                double.PositiveInfinity
+            )
+        );
+
+        var containerHeight =
+            Math.Min(
+                maximumContainerHeight,
+                Math.Max(
+                    bounds.Height,
+                    text.DesiredSize.Height +
+                    padding.Top +
+                    padding.Bottom
+                )
+            );
 
         var hasExplicitLineBreak =
             translatedText.Contains(
@@ -276,10 +348,6 @@ public partial class ScreenshotTranslationWindow
             translatedText.Contains(
                 '\r'
             );
-
-        var requiresWrapping =
-            text.DesiredSize.Width >
-            availableWidth;
 
         text.VerticalAlignment =
             hasExplicitLineBreak ||
@@ -293,7 +361,7 @@ public partial class ScreenshotTranslationWindow
                 Width =
                     bounds.Width,
                 Height =
-                    bounds.Height,
+                    containerHeight,
                 Padding =
                     padding,
                 ClipToBounds =
@@ -335,19 +403,26 @@ public partial class ScreenshotTranslationWindow
         if (availableWidth <= 0d ||
             availableHeight <= 0d)
         {
-            return MinimumTranslationFontSize;
+            return MinimumReadableFontSize;
         }
 
         var candidate =
             Math.Max(
-                MinimumTranslationFontSize,
+                MinimumReadableFontSize,
                 preferredFontSize
             );
 
-        while (candidate > MinimumTranslationFontSize)
+        while (candidate > MinimumReadableFontSize)
         {
             text.FontSize =
                 candidate;
+
+            text.LineHeight =
+                candidate *
+                TranslationLineHeightRatio;
+
+            text.LineStackingStrategy =
+                LineStackingStrategy.BlockLineHeight;
 
             text.Measure(
                 new System.Windows.Size(
@@ -363,12 +438,121 @@ public partial class ScreenshotTranslationWindow
 
             candidate =
                 Math.Max(
-                    MinimumTranslationFontSize,
+                    MinimumReadableFontSize,
                     candidate - 1d
                 );
         }
 
-        return MinimumTranslationFontSize;
+        return MinimumReadableFontSize;
+    }
+
+    private double CalculateMaximumContainerHeight(
+        Rect currentBounds,
+        IReadOnlyList<ScreenshotTextRegion> followingRegions
+    )
+    {
+        var nextTop =
+            followingRegions
+                .Select(
+                    region =>
+                        ExpandForSourceCoverage(
+                            DpiCoordinateMapper.PixelsToDips(
+                                region.Bounds,
+                                _dpiX,
+                                _dpiY
+                            )
+                        )
+                )
+                .Where(
+                    bounds =>
+                        bounds.Y >
+                        currentBounds.Y &&
+                        HorizontallyOverlaps(
+                            currentBounds,
+                            bounds
+                        )
+                )
+                .Select(
+                    bounds =>
+                        bounds.Y
+                )
+                .DefaultIfEmpty(
+                    Height
+                )
+                .Min();
+
+        return
+            Math.Max(
+                currentBounds.Height,
+                nextTop -
+                currentBounds.Y -
+                MinimumParagraphGap
+            );
+    }
+
+    private Rect ExpandForSourceCoverage(
+        Rect bounds
+    )
+    {
+        var left =
+            Math.Max(
+                0d,
+                bounds.Left -
+                SourceCoverExpansion
+            );
+
+        var top =
+            Math.Max(
+                0d,
+                bounds.Top -
+                SourceCoverExpansion
+            );
+
+        var right =
+            Math.Min(
+                Width,
+                bounds.Right +
+                SourceCoverExpansion
+            );
+
+        var bottom =
+            Math.Min(
+                Height,
+                bounds.Bottom +
+                SourceCoverExpansion
+            );
+
+        return
+            new Rect(
+                left,
+                top,
+                Math.Max(
+                    0d,
+                    right -
+                    left
+                ),
+                Math.Max(
+                    0d,
+                    bottom -
+                    top
+                )
+            );
+    }
+
+    private static bool HorizontallyOverlaps(
+        Rect first,
+        Rect second
+    )
+    {
+        return
+            Math.Min(
+                first.Right,
+                second.Right
+            ) >
+            Math.Max(
+                first.Left,
+                second.Left
+            );
     }
 
     private void ShowStatus(

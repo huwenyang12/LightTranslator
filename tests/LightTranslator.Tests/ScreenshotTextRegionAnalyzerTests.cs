@@ -251,4 +251,68 @@ public sealed class ScreenshotTextRegionAnalyzerTests
             region.Role
         );
     }
+
+    [Fact]
+    public void Analyze_SeparatesNumberedParagraphHeadingAtBodyLineHeight()
+    {
+        var regions =
+            ScreenshotTextRegionAnalyzer.Analyze(
+                new[]
+                {
+                    new OcrBlock(
+                        "title",
+                        "Paragraph 1",
+                        0.98,
+                        new PixelRect(
+                            20,
+                            10,
+                            150,
+                            24
+                        )
+                    ),
+                    new OcrBlock(
+                        "body-1",
+                        "Learning a new language is rewarding.",
+                        0.96,
+                        new PixelRect(
+                            20,
+                            40,
+                            420,
+                            24
+                        )
+                    ),
+                    new OcrBlock(
+                        "body-2",
+                        "It opens doors to new cultures.",
+                        0.95,
+                        new PixelRect(
+                            20,
+                            70,
+                            440,
+                            24
+                        )
+                    )
+                }
+            );
+
+        Assert.Equal(
+            2,
+            regions.Count
+        );
+
+        Assert.Equal(
+            ScreenshotTextRole.Title,
+            regions[0].Role
+        );
+
+        Assert.Equal(
+            "Paragraph 1",
+            regions[0].Text
+        );
+
+        Assert.Equal(
+            ScreenshotTextRole.Body,
+            regions[1].Role
+        );
+    }
 }
