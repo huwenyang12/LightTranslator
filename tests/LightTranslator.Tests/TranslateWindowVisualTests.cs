@@ -49,6 +49,7 @@ public sealed class TranslateWindowVisualTests
                 Assert.Equal(420d, window.MinWidth);
                 Assert.Equal(276d, window.MinHeight);
                 Assert.Equal(ResizeMode.CanResize, window.ResizeMode);
+                Assert.True(window.ShowInTaskbar);
 
                 var chrome = WindowChrome.GetWindowChrome(window);
 
@@ -143,6 +144,15 @@ public sealed class TranslateWindowVisualTests
 
                 Assert.Equal(28d, closeButton.Width);
                 Assert.Equal(28d, closeButton.Height);
+
+                var sharedTitleBarButtonStyle =
+                    window.TryFindResource("Style.Button.TitleBar");
+
+                Assert.NotNull(sharedTitleBarButtonStyle);
+                Assert.Same(
+                    sharedTitleBarButtonStyle,
+                    closeButton.Style
+                );
 
                 window.Show();
                 closeButton.RaiseEvent(

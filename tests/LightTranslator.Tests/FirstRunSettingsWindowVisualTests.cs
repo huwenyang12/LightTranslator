@@ -100,8 +100,18 @@ public sealed class FirstRunSettingsWindowVisualTests
                 Assert.Equal(20d, appIcon.Width);
                 Assert.Equal(20d, appIcon.Height);
 
-                Assert.IsType<Button>(
-                    window.FindName("SettingsCloseButton")
+                var settingsCloseButton =
+                    Assert.IsType<Button>(
+                        window.FindName("SettingsCloseButton")
+                    );
+
+                var sharedTitleBarButtonStyle =
+                    window.TryFindResource("Style.Button.TitleBar");
+
+                Assert.NotNull(sharedTitleBarButtonStyle);
+                Assert.Same(
+                    sharedTitleBarButtonStyle,
+                    settingsCloseButton.Style
                 );
 
                 Assert.IsType<CheckBox>(

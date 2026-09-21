@@ -18,6 +18,11 @@
         Foreground="{DynamicResource Brush.Text.Primary}">
 
     <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Bridgo;component/Resources/Styles/TitleBarButtons.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
         <DataTemplate x:Key="LanguageOptionTemplate">
             <TextBlock Text="{Binding DisplayName}"/>
         </DataTemplate>
@@ -48,42 +53,6 @@
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Faint}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="12"/>
-        </Style>
-
-        <Style x:Key="Style.Settings.TitleBarButton" TargetType="Button">
-            <Setter Property="Width" Value="28"/>
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border
-                            x:Name="ButtonSurface"
-                            Background="{TemplateBinding Background}"
-                            CornerRadius="7">
-                            <ContentPresenter
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter
-                                    TargetName="ButtonSurface"
-                                    Property="Background"
-                                    Value="{DynamicResource Brush.Surface.Elevated}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.68"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
 
         <Style x:Key="Style.Settings.SaveButton" TargetType="Button">
@@ -162,6 +131,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Grid KeyboardNavigation.TabNavigation="Continue">
@@ -197,7 +167,7 @@
                 x:Name="SettingsCloseButton"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Center"
-                Style="{StaticResource Style.Settings.TitleBarButton}"
+                Style="{StaticResource Style.Button.TitleBar}"
                 Content="×"
                 FontSize="20"
                 FontWeight="Light"

@@ -14,12 +14,17 @@
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource Brush.Window.Base}"
         AllowsTransparency="False"
-        ShowInTaskbar="False"
+        ShowInTaskbar="True"
         Topmost="True"
         FontFamily="{DynamicResource Font.Family.Primary}"
         Foreground="{DynamicResource Brush.Text.Primary}">
 
     <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Bridgo;component/Resources/Styles/TitleBarButtons.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
         <ControlTemplate
             x:Key="Template.Translate.SourceEditor"
             TargetType="TextBox">
@@ -68,44 +73,7 @@
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
 
-        <Style
-            x:Key="Style.Translate.TitleBarButton"
-            TargetType="Button">
-            <Setter Property="Width" Value="28"/>
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border
-                            x:Name="ButtonSurface"
-                            Background="{TemplateBinding Background}"
-                            CornerRadius="7">
-                            <ContentPresenter
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter
-                                    TargetName="ButtonSurface"
-                                    Property="Background"
-                                    Value="{DynamicResource Brush.Surface.Elevated}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.68"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
+        </ResourceDictionary>
     </Window.Resources>
 
     <shell:WindowChrome.WindowChrome>
@@ -158,7 +126,7 @@
                     x:Name="TranslationCloseButton"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
-                    Style="{StaticResource Style.Translate.TitleBarButton}"
+                    Style="{StaticResource Style.Button.TitleBar}"
                     Content="×"
                     FontSize="20"
                     FontWeight="Light"
