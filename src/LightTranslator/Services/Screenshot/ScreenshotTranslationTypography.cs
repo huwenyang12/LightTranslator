@@ -1,5 +1,4 @@
 using LightTranslator.Models;
-using System.Text.RegularExpressions;
 
 namespace LightTranslator.Services.Screenshot;
 
@@ -13,14 +12,6 @@ public static class ScreenshotTranslationTypography
     private const double MaximumBodyMedianRatio = 1.08d;
     private const double NumberedSectionMedianRatio = 0.82d;
     private const double MaximumTitleMedianRatio = 1.12d;
-
-    private static readonly Regex NumberedSectionPattern =
-        new(
-            @"^(?:第\s*\d+\s*(?:段|节|章)|(?:段落|章节|第)?\s*\d+|(?:paragraph|section|chapter)\s*\d+)\s*[：:]?$",
-            RegexOptions.Compiled |
-            RegexOptions.IgnoreCase |
-            RegexOptions.CultureInvariant
-        );
 
     public static IReadOnlyDictionary<string, double>
         CalculatePreferredFontSizes(
@@ -69,17 +60,11 @@ public static class ScreenshotTranslationTypography
             return sizes;
         }
 
-        var middle =
-            bodySizes.Length /
-            2;
-
         var median =
-            bodySizes.Length % 2 == 0
-                ? (
-                    bodySizes[middle - 1] +
-                    bodySizes[middle]
-                ) / 2d
-                : bodySizes[middle];
+            bodySizes[
+                (bodySizes.Length - 1) /
+                2
+            ];
 
         var tolerance =
             median *
@@ -133,8 +118,8 @@ public static class ScreenshotTranslationTypography
         )
         {
             sizes[region.Id] =
-                NumberedSectionPattern.IsMatch(
-                    region.Text.Trim()
+                ScreenshotTextRegionAnalyzer.IsExplicitNumberedTitle(
+                    region.Text
                 )
                     ? Math.Clamp(
                         median *

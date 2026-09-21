@@ -32,7 +32,7 @@ public sealed class ScreenshotTranslationLayoutTests
             );
 
         Assert.Equal(
-            20d,
+            24d,
             aligned["left-1"],
             6
         );
@@ -46,6 +46,80 @@ public sealed class ScreenshotTranslationLayoutTests
         Assert.Equal(
             144d,
             aligned["right"],
+            6
+        );
+    }
+
+    [Fact]
+    public void CalculateAlignedLeftEdges_KeepsNarrowSeparatedBlocksIndependent()
+    {
+        var regions =
+            new[]
+            {
+                CreateRegion(
+                    "narrow-1",
+                    10,
+                    10
+                ),
+                CreateRegion(
+                    "narrow-2",
+                    40,
+                    10
+                )
+            };
+
+        var aligned =
+            ScreenshotTranslationLayout.CalculateAlignedLeftEdges(
+                regions,
+                120d
+            );
+
+        Assert.Equal(
+            8d,
+            aligned["narrow-1"],
+            6
+        );
+
+        Assert.Equal(
+            32d,
+            aligned["narrow-2"],
+            6
+        );
+    }
+
+    [Fact]
+    public void CalculateAlignedLeftEdges_DoesNotConsumeMostOfNarrowOverlappingBlock()
+    {
+        var regions =
+            new[]
+            {
+                CreateRegion(
+                    "narrow-1",
+                    10,
+                    20
+                ),
+                CreateRegion(
+                    "narrow-2",
+                    20,
+                    20
+                )
+            };
+
+        var aligned =
+            ScreenshotTranslationLayout.CalculateAlignedLeftEdges(
+                regions,
+                120d
+            );
+
+        Assert.Equal(
+            8d,
+            aligned["narrow-1"],
+            6
+        );
+
+        Assert.Equal(
+            16d,
+            aligned["narrow-2"],
             6
         );
     }
@@ -93,7 +167,8 @@ public sealed class ScreenshotTranslationLayoutTests
 
     private static ScreenshotTextRegion CreateRegion(
         string id,
-        int x
+        int x,
+        int width = 100
     )
     {
         return
@@ -104,7 +179,7 @@ public sealed class ScreenshotTranslationLayoutTests
                 new PixelRect(
                     x,
                     0,
-                    100,
+                    width,
                     30
                 ),
                 30,

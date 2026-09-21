@@ -370,6 +370,113 @@ public sealed class ScreenshotTranslationLayoutRegressionTests
         );
     }
 
+    [Fact]
+    public void ShowResults_DoesNotAlignNarrowIndependentBlocksOrExpandTheirCoverage()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new ScreenshotTranslationWindow(
+                        CreateSelection()
+                    );
+
+                try
+                {
+                    window.ShowResults(
+                        new[]
+                        {
+                            new ScreenshotTextRegion(
+                                "narrow-1",
+                                "A",
+                                0.95,
+                                new PixelRect(
+                                    10,
+                                    20,
+                                    10,
+                                    30
+                                ),
+                                30,
+                                ScreenshotTextRole.Body,
+                                "甲"
+                            ),
+                            new ScreenshotTextRegion(
+                                "narrow-2",
+                                "B",
+                                0.95,
+                                new PixelRect(
+                                    40,
+                                    100,
+                                    10,
+                                    30
+                                ),
+                                30,
+                                ScreenshotTextRole.Body,
+                                "乙"
+                            )
+                        }
+                    );
+
+                    var canvas =
+                        Assert.IsType<Canvas>(
+                            window.FindName(
+                                "TranslationCanvas"
+                            )
+                        );
+
+                    var containers =
+                        canvas.Children
+                            .OfType<Border>()
+                            .ToArray();
+
+                    Assert.Equal(
+                        2,
+                        containers.Length
+                    );
+
+                    Assert.Equal(
+                        6d,
+                        Canvas.GetLeft(
+                            containers[0]
+                        ),
+                        6
+                    );
+
+                    Assert.Equal(
+                        30d,
+                        Canvas.GetLeft(
+                            containers[1]
+                        ),
+                        6
+                    );
+
+                    Assert.All(
+                        containers,
+                        container =>
+                        {
+                            Assert.Equal(
+                                12d,
+                                container.Width,
+                                6
+                            );
+
+                            Assert.True(
+                                container.Width -
+                                container.Padding.Left -
+                                container.Padding.Right >
+                                0d
+                            );
+                        }
+                    );
+                }
+                finally
+                {
+                    window.Close();
+                }
+            }
+        );
+    }
+
     private static CapturedSelection CreateSelection()
     {
         return

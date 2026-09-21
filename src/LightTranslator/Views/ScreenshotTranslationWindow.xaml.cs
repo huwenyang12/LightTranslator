@@ -228,12 +228,6 @@ public partial class ScreenshotTranslationWindow
                 sourceBounds
             );
 
-        bounds =
-            ExpandToAlignedLeft(
-                bounds,
-                alignedLeft
-            );
-
         var horizontalPadding =
             Math.Clamp(
                 sourceBounds.Height * 0.15d,
@@ -252,8 +246,7 @@ public partial class ScreenshotTranslationWindow
             new Thickness(
                 alignedLeft +
                 horizontalPadding -
-                SourceCoverExpansion -
-                bounds.Left,
+                sourceBounds.Left,
                 verticalPadding,
                 horizontalPadding,
                 verticalPadding
@@ -526,33 +519,6 @@ public partial class ScreenshotTranslationWindow
                 currentBounds.Height,
                 nextTop -
                 currentBounds.Y
-            );
-    }
-
-    private Rect ExpandToAlignedLeft(
-        Rect bounds,
-        double alignedLeft
-    )
-    {
-        var alignedCoverageLeft =
-            Math.Max(
-                0d,
-                alignedLeft -
-                SourceCoverExpansion
-            );
-
-        if (alignedCoverageLeft >= bounds.Left)
-        {
-            return bounds;
-        }
-
-        return
-            new Rect(
-                alignedCoverageLeft,
-                bounds.Top,
-                bounds.Right -
-                alignedCoverageLeft,
-                bounds.Height
             );
     }
 

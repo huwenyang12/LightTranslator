@@ -242,7 +242,7 @@ public static class ScreenshotTextRegionAnalyzer
             bodyMedianHeight * 1.5d;
     }
 
-    private static bool IsExplicitNumberedTitle(
+    internal static bool IsExplicitNumberedTitle(
         string text
     )
     {

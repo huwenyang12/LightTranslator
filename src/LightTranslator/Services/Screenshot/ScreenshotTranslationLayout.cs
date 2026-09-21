@@ -5,6 +5,7 @@ namespace LightTranslator.Services.Screenshot;
 public static class ScreenshotTranslationLayout
 {
     private const double ColumnAlignmentTolerance = 24d;
+    private const double MinimumAlignedSourceWidth = 16d;
     private const double BottomSafeArea = 20d;
 
     public static IReadOnlyDictionary<string, double>
@@ -34,6 +35,9 @@ public static class ScreenshotTranslationLayout
                             region.Id,
                             region.Bounds.X *
                             96d /
+                            dpiX,
+                            region.Bounds.Width *
+                            96d /
                             dpiX
                         )
                 )
@@ -57,9 +61,12 @@ public static class ScreenshotTranslationLayout
 
             while (
                 end < ordered.Length &&
-                ordered[end].Left -
-                ordered[start].Left <=
-                ColumnAlignmentTolerance
+                CanJoinColumn(
+                    ordered,
+                    start,
+                    end,
+                    ordered[end]
+                )
             )
             {
                 end++;
@@ -68,17 +75,8 @@ public static class ScreenshotTranslationLayout
             var cluster =
                 ordered[start..end];
 
-            var middle =
-                cluster.Length /
-                2;
-
             var commonLeft =
-                cluster.Length % 2 == 0
-                    ? (
-                        cluster[middle - 1].Left +
-                        cluster[middle].Left
-                    ) / 2d
-                    : cluster[middle].Left;
+                cluster[^1].Left;
 
             foreach (var region in cluster)
             {
@@ -91,6 +89,75 @@ public static class ScreenshotTranslationLayout
         }
 
         return aligned;
+    }
+
+    private static bool CanJoinColumn(
+        IReadOnlyList<AlignedRegion> ordered,
+        int start,
+        int end,
+        AlignedRegion candidate
+    )
+    {
+        var first =
+            ordered[start];
+
+        if (
+            candidate.Left -
+            first.Left >
+            ColumnAlignmentTolerance
+        )
+        {
+            return false;
+        }
+
+        var overlap =
+            Math.Max(
+                0d,
+                Math.Min(
+                    first.Right,
+                    candidate.Right
+                ) -
+                Math.Max(
+                    first.Left,
+                    candidate.Left
+                )
+            );
+
+        if (
+            overlap <
+            Math.Min(
+                first.Width,
+                candidate.Width
+            ) *
+            0.5d
+        )
+        {
+            return false;
+        }
+
+        for (var index = start;
+             index < end;
+             index++)
+        {
+            var region =
+                ordered[index];
+
+            if (
+                region.Width -
+                (
+                    candidate.Left -
+                    region.Left
+                ) <
+                MinimumAlignedSourceWidth
+            )
+            {
+                return false;
+            }
+        }
+
+        return
+            candidate.Width >=
+            MinimumAlignedSourceWidth;
     }
 
     public static double CalculateParagraphGap(
@@ -161,6 +228,12 @@ public static class ScreenshotTranslationLayout
 
     private sealed record AlignedRegion(
         string Id,
-        double Left
-    );
+        double Left,
+        double Width
+    )
+    {
+        public double Right =>
+            Left +
+            Width;
+    }
 }

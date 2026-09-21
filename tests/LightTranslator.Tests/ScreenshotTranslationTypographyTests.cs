@@ -46,13 +46,13 @@ public sealed class ScreenshotTranslationTypographyTests
             );
 
         Assert.Equal(
-            15.624d,
+            15.12d,
             sizes["body-1"],
             6
         );
 
         Assert.Equal(
-            15.624d,
+            15.12d,
             sizes["body-2"],
             6
         );
@@ -209,6 +209,45 @@ public sealed class ScreenshotTranslationTypographyTests
     }
 
     [Fact]
+    public void CalculatePreferredFontSizes_TwoBodySampleDoesNotLetLargeOutlierRaiseNormalText()
+    {
+        var regions =
+            new[]
+            {
+                CreateRegion(
+                    "body",
+                    "正文",
+                    20,
+                    ScreenshotTextRole.Body
+                ),
+                CreateRegion(
+                    "outlier",
+                    "异常放大的正文",
+                    80,
+                    ScreenshotTextRole.Body
+                )
+            };
+
+        var sizes =
+            ScreenshotTranslationTypography.CalculatePreferredFontSizes(
+                regions,
+                96d
+            );
+
+        Assert.Equal(
+            12.6d,
+            sizes["body"],
+            6
+        );
+
+        Assert.Equal(
+            13.608d,
+            sizes["outlier"],
+            6
+        );
+    }
+
+    [Fact]
     public void CalculatePreferredFontSizes_UsesCompactNumberedSectionLabels()
     {
         var regions =
@@ -243,6 +282,43 @@ public sealed class ScreenshotTranslationTypographyTests
         Assert.True(
             sizes["section"] <
             sizes["body"]
+        );
+    }
+
+    [Theory]
+    [InlineData("Paragraph 1.")]
+    [InlineData("第1段.")]
+    public void CalculatePreferredFontSizes_UsesCompactNumberedLabelsWithPeriod(
+        string title
+    )
+    {
+        var regions =
+            new[]
+            {
+                CreateRegion(
+                    "section",
+                    title,
+                    40,
+                    ScreenshotTextRole.Title
+                ),
+                CreateRegion(
+                    "body",
+                    "正文",
+                    40,
+                    ScreenshotTextRole.Body
+                )
+            };
+
+        var sizes =
+            ScreenshotTranslationTypography.CalculatePreferredFontSizes(
+                regions,
+                96d
+            );
+
+        Assert.Equal(
+            20.664d,
+            sizes["section"],
+            6
         );
     }
 
