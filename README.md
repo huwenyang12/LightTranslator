@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/huwenyang12/LightTranslator/releases/latest">
-    <img src="https://img.shields.io/github/v/release/huwenyang12/LightTranslator?label=最新版本" alt="最新版本" />
+    <img src="https://img.shields.io/github/v/release/huwenyang12/LightTranslator?label=release" alt="Latest release" />
   </a>
   <img src="https://img.shields.io/badge/platform-Windows-0078D4" alt="Windows" />
   <img src="https://img.shields.io/badge/.NET-8.0-512BD4" alt=".NET 8" />
