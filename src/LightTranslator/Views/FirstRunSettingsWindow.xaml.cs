@@ -44,6 +44,19 @@ public partial class FirstRunSettingsWindow
                 ? "首次设置"
                 : "设置";
 
+        var displayVersion =
+            ApplicationVersionDisplay.FromAssembly(
+                typeof(FirstRunSettingsWindow).Assembly
+            );
+
+        SettingsVersionTextBlock.Text =
+            $"v{displayVersion}";
+
+        System.Windows.Automation.AutomationProperties.SetName(
+            SettingsVersionTextBlock,
+            $"版本 v{displayVersion}"
+        );
+
         TextTranslationHotkeyBox.Text =
             FormatHotkey(
                 _viewModel.TextTranslationHotkey

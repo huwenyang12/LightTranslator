@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -99,6 +100,33 @@ public sealed class FirstRunSettingsWindowVisualTests
                 Assert.True(iconSource.PixelHeight > 0);
                 Assert.Equal(20d, appIcon.Width);
                 Assert.Equal(20d, appIcon.Height);
+
+                var versionText =
+                    Assert.IsType<TextBlock>(
+                        window.FindName(
+                            "SettingsVersionTextBlock"
+                        )
+                    );
+
+                Assert.Equal(
+                    "v0.3.0",
+                    versionText.Text
+                );
+                Assert.Equal(11d, versionText.FontSize);
+                Assert.Equal(
+                    new Thickness(28, 0, 0, 0),
+                    versionText.Margin
+                );
+                Assert.Same(
+                    titleBar,
+                    versionText.Parent
+                );
+                Assert.Equal(
+                    "版本 v0.3.0",
+                    AutomationProperties.GetName(
+                        versionText
+                    )
+                );
 
                 var settingsCloseButton =
                     Assert.IsType<Button>(

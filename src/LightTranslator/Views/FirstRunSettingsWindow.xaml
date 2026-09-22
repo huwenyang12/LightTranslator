@@ -163,6 +163,15 @@
                 </Image.Source>
             </Image>
 
+            <TextBlock
+                x:Name="SettingsVersionTextBlock"
+                Margin="28,0,0,0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                FontSize="11"
+                Foreground="{DynamicResource Brush.Text.Secondary}"
+                IsHitTestVisible="False"/>
+
             <Button
                 x:Name="SettingsCloseButton"
                 HorizontalAlignment="Right"
