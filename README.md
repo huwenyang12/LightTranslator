@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/huwenyang12/LightTranslator/releases/latest">
-    <img src="https://img.shields.io/github/v/release/huwenyang12/LightTranslator?label=release" alt="Latest release" />
+  <a href="https://github.com/huwenyang12/bridgo/releases/latest">
+    <img src="https://img.shields.io/github/v/release/huwenyang12/bridgo?label=release" alt="Latest release" />
   </a>
   <img src="https://img.shields.io/badge/platform-Windows-0078D4" alt="Windows" />
   <img src="https://img.shields.io/badge/.NET-8.0-512BD4" alt=".NET 8" />
@@ -54,7 +54,7 @@
 
 ## 下载与安装
 
-1. 打开 [Releases](https://github.com/huwenyang12/LightTranslator/releases/latest)。
+1. 打开 [Releases](https://github.com/huwenyang12/bridgo/releases/latest)。
 2. 下载最新的 `Bridgo-*-win-x64.zip`。
 3. 将压缩包完整解压到任意目录。
 4. 运行 `Bridgo.exe`。
@@ -106,7 +106,7 @@
 ### 本地构建
 
 ```powershell
-git clone https://github.com/huwenyang12/LightTranslator.git
+git clone https://github.com/huwenyang12/bridgo.git
 cd LightTranslator
 dotnet restore
 dotnet build LightTranslator.sln -c Release
@@ -130,7 +130,7 @@ LightTranslator.sln
 
 ## 问题反馈
 
-如果遇到翻译失败、OCR 识别异常、快捷键冲突或界面显示问题，请在 [Issues](https://github.com/huwenyang12/LightTranslator/issues) 中提交反馈，并尽量附上：
+如果遇到翻译失败、OCR 识别异常、快捷键冲突或界面显示问题，请在 [Issues](https://github.com/huwenyang12/bridgo/issues) 中提交反馈，并尽量附上：
 
 - Windows 版本。
 - 语桥版本。
@@ -139,4 +139,4 @@ LightTranslator.sln
 
 ## 版本记录
 
-各版本更新内容请查看 [Releases](https://github.com/huwenyang12/LightTranslator/releases)。
+各版本更新内容请查看 [Releases](https://github.com/huwenyang12/bridgo/releases)。
