@@ -37,33 +37,20 @@
 
 ### 文本翻译
 
-> 📷 **截图待补充**：建议展示“输入原文、选择语言与查看翻译结果”的完整窗口。
+<img width="520" height="316" alt="image" src="https://github.com/user-attachments/assets/5301df26-7ec5-4c44-9561-8ddddf0e02f2" />
 
-<!--
-建议将截图保存为：docs/images/text-translation.png
-然后用下方内容替换上面的截图提示：
-![文本翻译窗口](docs/images/text-translation.png)
--->
 
 ### 截图翻译
 
-> 📷 **截图待补充**：建议展示“原始页面与翻译覆盖结果”，尽量包含多段文本。
+<img width="760" height="350" alt="image" src="https://github.com/user-attachments/assets/74875149-103e-4cda-a91e-497b0cadcda3" />
 
-<!--
-建议将截图保存为：docs/images/screenshot-translation.png
-然后用下方内容替换上面的截图提示：
-![截图翻译效果](docs/images/screenshot-translation.png)
--->
+<img width="760" height="350" alt="image" src="https://github.com/user-attachments/assets/04659d3b-1454-44b6-8312-fdbd75d68421" />
 
 ### 设置
 
-> 📷 **截图待补充**：建议展示 API Key、快捷键、截图语言方向和开机启动等设置项。截图前请隐藏 API Key。
+<img width="416" height="668" alt="image" src="https://github.com/user-attachments/assets/57d6cd14-f4fd-436e-a980-7fb04774c894" />
 
-<!--
-建议将截图保存为：docs/images/settings.png
-然后用下方内容替换上面的截图提示：
-![语桥设置窗口](docs/images/settings.png)
--->
+
 
 ## 下载与安装
 
