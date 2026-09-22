@@ -12,6 +12,8 @@ public partial class FirstRunSettingsWindow
     private readonly bool _isFirstRun;
     private readonly bool _isDialogMode;
     private readonly HotkeyService? _hotkeyService;
+    private readonly WindowDragGestureHandler
+        _windowDragGestureHandler;
 
     private bool _textTranslationHotkeyCaptureActive;
     private bool _screenshotTranslationHotkeyCaptureActive;
@@ -28,6 +30,12 @@ public partial class FirstRunSettingsWindow
     )
     {
         InitializeComponent();
+
+        _windowDragGestureHandler =
+            new WindowDragGestureHandler(
+                SettingsSurface,
+                DragMove
+            );
 
         SourceInitialized +=
             OnSourceInitialized;
@@ -101,31 +109,20 @@ public partial class FirstRunSettingsWindow
         );
     }
 
-    private void OnSettingsTitleBarMouseLeftButtonDown(
-        object sender,
-        System.Windows.Input.MouseButtonEventArgs e
-    )
-    {
-        if (
-            e.ChangedButton != System.Windows.Input.MouseButton.Left ||
-            e.ButtonState != System.Windows.Input.MouseButtonState.Pressed ||
-            e.OriginalSource is not System.Windows.DependencyObject source ||
-            !WindowDragHitTest.CanStartDrag(source)
-        )
-        {
-            return;
-        }
-
-        DragMove();
-        e.Handled = true;
-    }
-
     private void OnSettingsCloseButtonClick(
         object sender,
         System.Windows.RoutedEventArgs e
     )
     {
         Close();
+    }
+
+    private void OnSettingsMinimizeButtonClick(
+        object sender,
+        System.Windows.RoutedEventArgs e
+    )
+    {
+        WindowState = System.Windows.WindowState.Minimized;
     }
 
     private static string FormatHotkey(
@@ -439,6 +436,7 @@ public partial class FirstRunSettingsWindow
     {
         EndTextTranslationHotkeyCapture();
         EndScreenshotTranslationHotkeyCapture();
+        _windowDragGestureHandler.Dispose();
     }
 
     private async void OnSaveClick(

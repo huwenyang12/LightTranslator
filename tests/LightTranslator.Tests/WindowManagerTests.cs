@@ -63,6 +63,25 @@ public class WindowManagerTests
     }
 
     [Fact]
+    public void ToggleTranslateWindow_WhenMinimized_RestoresAndActivatesWindow()
+    {
+        var window = new FakeManagedWindow();
+
+        var manager = new WindowManager(
+            () => window
+        );
+
+        manager.ToggleTranslateWindow();
+        window.WindowState = WindowState.Minimized;
+
+        manager.ToggleTranslateWindow();
+
+        Assert.Equal(WindowState.Normal, window.WindowState);
+        Assert.Equal(1, window.ActivateCount);
+        Assert.Equal(0, window.CloseCount);
+    }
+
+    [Fact]
     public void ToggleTranslateWindow_AfterClose_RestoresLastSessionPlacement()
     {
         var firstWindow =
@@ -149,15 +168,27 @@ public class WindowManagerTests
         public WindowStartupLocation WindowStartupLocation { get; set; } =
             WindowStartupLocation.CenterScreen;
 
+        public WindowState WindowState { get; set; } =
+            WindowState.Normal;
+
         public int ShowCount { get; private set; }
 
         public int CloseCount { get; private set; }
+
+        public int ActivateCount { get; private set; }
 
         public event EventHandler? Closed;
 
         public void Show()
         {
             ShowCount++;
+        }
+
+        public bool Activate()
+        {
+            ActivateCount++;
+
+            return true;
         }
 
 

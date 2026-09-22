@@ -16,7 +16,11 @@ public interface IManagedWindow
 
     WindowStartupLocation WindowStartupLocation { get; set; }
 
+    WindowState WindowState { get; set; }
+
     void Show();
+
+    bool Activate();
 
     void Close();
 }

@@ -134,7 +134,10 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Grid KeyboardNavigation.TabNavigation="Continue">
+    <Grid
+        x:Name="SettingsSurface"
+        Background="Transparent"
+        KeyboardNavigation.TabNavigation="Continue">
         <Grid.RowDefinitions>
             <RowDefinition Height="44"/>
             <RowDefinition Height="Auto"/>
@@ -146,8 +149,7 @@
             x:Name="SettingsTitleBar"
             Grid.Row="0"
             Height="36"
-            Margin="16,8,16,0"
-            MouseLeftButtonDown="OnSettingsTitleBarMouseLeftButtonDown">
+            Margin="16,8,16,0">
             <Image
                 x:Name="SettingsAppIcon"
                 Width="20"
@@ -172,17 +174,38 @@
                 Foreground="{DynamicResource Brush.Text.Secondary}"
                 IsHitTestVisible="False"/>
 
-            <Button
-                x:Name="SettingsCloseButton"
+            <StackPanel
                 HorizontalAlignment="Right"
                 VerticalAlignment="Center"
-                Style="{StaticResource Style.Button.TitleBar}"
-                Content="×"
-                FontSize="20"
-                FontWeight="Light"
-                IsTabStop="False"
-                automation:AutomationProperties.Name="关闭"
-                Click="OnSettingsCloseButtonClick"/>
+                Orientation="Horizontal">
+                <Button
+                    x:Name="SettingsMinimizeButton"
+                    Margin="0,0,4,0"
+                    Style="{StaticResource Style.Button.TitleBar}"
+                    IsTabStop="False"
+                    automation:AutomationProperties.Name="最小化"
+                    Click="OnSettingsMinimizeButtonClick">
+                    <Border
+                        Width="10"
+                        Height="1"
+                        Background="{DynamicResource Brush.Text.Primary}"
+                        CornerRadius="0.5"
+                        SnapsToDevicePixels="True">
+                        <Border.RenderTransform>
+                            <TranslateTransform Y="2"/>
+                        </Border.RenderTransform>
+                    </Border>
+                </Button>
+                <Button
+                    x:Name="SettingsCloseButton"
+                    Style="{StaticResource Style.Button.TitleBar}"
+                    Content="×"
+                    FontSize="20"
+                    FontWeight="Light"
+                    IsTabStop="False"
+                    automation:AutomationProperties.Name="关闭"
+                    Click="OnSettingsCloseButtonClick"/>
+            </StackPanel>
         </Grid>
 
         <StackPanel Grid.Row="1" Margin="20,6,20,12">

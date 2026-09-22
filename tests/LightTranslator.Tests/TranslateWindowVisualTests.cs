@@ -106,7 +106,7 @@ public sealed class TranslateWindowVisualTests
     }
 
     [Fact]
-    public void Header_ShowsBrandAndCloseButtonThatClosesWindow()
+    public void Header_WindowButtonsMinimizeAndCloseWindow()
     {
         RunOnSta(
             () =>
@@ -141,10 +141,32 @@ public sealed class TranslateWindowVisualTests
                     Assert.IsType<Button>(
                         window.FindName("TranslationCloseButton")
                     );
+                var minimizeButton =
+                    Assert.IsType<Button>(
+                        window.FindName("TranslationMinimizeButton")
+                    );
 
                 Assert.Equal(28d, closeButton.Width);
                 Assert.Equal(28d, closeButton.Height);
                 Assert.Null(closeButton.ToolTip);
+                Assert.Equal(28d, minimizeButton.Width);
+                Assert.Equal(28d, minimizeButton.Height);
+                Assert.Null(minimizeButton.ToolTip);
+
+                var minimizeGlyph =
+                    Assert.IsType<Border>(
+                        minimizeButton.Content
+                    );
+
+                Assert.Equal(10d, minimizeGlyph.Width);
+                Assert.Equal(1d, minimizeGlyph.Height);
+
+                var minimizeGlyphOffset =
+                    Assert.IsType<TranslateTransform>(
+                        minimizeGlyph.RenderTransform
+                    );
+
+                Assert.Equal(2d, minimizeGlyphOffset.Y);
 
                 var sharedTitleBarButtonStyle =
                     window.TryFindResource("Style.Button.TitleBar");
@@ -154,8 +176,22 @@ public sealed class TranslateWindowVisualTests
                     sharedTitleBarButtonStyle,
                     closeButton.Style
                 );
+                Assert.Same(
+                    sharedTitleBarButtonStyle,
+                    minimizeButton.Style
+                );
 
                 window.Show();
+                minimizeButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent)
+                );
+
+                Assert.Equal(
+                    WindowState.Minimized,
+                    window.WindowState
+                );
+
+                window.WindowState = WindowState.Normal;
                 closeButton.RaiseEvent(
                     new RoutedEventArgs(Button.ClickEvent)
                 );

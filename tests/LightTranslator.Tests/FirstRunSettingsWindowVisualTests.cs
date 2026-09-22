@@ -109,7 +109,7 @@ public sealed class FirstRunSettingsWindowVisualTests
                     );
 
                 Assert.Equal(
-                    "v0.3.0",
+                    "v0.3.1",
                     versionText.Text
                 );
                 Assert.Equal(11d, versionText.FontSize);
@@ -122,7 +122,7 @@ public sealed class FirstRunSettingsWindowVisualTests
                     versionText.Parent
                 );
                 Assert.Equal(
-                    "版本 v0.3.0",
+                    "版本 v0.3.1",
                     AutomationProperties.GetName(
                         versionText
                     )
@@ -132,7 +132,27 @@ public sealed class FirstRunSettingsWindowVisualTests
                     Assert.IsType<Button>(
                         window.FindName("SettingsCloseButton")
                     );
+                var settingsMinimizeButton =
+                    Assert.IsType<Button>(
+                        window.FindName("SettingsMinimizeButton")
+                    );
                 Assert.Null(settingsCloseButton.ToolTip);
+                Assert.Null(settingsMinimizeButton.ToolTip);
+
+                var minimizeGlyph =
+                    Assert.IsType<Border>(
+                        settingsMinimizeButton.Content
+                    );
+
+                Assert.Equal(10d, minimizeGlyph.Width);
+                Assert.Equal(1d, minimizeGlyph.Height);
+
+                var minimizeGlyphOffset =
+                    Assert.IsType<TranslateTransform>(
+                        minimizeGlyph.RenderTransform
+                    );
+
+                Assert.Equal(2d, minimizeGlyphOffset.Y);
 
                 var sharedTitleBarButtonStyle =
                     window.TryFindResource("Style.Button.TitleBar");
@@ -141,6 +161,10 @@ public sealed class FirstRunSettingsWindowVisualTests
                 Assert.Same(
                     sharedTitleBarButtonStyle,
                     settingsCloseButton.Style
+                );
+                Assert.Same(
+                    sharedTitleBarButtonStyle,
+                    settingsMinimizeButton.Style
                 );
 
                 Assert.IsType<CheckBox>(
@@ -359,6 +383,37 @@ public sealed class FirstRunSettingsWindowVisualTests
                 );
 
                 Assert.False(window.IsVisible);
+            }
+        );
+    }
+
+    [Fact]
+    public void MinimizeButton_MinimizesSettingsWindow()
+    {
+        RunOnSta(
+            () =>
+            {
+                var window =
+                    new FirstRunSettingsWindow(
+                        new FirstRunSettingsViewModel(),
+                        isFirstRun: false
+                    );
+                var minimizeButton =
+                    Assert.IsType<Button>(
+                        window.FindName("SettingsMinimizeButton")
+                    );
+
+                window.Show();
+                minimizeButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent)
+                );
+
+                Assert.Equal(
+                    WindowState.Minimized,
+                    window.WindowState
+                );
+
+                window.Close();
             }
         );
     }

@@ -24,6 +24,19 @@ public sealed class WindowManager
     {
         if (_translateWindow is not null)
         {
+            if (
+                _translateWindow.WindowState ==
+                System.Windows.WindowState.Minimized
+            )
+            {
+                _translateWindow.WindowState =
+                    System.Windows.WindowState.Normal;
+
+                _translateWindow.Activate();
+
+                return;
+            }
+
             _translateWindow.Close();
 
             return;

@@ -141,6 +141,14 @@ public partial class TranslateWindow
         Close();
     }
 
+    private void OnMinimizeButtonClick(
+        object sender,
+        RoutedEventArgs e
+    )
+    {
+        WindowState = WindowState.Minimized;
+    }
+
     private bool TryCopyTranslation()
     {
         var translatedText =
