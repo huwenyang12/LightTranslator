@@ -70,6 +70,194 @@ public sealed class ScreenshotTranslationCoordinatorTests
     }
 
     [Fact]
+    public async Task Toggle_MixedEnglishAndChinese_TranslatesOnlyEnglishRegion()
+    {
+        var fixture = CoordinatorFixture.Create();
+
+        fixture.Ocr.Blocks =
+        [
+            new OcrBlock(
+                "english",
+                "Tell me your topic and tone.",
+                0.96,
+                new PixelRect(10, 10, 240, 24)
+            ),
+            new OcrBlock(
+                "chinese",
+                "帮我用 DeepSeek 想个翻译软件的中文名",
+                0.97,
+                new PixelRect(10, 90, 240, 24)
+            )
+        ];
+
+        fixture.Translator.Result =
+            new Dictionary<string, string>
+            {
+                ["region-0001"] = "告诉我你的主题和语气。",
+                ["region-0002"] = "不应渲染"
+            };
+
+        fixture.Coordinator.Toggle();
+
+        await fixture.ResultView.ResultsShown.Task.WaitAsync(
+            TimeSpan.FromSeconds(3)
+        );
+
+        var translatedBlock =
+            Assert.Single(
+                fixture.Translator.LastBlocks
+            );
+
+        Assert.Equal(
+            "Tell me your topic and tone.",
+            translatedBlock.Text
+        );
+
+        var renderedRegion =
+            Assert.Single(
+                fixture.ResultView.LastResults
+            );
+
+        Assert.Equal(
+            "告诉我你的主题和语气。",
+            renderedRegion.TranslatedText
+        );
+    }
+
+    [Fact]
+    public async Task Toggle_EnglishTarget_TranslatesOnlyChineseRegion()
+    {
+        var fixture =
+            CoordinatorFixture.Create(
+                AppSettings.CreateDefault() with
+                {
+                    ScreenshotTargetLanguage = "en"
+                }
+            );
+
+        fixture.Ocr.Blocks =
+        [
+            new OcrBlock(
+                "english",
+                "Tell me your topic and tone.",
+                0.96,
+                new PixelRect(10, 10, 240, 24)
+            ),
+            new OcrBlock(
+                "chinese",
+                "帮我想个翻译软件的中文名",
+                0.97,
+                new PixelRect(10, 90, 240, 24)
+            )
+        ];
+
+        fixture.Translator.Result =
+            new Dictionary<string, string>
+            {
+                ["region-0001"] = "Should not render",
+                ["region-0002"] = "Help me name a translation app."
+            };
+
+        fixture.Coordinator.Toggle();
+
+        await fixture.ResultView.ResultsShown.Task.WaitAsync(
+            TimeSpan.FromSeconds(3)
+        );
+
+        var translatedBlock =
+            Assert.Single(
+                fixture.Translator.LastBlocks
+            );
+
+        Assert.Equal(
+            "帮我想个翻译软件的中文名",
+            translatedBlock.Text
+        );
+    }
+
+    [Fact]
+    public async Task Toggle_JapaneseTarget_LeavesJapaneseRegionUntouched()
+    {
+        var fixture =
+            CoordinatorFixture.Create(
+                AppSettings.CreateDefault() with
+                {
+                    ScreenshotTargetLanguage = "ja"
+                }
+            );
+
+        fixture.Ocr.Blocks =
+        [
+            new OcrBlock(
+                "japanese",
+                "翻訳アプリの名前を考えてください",
+                0.97,
+                new PixelRect(10, 10, 240, 24)
+            ),
+            new OcrBlock(
+                "english",
+                "Tell me your topic and tone.",
+                0.96,
+                new PixelRect(10, 90, 240, 24)
+            )
+        ];
+
+        fixture.Translator.Result =
+            new Dictionary<string, string>
+            {
+                ["region-0001"] = "表示しない",
+                ["region-0002"] = "テーマと口調を教えてください。"
+            };
+
+        fixture.Coordinator.Toggle();
+
+        await fixture.ResultView.ResultsShown.Task.WaitAsync(
+            TimeSpan.FromSeconds(3)
+        );
+
+        var translatedBlock =
+            Assert.Single(
+                fixture.Translator.LastBlocks
+            );
+
+        Assert.Equal(
+            "Tell me your topic and tone.",
+            translatedBlock.Text
+        );
+    }
+
+    [Fact]
+    public async Task Toggle_AllRegionsAlreadyUseTargetLanguage_SkipsTranslation()
+    {
+        var fixture = CoordinatorFixture.Create();
+
+        fixture.Ocr.Blocks =
+        [
+            new OcrBlock(
+                "chinese",
+                "帮我想个翻译软件的中文名",
+                0.97,
+                new PixelRect(10, 10, 240, 24)
+            )
+        ];
+
+        fixture.Coordinator.Toggle();
+
+        await fixture.ResultView.ResultsShown.Task.WaitAsync(
+            TimeSpan.FromSeconds(3)
+        );
+
+        Assert.Equal(
+            0,
+            fixture.Translator.CallCount
+        );
+
+        Assert.Empty(
+            fixture.ResultView.LastResults
+        );
+    }
+
+    [Fact]
     public async Task Toggle_WhenTaskActive_CancelsAndClosesInsteadOfStartingAnother()
     {
         var fixture = CoordinatorFixture.Create();
@@ -235,7 +423,9 @@ public sealed class ScreenshotTranslationCoordinatorTests
 
     private sealed class CoordinatorFixture
     {
-        private CoordinatorFixture()
+        private CoordinatorFixture(
+            AppSettings? settings = null
+        )
         {
             var frame = new ScreenCaptureFrame(
                 CreateBitmap(400, 200),
@@ -281,7 +471,10 @@ public sealed class ScreenshotTranslationCoordinatorTests
             ResultFactory =
                 new FakeScreenshotResultViewFactory(ResultView);
             Settings =
-                new FakeSettingsService(AppSettings.CreateDefault());
+                new FakeSettingsService(
+                    settings ??
+                    AppSettings.CreateDefault()
+                );
             Coordinator = new ScreenshotTranslationCoordinator(
                 DisplayCapture,
                 CaptureView,
@@ -301,7 +494,10 @@ public sealed class ScreenshotTranslationCoordinatorTests
         public FakeScreenshotResultViewFactory ResultFactory { get; }
         public FakeSettingsService Settings { get; }
 
-        public static CoordinatorFixture Create() => new();
+        public static CoordinatorFixture Create(
+            AppSettings? settings = null
+        ) =>
+            new(settings);
 
         private static BitmapSource CreateBitmap(int width, int height)
         {
@@ -439,6 +635,7 @@ public sealed class ScreenshotTranslationCoordinatorTests
             Array.Empty<OcrBlock>();
         public string? LastSourceLanguage { get; private set; }
         public string? LastTargetLanguage { get; private set; }
+        public int CallCount { get; private set; }
 
         public Task<IReadOnlyDictionary<string, string>> TranslateAsync(
             IReadOnlyList<OcrBlock> blocks,
@@ -447,6 +644,7 @@ public sealed class ScreenshotTranslationCoordinatorTests
             CancellationToken cancellationToken = default
         )
         {
+            CallCount++;
             LastBlocks = blocks;
             LastSourceLanguage = sourceLanguage;
             LastTargetLanguage = targetLanguage;

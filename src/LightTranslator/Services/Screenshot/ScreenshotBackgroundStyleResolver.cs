@@ -175,11 +175,6 @@ public static class ScreenshotBackgroundStyleResolver
                     )
                 ) <= MaximumChannelRange;
 
-            if (!isFlat)
-            {
-                return Fallback;
-            }
-
             var normalizedMedianLuma =
                 CalculateLuma(
                     red,
@@ -187,6 +182,23 @@ public static class ScreenshotBackgroundStyleResolver
                     blue
                 ) /
                 255d;
+
+            if (!isFlat)
+            {
+                return
+                    normalizedMedianLuma >=
+                    LightBackgroundThreshold
+                        ? new ScreenshotBackgroundStyle(
+                            Color.FromArgb(
+                                255,
+                                red,
+                                green,
+                                blue
+                            ),
+                            LightForeground
+                        )
+                        : Fallback;
+            }
 
             return
                 new ScreenshotBackgroundStyle(

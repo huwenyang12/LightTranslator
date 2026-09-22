@@ -151,6 +151,41 @@ public sealed class ScreenshotBackgroundStyleResolverTests
     }
 
     [Fact]
+    public void Resolve_HighVarianceLightRegionUsesSampledLightFallback()
+    {
+        var style =
+            ScreenshotBackgroundStyleResolver.Resolve(
+                CreateCheckerboardBitmap(
+                    100,
+                    60,
+                    225,
+                    255
+                ),
+                new PixelRect(
+                    10,
+                    10,
+                    60,
+                    30
+                )
+            );
+
+        Assert.Equal(
+            Color.FromArgb(
+                255,
+                240,
+                240,
+                240
+            ),
+            style.Background
+        );
+
+        Assert.Equal(
+            Color.FromRgb(41, 41, 41),
+            style.Foreground
+        );
+    }
+
+    [Fact]
     public void Resolve_OutOfBoundsRegionUsesDeterministicFallback()
     {
         var style =
@@ -232,6 +267,22 @@ public sealed class ScreenshotBackgroundStyleResolverTests
         int height
     )
     {
+        return
+            CreateCheckerboardBitmap(
+                width,
+                height,
+                0,
+                255
+            );
+    }
+
+    private static BitmapSource CreateCheckerboardBitmap(
+        int width,
+        int height,
+        byte firstValue,
+        byte secondValue
+    )
+    {
         var pixels =
             new byte[
                 width *
@@ -248,8 +299,8 @@ public sealed class ScreenshotBackgroundStyleResolverTests
                         (x / 5) +
                         (y / 5)
                     ) % 2 == 0
-                        ? (byte)0
-                        : (byte)255;
+                        ? firstValue
+                        : secondValue;
 
                 var index =
                     (

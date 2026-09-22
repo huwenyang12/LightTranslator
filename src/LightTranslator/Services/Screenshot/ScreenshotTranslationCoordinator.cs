@@ -277,19 +277,6 @@ public sealed class ScreenshotTranslationCoordinator
                     blocks
                 );
 
-            var translationBlocks =
-                regions
-                    .Select(
-                        region =>
-                            new OcrBlock(
-                                region.Id,
-                                region.Text,
-                                region.Confidence,
-                                region.Bounds
-                            )
-                    )
-                    .ToArray();
-
             stage =
                 WorkflowStage.Translation;
 
@@ -308,13 +295,41 @@ public sealed class ScreenshotTranslationCoordinator
                 return;
             }
 
-            var translations =
-                await _textTranslator.TranslateAsync(
-                    translationBlocks,
-                    settings.ScreenshotSourceLanguage,
-                    settings.ScreenshotTargetLanguage,
-                    cancellationToken
-                );
+            var translationRegions =
+                regions
+                    .Where(
+                        region =>
+                            ScreenshotTranslationLanguageFilter.ShouldTranslate(
+                                region.Text,
+                                settings.ScreenshotTargetLanguage
+                            )
+                    )
+                    .ToArray();
+
+            var translationBlocks =
+                translationRegions
+                    .Select(
+                        region =>
+                            new OcrBlock(
+                                region.Id,
+                                region.Text,
+                                region.Confidence,
+                                region.Bounds
+                            )
+                    )
+                    .ToArray();
+
+            IReadOnlyDictionary<string, string> translations =
+                translationBlocks.Length == 0
+                    ? new Dictionary<string, string>(
+                        StringComparer.Ordinal
+                    )
+                    : await _textTranslator.TranslateAsync(
+                        translationBlocks,
+                        settings.ScreenshotSourceLanguage,
+                        settings.ScreenshotTargetLanguage,
+                        cancellationToken
+                    );
 
             if (!IsCurrent(
                     generation,
@@ -325,7 +340,7 @@ public sealed class ScreenshotTranslationCoordinator
             }
 
             var translatedRegions =
-                regions
+                translationRegions
                     .Select(
                         region =>
                         {
